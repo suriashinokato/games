@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>麻雀牌優劣クイズ</title>
+  <title>孤立牌優劣比較</title>
   <style>
     /* ===== カスタムプロパティ ===== */
     :root {
@@ -347,6 +347,8 @@
     }
     .commentary-inferior .commentary-label { color: var(--accent-red); }
     .commentary-superior .commentary-label { color: var(--accent-green); }
+    #commentary-inferior-text,
+    #commentary-superior-text { white-space: pre-wrap; }
 
     /* 次の問題ボタン */
     #next-btn {
@@ -500,6 +502,7 @@
       border-left: 3px solid var(--border-tile);
       padding-left: 10px;
       margin-top: 8px;
+      white-space: pre-wrap;
     }
     .review-commentary-inferior { border-left-color: var(--accent-red); }
     .review-commentary-superior { border-left-color: var(--accent-green); }
@@ -540,25 +543,25 @@
 
   <!-- ヘッダー（全画面共通） -->
   <header>
-    <h1>孤立牌優劣クイズ</h1>
-    <p>孤立牌の強弱を判断する力を鍛えよう</p>
+    <h1>孤立牌優劣比較</h1>
+    <p>内藤家ver.</p>
   </header>
 
   <!-- ===== ホーム画面 ===== -->
   <div id="screen-home" class="screen active">
     <div class="card">
       <p class="home-subtitle">
-        2枚の牌姿を見て、<strong>より劣る牌（先に切るべき牌）</strong>を選んでください。<br>
-        モードを選んでスタート。
+        2枚の牌姿のうち、<strong>残すべき牌（より優れている牌）</strong>を選んでください。<br>
+        モードを選んでスタート。ランダムで30問を解く方式です。
       </p>
 
       <div class="mode-buttons">
         <button class="btn-mode" id="btn-mode-19">
-          19牌クイズ
+          19牌
           <span class="mode-label" id="label-mode-19">1・9の孤立牌を比較</span>
         </button>
         <button class="btn-mode" id="btn-mode-28">
-          28牌クイズ
+          28牌
           <span class="mode-label" id="label-mode-28">2・8の孤立牌を比較</span>
         </button>
       </div>
@@ -610,13 +613,13 @@
       <div id="feedback-area">
         <div id="feedback-text"></div>
         <div id="commentary-box">
-          <div class="commentary-entry commentary-inferior">
-            <div class="commentary-label" id="commentary-inferior-label"></div>
-            <div id="commentary-inferior-text"></div>
-          </div>
           <div class="commentary-entry commentary-superior">
             <div class="commentary-label" id="commentary-superior-label"></div>
             <div id="commentary-superior-text"></div>
+          </div>
+          <div class="commentary-entry commentary-inferior">
+            <div class="commentary-label" id="commentary-inferior-label"></div>
+            <div id="commentary-inferior-text"></div>
           </div>
         </div>
         <button id="next-btn">次の問題 →</button>
@@ -674,21 +677,86 @@
       { id: '124', image: 'images/124.png', label: '124', rank: 6,
         commentary: '2は複合ターツ（3の2度受け）、3は弱い4連形。ヘッドが無い1シャンテンの形によっては孤立1より価値が上がる。' },
       { id: '1224', image: 'images/1224.png', label: '1224', rank: 7,
-        commentary: '3の2度受け。12234のペンチャンカンチャンは少し良い連続形。' }
-    ],
+        commentary: '3の2度受け。12234のペンチャンカンチャンは少し良い連続形。' },
+      { id: '157', image: 'images/157.png', label: '157', rank: 8,
+        commentary: '3は5にリャンカンの受入。2は単独ターツとして機能する（2度受けではない）。' },
+      { id: '1579', image: 'images/1579.png', label: '1579', rank: 9,
+        commentary: '3引きは愚形だが、5枚形で無駄は少ない。2,3は一通が見える。' },
+      { id: '156', image: 'images/156.png', label: '156', rank: 10,
+        commentary: '2は単独ターツ、3も単独ターツ。しかし4のリャンメン変化の牌が56に吸収される。' },
+      { id: '孤立1', image: 'images/1.png', label: '孤立1', rank: 11,
+        commentary: 'シンプルに2,3で単独ターツ。' },
+      { id: '134', image: 'images/134.png', label: '134', rank: 12,
+        commentary: `孤立1と2,3,4,5を引いたときを比較すると、
+- 12,1234ペンチャン＜4の浮き牌、連続形
+- 13,1334カンチャン＞25の2度受け
+- 14,13441が切られる＜カンチャン＋ヘッド
+- 15,1345リャンカン＜＜強い連続系` },
+      { id: '1123', image: 'images/1123.png', label: '1123', rank: 13,
+        commentary: '14で1面子＋1雀頭、23で連続形（一盃口）を作る。' },
+      { id: '1567', image: 'images/1567.png', label: '1567', rank: 14,
+        commentary: `23で単独ターツ、13567なら変化の強いカンチャンになる。1と面子は678まで離れるとお互い影響せず、近ければ近いほど有効。
+1234>1345>1456>1567` },
+      { id: '1456', image: 'images/1456.png', label: '1456', rank: 15,
+        commentary: '3で13456ならより変化の強いカンチャンに。' },
+      { id: '14556', image: 'images/14556.png', label: '14556', rank: 16,
+        commentary: '3でリャンメンカンチャン（良形）。※真ん中4556が両端19に有効なのは盲点かも。' },
+      { id: '15', image: 'images/15.png', label: '15', rank: 17,
+        commentary: '1が唯一作れる準良形のリャンカンが作れる。' },
+      { id: '1346', image: 'images/1346.png', label: '1346', rank: 18,
+        commentary: '2で面子化、5で変化の強いカンチャンになる。' },
+    { id: '孤立2', image: 'images/2.png', label: '孤立2', rank: 19,
+      commentary: 'なし' },
+    { id: '13468', image: 'images/13468.png', label: '13468', rank: 20,
+      commentary: '2,5でリャンカン（準良形）ができる。孤立2からは良形（リャンメン）は1種しかできないので孤立2より強い。' },
+          { id: '1345', image: 'images/1345.png', label: '1345', rank: 21,
+            commentary: '2でリャンメン、6で変化の強いカンチャンができるのではっきり孤立2より強い。' },
+          { id: '13455', image: 'images/13455.png', label: '13455', rank: 22,
+            commentary: '2で123455両面対子。3で133455一盃口狙い。6で134556両面カンチャン。' }
+        ],
     '28': [
-      { id: '2m', image: 'images/2m.png', label: '2萬', rank: 1,
-        commentary: '2萬が劣る理由をここに入力してください。' },
-      { id: '8m', image: 'images/8m.png', label: '8萬', rank: 2,
-        commentary: '8萬が劣る理由をここに入力してください。' },
-      { id: '2p', image: 'images/2p.png', label: '2筒', rank: 3,
-        commentary: '2筒が劣る理由をここに入力してください。' },
-      { id: '8p', image: 'images/8p.png', label: '8筒', rank: 4,
-        commentary: '8筒が劣る理由をここに入力してください。' },
-      { id: '2s', image: 'images/2s.png', label: '2索', rank: 5,
-        commentary: '2索が劣る理由をここに入力してください。' },
-      { id: '8s', image: 'images/8s.png', label: '8索', rank: 6,
-        commentary: '8索が劣る理由をここに入力してください。' }
+      { id: '245', image: 'images/245.png', label: '245', rank: 1,
+        commentary: '3が完全に45に使われる。' },
+      { id: '258', image: 'images/258.png', label: '258', rank: 2,
+        commentary: '147＜14と同様の理屈で25より弱い。' },
+      { id: '25', image: 'images/25.png', label: '25', rank: 3,
+        commentary: 'スジなので受入がかぶる。' },
+      { id: '257', image: 'images/257.png', label: '257', rank: 4,
+        commentary: '4で2457の特殊良形への変化がある。3引いても4が2度受け。' },
+      { id: '2579', image: 'images/2579.png', label: '2579', rank: 5,
+        commentary: '4で24579の特殊良形への変化がある。3引いても4が2度受け。' },
+      { id: '256', image: 'images/256.png', label: '256', rank: 6,
+        commentary: '3引いても4が2度受け。' },
+      { id: '255', image: 'images/255.png', label: '255', rank: 7,
+        commentary: '3で純正両面。' },
+      { id: '268', image: 'images/268.png', label: '268', rank: 8,
+        commentary: '3で純正両面。4でリャンカン（西ヨーロッパ）どちらのリャンカンに取るか選べる。' },
+      { id: '26', image: 'images/26.png', label: '26', rank: 9,
+        commentary: '26は有効牌がかぶっているが、4でリャンカン（準良形）。' },
+      { id: '267', image: 'images/267.png', label: '267', rank: 10,
+        commentary: '3で純正両面。4で2467になった後に5を引いても両面変化しない。' },
+      { id: '孤立2', image: 'images/2s.png', label: '孤立2', rank: 11,
+        commentary: '独立した2として、34が他に干渉せずに機能する。' },
+      { id: '2678', image: 'images/2678.png', label: '2678', rank: 12,
+        commentary: '4で24678となり変化の強い形。' },
+      { id: '2567', image: 'images/2567.png', label: '2567', rank: 13,
+        commentary: '4で24567の変化の強いカンチャン。' },
+      { id: '25667', image: 'images/25667.png', label: '25667', rank: 14,
+        commentary: '4でリャンメン・カンチャン。' },
+      { id: '2457', image: 'images/2457.png', label: '2457', rank: 15,
+        commentary: '3or6を引くと変化の強いカンチャン。2面子候補になるから2を払えない。' },
+      { id: '24579', image: 'images/24579.png', label: '24579', rank: 16,
+        commentary: '3or6で面子＋リャンカンができる。2面子候補になるから2を払えない。' },
+      { id: '2456', image: 'images/2456.png', label: '2456', rank: 17,
+        commentary: '3で三面張、7で強いカンチャン。リャンメンが2つできる孤立3～7よりは下。' },
+      { id: '2234', image: 'images/2234.png', label: '2234', rank: 18,
+        commentary: '連続形を作り易い。2456はカンチャンを作り易い一方2234は頭を作り易い。ヘッドがすでに固定なら2456の方が強い。' },
+      { id: '孤立3', image: 'images/3s.png', label: '孤立3', rank: 19,
+        commentary: '説明不要で強い浮牌。' },
+      { id: '24', image: 'images/24.png', label: '24', rank: 20,
+        commentary: '愚形であっても孤立牌より強い。' },
+      { id: '246', image: 'images/246.png', label: '246', rank: 21,
+        commentary: 'リャンカンはテンパイまで払えない。' }
     ]
   };
 
@@ -906,7 +974,7 @@
     state.answered = true;
 
     const q         = state.questions[state.currentIndex];
-    const isCorrect = (chosen === q.inferior);
+    const isCorrect = (chosen !== q.inferior); // 残すべき牌（優る牌）が正解
 
     if (isCorrect) {
       state.correctCount++;
@@ -935,9 +1003,9 @@
     slotA.classList.add('answered');
     slotB.classList.add('answered');
 
-    // 正解スロット = inferior 牌
-    const correctSlot = (q.inferior === 'A') ? slotA : slotB;
-    const wrongSlot   = (q.inferior === 'A') ? slotB : slotA;
+    // 正解スロット = superior 牌（残すべき牌）
+    const correctSlot = (q.inferior === 'A') ? slotB : slotA;
+    const wrongSlot   = (q.inferior === 'A') ? slotA : slotB;
 
     // 選んだスロット
     const chosenSlot  = (chosen === 'A') ? slotA : slotB;
@@ -948,9 +1016,9 @@
     } else {
       chosenSlot.classList.add('wrong');
       document.getElementById('badge-' + chosen.toLowerCase()).textContent = '✕';
-      // 正解も緑で表示
+      // 正解（優る牌）も緑で表示
       correctSlot.classList.add('correct');
-      const correctKey = (q.inferior === 'A') ? 'a' : 'b';
+      const correctKey = (q.inferior === 'A') ? 'b' : 'a';
       document.getElementById('badge-' + correctKey).textContent = '○';
     }
 
@@ -1076,8 +1144,8 @@
         superiorTile.label + '</span>' + q.superiorCommentary;
 
       item.appendChild(tilesDiv);
-      item.appendChild(commInf);
       item.appendChild(commSup);
+      item.appendChild(commInf);
       list.appendChild(item);
     });
   }
@@ -1113,18 +1181,15 @@
     const data = loadStorage();
     ['19', '28'].forEach(function(mode) {
       const d      = data[mode];
-      const tiles  = TILES[mode] || [];
-      // C(N,2) = N*(N-1)/2
-      const total  = Math.floor(tiles.length * (tiles.length - 1) / 2);
       const bestEl = document.getElementById('home-best-' + mode);
       const attEl  = document.getElementById('home-attempts-' + mode);
 
       if (d.bestScore !== null) {
-        bestEl.textContent = d.bestScore + ' / ' + total;
+        bestEl.textContent = d.bestScore + ' / 30';
         attEl.textContent  = d.totalAttempts + '回挑戦';
       } else {
         bestEl.textContent = '—';
-        attEl.textContent  = total + '問・未挑戦';
+        attEl.textContent  = '30問・未挑戦';
       }
     });
   }
