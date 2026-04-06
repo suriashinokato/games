@@ -2,26 +2,90 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>WHITE COAT INVADERS</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #000;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       overflow: hidden;
       font-family: 'Courier New', monospace;
+      touch-action: none;
     }
     canvas {
       display: block;
       border: 1px solid #333;
     }
+    #touchControls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 110px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 24px;
+      z-index: 100;
+      pointer-events: none;
+      background: rgba(0,0,0,0.3);
+    }
+    .touch-side {
+      display: flex;
+      gap: 12px;
+      pointer-events: all;
+    }
+    .touch-btn {
+      background: rgba(0, 255, 65, 0.15);
+      border: 2px solid rgba(0, 255, 65, 0.5);
+      border-radius: 50%;
+      color: #00FF41;
+      font-size: 28px;
+      width: 75px;
+      height: 75px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      outline: none;
+    }
+    .touch-btn.fire {
+      background: rgba(255, 255, 0, 0.15);
+      border-color: rgba(255, 255, 0, 0.6);
+      color: #FFFF00;
+      width: 85px;
+      height: 85px;
+      font-size: 22px;
+    }
+    .touch-btn:active {
+      background: rgba(0, 255, 65, 0.4);
+    }
+    .touch-btn.fire:active {
+      background: rgba(255, 255, 0, 0.4);
+    }
   </style>
 </head>
 <body>
 <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<div id="touchControls">
+  <div class="touch-side">
+    <button class="touch-btn" id="btnLeft">◀</button>
+    <button class="touch-btn" id="btnRight">▶</button>
+  </div>
+  <div class="touch-side">
+    <button class="touch-btn fire" id="btnFire">FIRE</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -584,7 +648,7 @@ const Game = {
     if (Math.floor(this.blinkTimer / 500) % 2 === 0) {
       ctx.font = '22px "Courier New"';
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillText('PRESS SPACE TO START', W/2, 380);
+      ctx.fillText('SPACE / TAP TO START', W/2, 380);
     }
 
     // 操作説明
@@ -754,7 +818,7 @@ const Game = {
     if (Math.floor(this.blinkTimer / 600) % 2 === 0) {
       ctx.font = '18px "Courier New"';
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillText('PRESS SPACE TO RETRY', W/2, H/2 + 100);
+      ctx.fillText('SPACE / TAP TO RETRY', W/2, H/2 + 100);
     }
   }
 };
@@ -862,6 +926,60 @@ window.addEventListener('keydown', e => {
   }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ===== レスポンシブ対応 =====
+const touchControls = document.getElementById('touchControls');
+let touchControlsVisible = false;
+
+function resizeCanvas() {
+  const ctrlH = touchControlsVisible ? 115 : 0;
+  const scale = Math.min(
+    window.innerWidth / W,
+    (window.innerHeight - ctrlH) / H
+  );
+  canvas.style.width  = Math.floor(W * scale) + 'px';
+  canvas.style.height = Math.floor(H * scale) + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// タッチコントロール ボタン設定
+function setupTouchBtn(id, keyCode) {
+  const btn = document.getElementById(id);
+  ['touchstart', 'mousedown'].forEach(ev => {
+    btn.addEventListener(ev, e => {
+      e.preventDefault();
+      keys[keyCode] = true;
+      if (keyCode === 'Space') {
+        if (Game.state === 'START')     Game.start();
+        else if (Game.state === 'GAME_OVER') { Game.blinkTimer = 0; Game.start(); }
+      }
+    }, { passive: false });
+  });
+  ['touchend', 'touchcancel', 'mouseup'].forEach(ev => {
+    btn.addEventListener(ev, e => {
+      e.preventDefault();
+      keys[keyCode] = false;
+    }, { passive: false });
+  });
+}
+setupTouchBtn('btnLeft',  'ArrowLeft');
+setupTouchBtn('btnRight', 'ArrowRight');
+setupTouchBtn('btnFire',  'Space');
+
+// 初回タッチでコントロール表示
+window.addEventListener('touchstart', () => {
+  touchControls.style.display = 'flex';
+  touchControlsVisible = true;
+  resizeCanvas();
+}, { once: true });
+
+// キャンバスタップでスタート/リトライ
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (Game.state === 'START')     Game.start();
+  else if (Game.state === 'GAME_OVER') { Game.blinkTimer = 0; Game.start(); }
+}, { passive: false });
 
 // ===== ゲームループ =====
 let lastTimestamp = 0;
