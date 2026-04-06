@@ -587,6 +587,7 @@
   <!-- ===== クイズ画面 ===== -->
   <div id="screen-quiz" class="screen">
     <div class="card">
+      <button id="btn-back-home" style="background:none;border:none;padding:0 0 12px 0;font-family:var(--font);font-size:0.82rem;color:var(--text-sub);cursor:pointer;letter-spacing:0.06em;">← ホーム</button>
       <div id="progress-text">問題 1 / 1</div>
       <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
 
@@ -1226,13 +1227,13 @@
       startQuiz(state.mode);
     });
 
-    // ホームのスコアを初期表示 + ボタンに問題数を表示
+    // ホームのスコアを初期表示
     renderHomeScores();
-    ['19', '28'].forEach(function(mode) {
-      const tiles = TILES[mode] || [];
-      const total = Math.floor(tiles.length * (tiles.length - 1) / 2);
-      const el = document.getElementById('label-mode-' + mode);
-      if (el) el.textContent = total + '問（全組み合わせ）';
+
+    // 最初の画面に戻るボタン
+    document.getElementById('btn-back-home').addEventListener('click', function() {
+      renderHomeScores();
+      showScreen('screen-home');
     });
   }
 
