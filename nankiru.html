@@ -17,8 +17,10 @@
       --wrong: #e53935;
       --text: #e0e0e0;
       --text-dim: #888;
-      /* 14枚が画面内に収まるよう自動計算: (100vw - 画面padding32 - hand-tiles内padding16 - gap13本*4) / 14 */
-      --tile-w: min(60px, calc((100vw - 100px) / 14));
+      /* 14枚+スペーサー(0.4w)が画面内に収まるよう自動計算:
+         14w + 13gap(4px) + spacer(0.4w) + padding(16px) + screen-padding(32px) ≤ 100vw
+         14.4w ≤ 100vw - 100px → w ≤ (100vw - 100px) / 14.4 */
+      --tile-w: min(60px, calc((100vw - 100px) / 14.4));
       --tile-h: calc(var(--tile-w) * 1.4);
       --meld-w: min(44px, calc(var(--tile-w) * 0.74));
       --meld-h: calc(var(--meld-w) * 1.41);
@@ -155,6 +157,7 @@
     .hand-wrap { padding: 8px 0 16px; margin-bottom: 16px; }
 
     .hand-tiles { display: flex; gap: 4px; padding: 4px 8px; justify-content: center; flex-wrap: nowrap; }
+    .tsumo-spacer { width: calc(var(--tile-w) * 0.4); flex-shrink: 0; }
 
     .tile-slot {
       width: var(--tile-w); height: var(--tile-h); background: #f5f0e8; border-radius: 6px;
@@ -445,7 +448,8 @@ function renderQ() {
   const hasDora  = q.dora && q.dora.length > 0;
   const sBar = document.getElementById('situation-bar');
   sBar.style.display = (hasRound || hasDora) ? '' : 'none';
-  document.getElementById('q-round').textContent = q.round || '';
+  const roundText = [q.round, q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' ');
+  document.getElementById('q-round').textContent = roundText;
   const doraBlock = document.getElementById('dora-block');
   const doraEl    = document.getElementById('q-dora');
   doraEl.innerHTML = '';
@@ -468,7 +472,14 @@ function renderQ() {
   // 手牌
   const handEl = document.getElementById('hand-tiles');
   handEl.innerHTML = ''; handEl.className = 'hand-tiles';
+  const has14 = q.hand.length === 14;
   q.hand.forEach((code, i) => {
+    // 14枚手牌のとき、13枚目と14枚目（ツモ牌）の間にスペーサーを挿入
+    if (has14 && i === 13) {
+      const spacer = document.createElement('div');
+      spacer.className = 'tsumo-spacer';
+      handEl.appendChild(spacer);
+    }
     const slot = makeTile(code);
     slot.dataset.index = i;
     slot.addEventListener('click', () => onTileClick(i, code, q));

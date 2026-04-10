@@ -217,13 +217,17 @@
     }
     textarea.commentary-input:focus { outline: none; border-color: var(--accent); }
 
-    select.select-input {
+    select.select-input, input.num-input {
       background: var(--card); border: 2px solid rgba(255,255,255,0.1);
       border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 8px 12px;
-      transition: border-color 0.2s; cursor: pointer; min-width: 140px;
+      transition: border-color 0.2s; min-width: 140px; width: 100%;
     }
-    select.select-input:focus { outline: none; border-color: var(--accent); }
+    select.select-input { cursor: pointer; }
+    select.select-input:focus, input.num-input:focus { outline: none; border-color: var(--accent); }
     select.select-input option { background: var(--surface); }
+    input.num-input::placeholder { color: var(--text-dim); }
+    .row-fields { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row-fields > div { flex: 1; min-width: 120px; }
 
     .editor-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
@@ -337,16 +341,24 @@
   <!-- 局情報 -->
   <div class="section">
     <div class="section-title">局情報（任意）</div>
-    <label class="field-label" for="round-select">局</label>
-    <select class="select-input" id="round-select">
-      <option value="">（設定なし）</option>
-      <optgroup label="東場">
-        <option>東1局</option><option>東2局</option><option>東3局</option><option>東4局</option>
-      </optgroup>
-      <optgroup label="南場">
-        <option>南1局</option><option>南2局</option><option>南3局</option><option>南4局</option>
-      </optgroup>
-    </select>
+    <div class="row-fields">
+      <div>
+        <label class="field-label" for="round-select">局</label>
+        <select class="select-input" id="round-select">
+          <option value="">（設定なし）</option>
+          <optgroup label="東場">
+            <option>東1局</option><option>東2局</option><option>東3局</option><option>東4局</option>
+          </optgroup>
+          <optgroup label="南場">
+            <option>南1局</option><option>南2局</option><option>南3局</option><option>南4局</option>
+          </optgroup>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="turn-input">巡目（空欄で非表示）</label>
+        <input type="number" class="num-input" id="turn-input" min="1" max="18" placeholder="例: 5">
+      </div>
+    </div>
   </div>
 
   <!-- 解説 -->
@@ -386,7 +398,7 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 // ===== EDIT STATE =====
 let editState = {
   id: null, hand: [], correctAnswer: null,
-  dora: [], round: '', commentary: '',
+  dora: [], round: '', turn: '', commentary: '',
   melds: [],
   paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
 };
@@ -533,18 +545,20 @@ function openEditor(problem) {
     correctAnswer: problem.correctAnswer,
     dora: [...(problem.dora || [])],
     round: problem.round || '',
+    turn: problem.turn != null ? String(problem.turn) : '',
     commentary: problem.commentary || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     paletteTarget: 'hand'
   } : {
     id: null, hand: [], correctAnswer: null,
-    dora: [], round: '', commentary: '',
+    dora: [], round: '', turn: '', commentary: '',
     melds: [], paletteTarget: 'hand'
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
   document.getElementById('commentary').value = editState.commentary;
   document.getElementById('round-select').value = editState.round;
+  document.getElementById('turn-input').value = editState.turn;
 
   // 副露ビルダーを閉じた状態に
   meldDraft = { tiles: [], calledIndex: null };
@@ -839,6 +853,7 @@ function saveProblem() {
     dora:          [...editState.dora],
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
     round:         document.getElementById('round-select').value,
+    turn:          parseInt(document.getElementById('turn-input').value) || null,
     commentary:    document.getElementById('commentary').value.trim(),
     createdAt:     new Date().toISOString().slice(0, 10)
   };
