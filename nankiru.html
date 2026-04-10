@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>麻雀 何切る</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --card: #0f3460;
+      --accent: #c9a84c;
+      --accent-dim: rgba(201,168,76,0.15);
+      --correct: #4caf50;
+      --wrong: #e53935;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      /* 14枚が画面内に収まるよう自動計算: (100vw - 画面padding32 - hand-tiles内padding16 - gap13本*4) / 14 */
+      --tile-w: min(60px, calc((100vw - 100px) / 14));
+      --tile-h: calc(var(--tile-w) * 1.4);
+      --meld-w: min(44px, calc(var(--tile-w) * 0.74));
+      --meld-h: calc(var(--meld-w) * 1.41);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    .screen { width: 100%; max-width: 800px; padding: 24px 16px 48px; min-height: 100vh; }
+
+    /* ===== HOME ===== */
+    .home-title { text-align: center; font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; letter-spacing: 0.05em; padding-top: 32px; }
+    .home-subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 32px; }
+    .problem-count { text-align: center; font-size: 0.95rem; color: var(--text-dim); margin-bottom: 32px; }
+    .problem-count strong { color: var(--accent); font-size: 1.5rem; }
+
+    .btn-start {
+      display: block; width: 100%; max-width: 280px; margin: 0 auto 32px;
+      padding: 16px; background: var(--accent); color: #1a1a2e; border: none;
+      border-radius: 12px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-start:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.35; cursor: default; }
+
+    .score-card { background: var(--surface); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+    .score-card-title { color: var(--accent); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; margin-bottom: 12px; }
+    .score-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .score-row:last-child { border-bottom: none; }
+    .score-val { font-weight: 700; color: var(--accent); }
+
+    .admin-link { display: block; text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 24px; text-decoration: none; transition: color 0.2s; }
+    .admin-link:hover { color: var(--accent); }
+
+    /* ===== QUIZ ===== */
+    .quiz-header { margin-bottom: 14px; }
+    .progress-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; gap: 8px; }
+    .btn-home-quiz {
+      background: none; border: 1px solid var(--text-dim); color: var(--text-dim);
+      border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-home-quiz:hover { border-color: var(--accent); color: var(--accent); }
+    .progress-bar { height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.4s; }
+
+    /* 局情報・ドラ表示牌バー */
+    .situation-bar {
+      display: flex; align-items: flex-end; gap: 20px;
+      background: var(--surface); border-radius: 8px; padding: 10px 16px;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .situation-round { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; padding-bottom: 2px; }
+    .dora-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
+    .dora-tiles-wrap { display: flex; gap: 3px; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
+    .dora-tile {
+      width: 36px; height: 50px; background: #f5f0e8; border-radius: 4px; border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.58rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .dora-tile img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ===== 副露牌エリア ===== */
+    .melds-area {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      padding: 6px 8px 10px;
+      margin-bottom: 10px;
+    }
+
+    .meld-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      background: rgba(0,0,0,0.2);
+      padding: 5px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    /* 副露牌の通常スロット */
+    .meld-slot {
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .m-tile {
+      width: var(--meld-w);
+      height: var(--meld-h);
+      background: #f5f0e8;
+      border-radius: 4px;
+      border: 2px solid rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      color: #333;
+      font-weight: bold;
+      overflow: hidden;
+    }
+    .m-tile img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* 鳴いた牌（横向き）: ラッパーのサイズを回転後の見た目に合わせる */
+    .meld-slot.called {
+      width: var(--meld-h);   /* 回転後の視覚的な幅 = 元の高さ */
+      height: var(--meld-w);  /* 回転後の視覚的な高さ = 元の幅 */
+    }
+    .meld-slot.called .m-tile {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--meld-w);
+      height: var(--meld-h);
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+
+    /* 暗槓の裏向き牌 */
+    .meld-slot.back .m-tile {
+      background: #2a3b4c;
+      border-color: #1a2533;
+    }
+
+    .instruction { text-align: center; color: var(--text-dim); font-size: 0.95rem; margin-bottom: 14px; min-height: 1.4em; }
+
+    .hand-wrap { padding: 8px 0 16px; margin-bottom: 16px; }
+
+    .hand-tiles { display: flex; gap: 4px; padding: 4px 8px; justify-content: center; flex-wrap: nowrap; }
+
+    .tile-slot {
+      width: var(--tile-w); height: var(--tile-h); background: #f5f0e8; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      border: 3px solid transparent; transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      flex-shrink: 0; overflow: hidden; font-size: 0.7rem; color: #333; font-weight: bold;
+      position: relative; user-select: none;
+    }
+    .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: 0 8px 20px rgba(201,168,76,0.45); z-index: 1; }
+    .hand-tiles.answered .tile-slot { cursor: default; }
+
+    .tile-slot.correct { border-color: var(--correct); box-shadow: 0 0 14px rgba(76,175,80,0.6); animation: pulse-correct 0.45s ease; }
+    .tile-slot.wrong   { border-color: var(--wrong);   box-shadow: 0 0 14px rgba(229,57,53,0.6); animation: shake-wrong 0.4s ease; }
+
+    @keyframes pulse-correct { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.1) translateY(-8px); } 100% { transform: scale(1) translateY(0); } }
+    @keyframes shake-wrong   { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 60% { transform: translateX(6px); } }
+
+    .feedback-area { background: var(--surface); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; border-left: 4px solid transparent; }
+    .feedback-area.correct { border-left-color: var(--correct); }
+    .feedback-area.wrong   { border-left-color: var(--wrong); }
+    .feedback-result { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; }
+    .feedback-result.correct { color: var(--correct); }
+    .feedback-result.wrong   { color: var(--wrong); }
+    .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
+
+    .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+    .btn-next:hover { opacity: 0.85; }
+
+    /* ===== RESULT ===== */
+    .result-header { text-align: center; background: var(--surface); border-radius: 16px; padding: 28px 20px 20px; margin-bottom: 24px; }
+    .result-label { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 6px; }
+    .result-score { font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .result-badge { display: inline-block; background: var(--accent); color: #1a1a2e; font-size: 0.8rem; font-weight: 700; padding: 4px 14px; border-radius: 12px; margin-top: 10px; }
+    .result-sub { color: var(--text-dim); font-size: 0.85rem; margin-top: 10px; }
+
+    .review-header { color: var(--accent); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--card); }
+    .review-card { background: var(--surface); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+    .review-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .review-meta-round { font-size: 0.8rem; font-weight: 700; color: var(--accent); }
+    .review-meta-dora { display: flex; align-items: center; gap: 4px; }
+    .review-meta-dora-label { font-size: 0.72rem; color: var(--text-dim); }
+    .dora-tile.sm { width: 22px; height: 30px; font-size: 0.5rem; border-width: 1px; box-shadow: none; }
+
+    /* 復習の副露表示 */
+    .review-melds { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
+
+    .review-hand { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
+    .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; border-width: 2px; border-radius: 4px; }
+
+    .review-answer-label { display: inline-block; background: rgba(76,175,80,0.18); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+    .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; }
+
+    .result-actions { display: flex; gap: 12px; margin-top: 20px; }
+    .btn-ghost { flex: 1; padding: 13px; background: transparent; color: var(--text); border: 2px solid var(--text-dim); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { flex: 1; padding: 13px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+    .btn-primary:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+
+<!-- ===== HOME ===== -->
+<div id="screen-home" class="screen">
+  <h1 class="home-title">麻雀 何切る</h1>
+  <p class="home-subtitle">最善の一手を選べ</p>
+  <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
+  <button class="btn-start" id="btn-start" onclick="startQuiz()">スタート</button>
+  <div class="score-card">
+    <div class="score-card-title">成績</div>
+    <div class="score-row"><span>ベストスコア</span><span class="score-val" id="h-best">―</span></div>
+    <div class="score-row"><span>前回スコア</span><span class="score-val" id="h-last">―</span></div>
+    <div class="score-row"><span>挑戦回数</span><span class="score-val" id="h-tries">0 回</span></div>
+  </div>
+  <a href="nankiru-admin.html" class="admin-link">⚙ 問題管理</a>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div id="screen-quiz" class="screen" style="display:none">
+  <div class="quiz-header">
+    <div class="progress-meta">
+      <button class="btn-home-quiz" onclick="confirmGoHome()">← ホーム</button>
+      <span id="q-progress">問題 1 / 0</span>
+      <span id="q-score">0 正解</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="q-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 局情報・ドラ表示牌 -->
+  <div class="situation-bar" id="situation-bar" style="display:none">
+    <span class="situation-round" id="q-round"></span>
+    <div class="dora-block" id="dora-block" style="display:none">
+      <span class="dora-block-label">ドラ表示牌</span>
+      <div class="dora-tiles-wrap" id="q-dora"></div>
+    </div>
+  </div>
+
+  <!-- 副露牌エリア -->
+  <div class="melds-area" id="melds-area" style="display:none"></div>
+
+  <p class="instruction" id="q-instruction">どの牌を切りますか？</p>
+
+  <div class="hand-wrap">
+    <div class="hand-tiles" id="hand-tiles"></div>
+  </div>
+
+  <div class="feedback-area" id="feedback-area" style="display:none">
+    <div class="feedback-result" id="feedback-result"></div>
+    <div class="feedback-commentary" id="feedback-commentary"></div>
+  </div>
+
+  <button class="btn-next" id="btn-next" style="display:none" onclick="nextQ()">次の問題</button>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="screen-result" class="screen" style="display:none">
+  <div class="result-header">
+    <div class="result-label">スコア</div>
+    <div class="result-score" id="r-score">0 / 0</div>
+    <div id="r-badge" class="result-badge" style="display:none">★ 新記録！</div>
+    <div class="result-sub" id="r-sub"></div>
+  </div>
+  <div class="review-header" id="r-review-hdr">間違えた問題</div>
+  <div id="r-review"></div>
+  <div class="result-actions">
+    <button class="btn-ghost" onclick="goHome()">ホームへ</button>
+    <button class="btn-primary" onclick="startQuiz()">もう一度</button>
+  </div>
+</div>
+
+<script>
+// ===== TILE LABELS =====
+const TILE_LABELS = {
+  '1z':'東','2z':'南','3z':'西','4z':'北','5z':'白','6z':'發','7z':'中',
+  '0m':'赤5m','0p':'赤5p','0s':'赤5s'
+};
+const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
+function tileLabel(code) { return TILE_LABELS[code] || code; }
+
+// ===== STATE =====
+const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false };
+
+// ===== STORAGE =====
+const PROB_KEY  = 'nankiru_problems';
+const SCORE_KEY = 'nankiru_scores';
+function loadProblems() { return JSON.parse(localStorage.getItem(PROB_KEY) || '[]'); }
+function loadScores()   { return JSON.parse(localStorage.getItem(SCORE_KEY) || '{}'); }
+function saveScores(s)  { localStorage.setItem(SCORE_KEY, JSON.stringify(s)); }
+
+// ===== UTIL =====
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function showScreen(id) {
+  ['home','quiz','result'].forEach(s =>
+    document.getElementById('screen-' + s).style.display = s === id ? '' : 'none'
+  );
+}
+
+// 手牌タイル要素
+function makeTile(code, extraClass, small) {
+  const slot = document.createElement('div');
+  slot.className = 'tile-slot' + (extraClass ? ' ' + extraClass : '') + (small ? ' sm' : '');
+  slot.dataset.code = code;
+  const img = document.createElement('img');
+  img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+  img.onerror = function() {
+    this.style.display = 'none';
+    const sp = document.createElement('span'); sp.textContent = tileLabel(code); slot.appendChild(sp);
+  };
+  slot.appendChild(img);
+  return slot;
+}
+
+// ドラ表示牌要素
+function makeDoraEl(code, small) {
+  const d = document.createElement('div');
+  d.className = 'dora-tile' + (small ? ' sm' : '');
+  const img = document.createElement('img');
+  img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+  img.onerror = function() { this.style.display = 'none'; d.insertAdjacentText('beforeend', tileLabel(code)); };
+  d.appendChild(img);
+  return d;
+}
+
+// 副露グループ要素（回転あり）
+function makeMeldGroup(meld) {
+  const group = document.createElement('div');
+  group.className = 'meld-group';
+  group.title = MELD_TYPE_NAMES[meld.type] || meld.type;
+
+  meld.tiles.forEach((code, ti) => {
+    const isCalled = ti === meld.calledIndex;
+    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === meld.tiles.length - 1);
+
+    const slot = document.createElement('div');
+    slot.className = 'meld-slot' + (isCalled ? ' called' : '') + (isBack ? ' back' : '');
+
+    const tile = document.createElement('div');
+    tile.className = 'm-tile';
+
+    if (!isBack) {
+      const img = document.createElement('img');
+      img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+      img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
+      tile.appendChild(img);
+    }
+    slot.appendChild(tile);
+    group.appendChild(slot);
+  });
+
+  return group;
+}
+
+// 副露グループ（復習用・小サイズ）
+function makeMeldGroupSmall(meld) {
+  const group = document.createElement('div');
+  group.style.cssText = 'display:flex;align-items:flex-end;gap:2px;background:rgba(0,0,0,0.2);padding:3px 4px;border-radius:4px;flex-shrink:0';
+
+  const lbl = document.createElement('span');
+  lbl.style.cssText = 'font-size:0.65rem;color:var(--accent);font-weight:700;margin-right:2px;align-self:center';
+  lbl.textContent = MELD_TYPE_NAMES[meld.type] || '';
+  group.appendChild(lbl);
+
+  const smMeldW = 'calc(var(--meld-w) * 0.75)';
+  const smMeldH = 'calc(var(--meld-h) * 0.75)';
+
+  meld.tiles.forEach((code, ti) => {
+    const isCalled = ti === meld.calledIndex;
+    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === meld.tiles.length - 1);
+    const t = document.createElement('div');
+    t.style.cssText = 'width:' + (isCalled ? smMeldH : smMeldW) + ';height:' + (isCalled ? smMeldW : smMeldH) + ';background:' + (isBack ? '#2a3b4c' : '#f5f0e8') + ';border-radius:3px;border:1px solid ' + (isCalled ? 'var(--accent)' : 'rgba(0,0,0,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#333;overflow:hidden;flex-shrink:0';
+    if (!isBack) {
+      const img = document.createElement('img');
+      img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+      img.style.cssText = 'width:100%;height:100%;object-fit:contain';
+      img.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(code)); };
+      t.appendChild(img);
+    }
+    group.appendChild(t);
+  });
+  return group;
+}
+
+// ===== HOME =====
+function initHome() {
+  const problems = loadProblems();
+  document.getElementById('prob-count').textContent = problems.length;
+  document.getElementById('btn-start').disabled = problems.length === 0;
+  const sc = loadScores();
+  document.getElementById('h-best').textContent  = sc.bestScore !== undefined ? sc.bestScore + ' / ' + sc.bestTotal : '―';
+  document.getElementById('h-last').textContent  = sc.lastScore !== undefined ? sc.lastScore + ' / ' + sc.lastTotal : '―';
+  document.getElementById('h-tries').textContent = (sc.tries || 0) + ' 回';
+}
+function goHome() { initHome(); showScreen('home'); }
+function confirmGoHome() {
+  if (st.answered || confirm('クイズを中断してホームに戻りますか？')) goHome();
+}
+
+// ===== QUIZ =====
+function startQuiz() {
+  const src = loadProblems();
+  if (!src.length) { alert('問題が登録されていません'); return; }
+  st.problems = shuffle(src).slice(0, 20);
+  st.idx = 0; st.correct = 0; st.wrongs = [];
+  showScreen('quiz');
+  renderQ();
+}
+
+function renderQ() {
+  const q = st.problems[st.idx];
+  st.answered = false;
+
+  const total = st.problems.length, cur = st.idx + 1;
+  document.getElementById('q-progress').textContent = '問題 ' + cur + ' / ' + total;
+  document.getElementById('q-score').textContent    = st.correct + ' 正解';
+  document.getElementById('q-fill').style.width     = ((cur - 1) / total * 100) + '%';
+
+  // 局情報・ドラ
+  const hasRound = !!q.round;
+  const hasDora  = q.dora && q.dora.length > 0;
+  const sBar = document.getElementById('situation-bar');
+  sBar.style.display = (hasRound || hasDora) ? '' : 'none';
+  document.getElementById('q-round').textContent = q.round || '';
+  const doraBlock = document.getElementById('dora-block');
+  const doraEl    = document.getElementById('q-dora');
+  doraEl.innerHTML = '';
+  if (hasDora) {
+    q.dora.forEach(c => doraEl.appendChild(makeDoraEl(c)));
+    doraBlock.style.display = '';
+  } else {
+    doraBlock.style.display = 'none';
+  }
+
+  // 副露牌エリア
+  const meldsArea = document.getElementById('melds-area');
+  meldsArea.innerHTML = '';
+  const hasMelds = q.melds && q.melds.length > 0;
+  meldsArea.style.display = hasMelds ? '' : 'none';
+  if (hasMelds) {
+    q.melds.forEach(meld => meldsArea.appendChild(makeMeldGroup(meld)));
+  }
+
+  // 手牌
+  const handEl = document.getElementById('hand-tiles');
+  handEl.innerHTML = ''; handEl.className = 'hand-tiles';
+  q.hand.forEach((code, i) => {
+    const slot = makeTile(code);
+    slot.dataset.index = i;
+    slot.addEventListener('click', () => onTileClick(i, code, q));
+    handEl.appendChild(slot);
+  });
+
+  document.getElementById('feedback-area').style.display = 'none';
+  document.getElementById('btn-next').style.display      = 'none';
+  document.getElementById('q-instruction').style.display = '';
+}
+
+function onTileClick(idx, code, q) {
+  if (st.answered) return;
+  st.answered = true;
+
+  const ok = code === q.correctAnswer;
+  if (ok) st.correct++;
+  else     st.wrongs.push({ question: q, selectedCode: code });
+
+  const handEl = document.getElementById('hand-tiles');
+  handEl.classList.add('answered');
+  handEl.querySelectorAll('.tile-slot').forEach(slot => {
+    const si = +slot.dataset.index, sc = slot.dataset.code;
+    if (si === idx)                    slot.classList.add(ok ? 'correct' : 'wrong');
+    if (!ok && sc === q.correctAnswer) slot.classList.add('correct');
+  });
+
+  const fa = document.getElementById('feedback-area');
+  const fr = document.getElementById('feedback-result');
+  fr.textContent = ok ? '正解！' : '不正解';
+  fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
+  fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
+  document.getElementById('feedback-commentary').textContent = q.commentary || '';
+  fa.style.display = '';
+  document.getElementById('q-instruction').style.display = 'none';
+  document.getElementById('q-score').textContent = st.correct + ' 正解';
+  const btn = document.getElementById('btn-next');
+  btn.style.display = '';
+  btn.textContent   = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
+}
+
+function nextQ() {
+  st.idx++;
+  if (st.idx < st.problems.length) renderQ();
+  else showResult();
+}
+
+// ===== RESULT =====
+function showResult() {
+  const total = st.problems.length, correct = st.correct;
+  const sc = loadScores(), tries = (sc.tries || 0) + 1;
+  const isNew = sc.bestScore === undefined || correct > sc.bestScore;
+  saveScores({ bestScore: isNew ? correct : sc.bestScore, bestTotal: isNew ? total : sc.bestTotal, lastScore: correct, lastTotal: total, tries });
+
+  document.getElementById('r-score').textContent = correct + ' / ' + total;
+  document.getElementById('r-badge').style.display = isNew && correct > 0 ? '' : 'none';
+  document.getElementById('r-sub').textContent = '挑戦回数: ' + tries + ' 回';
+
+  const revEl = document.getElementById('r-review'), revHdr = document.getElementById('r-review-hdr');
+  revEl.innerHTML = '';
+
+  if (!st.wrongs.length) {
+    revHdr.style.display = 'none';
+    revEl.innerHTML = '<p style="text-align:center;color:var(--correct);font-size:1.05rem;padding:20px 0">全問正解！おめでとう！</p>';
+  } else {
+    revHdr.style.display = '';
+    revHdr.textContent   = '間違えた問題 (' + st.wrongs.length + '問)';
+
+    st.wrongs.forEach(({ question: q, selectedCode }) => {
+      const card = document.createElement('div');
+      card.className = 'review-card';
+
+      // 局情報・ドラ
+      if (q.round || (q.dora && q.dora.length)) {
+        const meta = document.createElement('div');
+        meta.className = 'review-meta';
+        if (q.round) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = q.round; meta.appendChild(rnd); }
+        if (q.dora && q.dora.length) {
+          const dw = document.createElement('div'); dw.className = 'review-meta-dora';
+          const dl = document.createElement('span'); dl.className = 'review-meta-dora-label'; dl.textContent = 'ドラ表示牌:'; dw.appendChild(dl);
+          q.dora.forEach(c => dw.appendChild(makeDoraEl(c, true)));
+          meta.appendChild(dw);
+        }
+        card.appendChild(meta);
+      }
+
+      // 副露
+      if (q.melds && q.melds.length) {
+        const mr = document.createElement('div');
+        mr.className = 'review-melds';
+        q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
+        card.appendChild(mr);
+      }
+
+      // 手牌
+      const handDiv = document.createElement('div');
+      handDiv.className = 'review-hand';
+      q.hand.forEach(c => {
+        const isOk = c === q.correctAnswer, isNg = c === selectedCode && !isOk;
+        handDiv.appendChild(makeTile(c, (isOk ? 'correct' : '') + (isNg ? ' wrong' : ''), true));
+      });
+      card.appendChild(handDiv);
+
+      // 正解・解説
+      const info = document.createElement('div');
+      const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
+      const cmt = document.createElement('p'); cmt.className = 'review-commentary'; cmt.textContent = q.commentary || '';
+      info.appendChild(ans); info.appendChild(cmt);
+      card.appendChild(info);
+      revEl.appendChild(card);
+    });
+  }
+
+  showScreen('result');
+}
+
+// ===== INIT =====
+initHome();
+showScreen('home');
+</script>
+</body>
+</html>

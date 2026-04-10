@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>何切る — 問題管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --card: #0f3460;
+      --accent: #c9a84c;
+      --accent-dim: rgba(201,168,76,0.15);
+      --correct: #4caf50;
+      --wrong: #e53935;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --tile-w: 52px;
+      --tile-h: 72px;
+    }
+    @media (max-width: 480px) {
+      :root { --tile-w: 40px; --tile-h: 56px; }
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+    }
+
+    .screen { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-title { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .page-back { color: var(--text-dim); font-size: 0.85rem; text-decoration: none; transition: color 0.2s; }
+    .page-back:hover { color: var(--accent); }
+
+    .btn { padding: 9px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-accent { background: var(--accent); color: #1a1a2e; }
+    .btn-ghost  { background: transparent; color: var(--text); border: 2px solid var(--text-dim); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: var(--wrong); color: #fff; }
+    .btn-sm     { padding: 5px 12px; font-size: 0.8rem; border-radius: 6px; }
+
+    /* ===== LIST ===== */
+    .list-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    #import-input { display: none; }
+
+    .problem-card { background: var(--surface); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    .problem-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+    .problem-meta { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-dim); }
+    .problem-hand-preview { display: flex; gap: 2px; overflow-x: auto; padding: 2px 0 6px; }
+
+    .tile-mini {
+      width: 30px; height: 42px; background: #f5f0e8; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.5rem; color: #333; font-weight: bold; flex-shrink: 0;
+      border: 2px solid transparent; overflow: hidden;
+    }
+    .tile-mini img { width: 100%; height: 100%; object-fit: contain; }
+    .tile-mini.correct-tile { border-color: var(--correct); }
+    .tile-mini.dora-tile    { border-color: var(--accent); }
+    .tile-mini.called-tile  { border-color: var(--accent); background: #fff8ec; }
+
+    .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .answer-badge { background: rgba(76,175,80,0.15); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .card-btns { display: flex; gap: 8px; }
+    .empty-msg { text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 0.95rem; }
+
+    /* ===== EDITOR ===== */
+    .section { background: var(--surface); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    .section-title { font-size: 0.85rem; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 14px; }
+
+    /* パレット追加先トグル */
+    .target-toggle { display: inline-flex; border: 2px solid var(--text-dim); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .target-btn { padding: 7px 16px; font-size: 0.82rem; font-weight: 600; background: transparent; color: var(--text-dim); border: none; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .target-btn.active { background: var(--accent); color: #1a1a2e; }
+    .target-btn:not(.active):hover { color: var(--text); }
+
+    /* 副露牌モード表示 */
+    .meld-mode-indicator {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* パレット */
+    .palette-group { margin-bottom: 12px; }
+    .palette-group-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; }
+    .palette-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .palette-tile {
+      width: 40px; height: 56px; background: #f5f0e8; border-radius: 5px; border: 2px solid transparent;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; color: #333; font-weight: bold;
+      transition: border-color 0.15s, transform 0.1s; overflow: hidden; flex-shrink: 0;
+    }
+    .palette-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .palette-tile:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-3px); }
+    .palette-tile:disabled { opacity: 0.3; cursor: default; transform: none; }
+    .palette-tile.red-tile { background: #fff0f0; }
+
+    /* 手牌エリア */
+    .hand-count { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
+    .hand-count strong { color: var(--text); }
+
+    .editor-hand, .mb-preview {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      min-height: 80px; padding: 8px; background: var(--card); border-radius: 8px; margin-bottom: 10px;
+    }
+    .editor-hand .e-tile, .mb-preview .mb-tile {
+      width: var(--tile-w); height: var(--tile-h); background: #f5f0e8;
+      border-radius: 6px; border: 3px solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative;
+      font-size: 0.7rem; color: #333; font-weight: bold; overflow: hidden;
+      transition: border-color 0.15s, box-shadow 0.15s; flex-shrink: 0;
+    }
+    .editor-hand .e-tile img,
+    .mb-preview .mb-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .editor-hand .e-tile:hover,
+    .mb-preview .mb-tile:hover { border-color: var(--accent); }
+    .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(76,175,80,0.5); }
+    .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px rgba(201,168,76,0.5); }
+    .remove-btn {
+      position: absolute; top: 1px; right: 1px; width: 16px; height: 16px;
+      background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%;
+      font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; display: none; padding: 0;
+    }
+    .editor-hand .e-tile:hover .remove-btn,
+    .mb-preview .mb-tile:hover .remove-btn { display: block; }
+
+    .answer-hint, .meld-hint { font-size: 0.82rem; color: var(--text-dim); }
+    .answer-hint strong, .meld-hint strong { color: var(--correct); }
+    .meld-hint strong { color: var(--accent); }
+
+    /* ドラエリア */
+    .dora-wrap { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--card); }
+    .dora-wrap-title { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
+    .dora-wrap-title strong { color: var(--text); }
+    .editor-dora {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      min-height: 56px; padding: 6px; background: var(--card); border-radius: 8px;
+    }
+    .editor-dora .d-tile {
+      width: 40px; height: 56px; background: #f5f0e8;
+      border-radius: 5px; border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; position: relative;
+      font-size: 0.6rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
+    }
+    .editor-dora .d-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .editor-dora .d-tile:hover .remove-btn { display: block; }
+
+    /* ===== 副露牌セクション ===== */
+    .meld-builder-box {
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .meld-builder-title { font-size: 0.82rem; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
+
+    /* 副露種別ラジオ */
+    .meld-type-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .mt-radio { display: none; }
+    .mt-label {
+      padding: 6px 14px; border-radius: 16px; border: 2px solid var(--text-dim);
+      cursor: pointer; font-size: 0.82rem; transition: all 0.2s;
+    }
+    .mt-radio:checked + .mt-label {
+      border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 600;
+    }
+
+    .meld-builder-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* 確定済み副露一覧 */
+    .meld-list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; background: var(--card); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;
+    }
+    .meld-list-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .meld-type-badge {
+      font-size: 0.75rem; font-weight: 700; color: var(--accent);
+      background: var(--accent-dim); padding: 2px 8px; border-radius: 8px; white-space: nowrap;
+    }
+    .meld-list-tiles { display: flex; align-items: flex-end; gap: 2px; }
+    .meld-list-tile {
+      width: 32px; height: 44px; background: #f5f0e8; border-radius: 4px; border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55rem; color: #333; overflow: hidden; flex-shrink: 0;
+    }
+    .meld-list-tile img { width: 100%; height: 100%; object-fit: contain; }
+    .meld-list-tile.called { border-color: var(--accent); background: #fff8ec; }
+
+    /* フォーム */
+    label.field-label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
+    textarea.commentary-input {
+      width: 100%; background: var(--card); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 10px 12px;
+      resize: vertical; min-height: 90px; font-family: inherit; line-height: 1.6; transition: border-color 0.2s;
+    }
+    textarea.commentary-input:focus { outline: none; border-color: var(--accent); }
+
+    select.select-input {
+      background: var(--card); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 8px 12px;
+      transition: border-color 0.2s; cursor: pointer; min-width: 140px;
+    }
+    select.select-input:focus { outline: none; border-color: var(--accent); }
+    select.select-input option { background: var(--surface); }
+
+    .editor-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- ===== LIST ===== -->
+<div id="screen-list" class="screen">
+  <div class="page-header">
+    <span class="page-title">問題管理</span>
+    <a href="nankiru.html" class="page-back">← クイズへ戻る</a>
+  </div>
+  <div class="list-actions">
+    <button class="btn btn-accent" onclick="openEditor(null)">＋ 新規問題を追加</button>
+    <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
+    <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
+  </div>
+  <div id="problem-list"></div>
+</div>
+
+<!-- ===== EDITOR ===== -->
+<div id="screen-editor" class="screen" style="display:none">
+  <div class="page-header">
+    <span class="page-title" id="editor-title">新規問題</span>
+    <button class="btn btn-ghost btn-sm" onclick="openList()">← 一覧に戻る</button>
+  </div>
+
+  <!-- 手牌・ドラ設定 -->
+  <div class="section">
+    <div class="section-title">手牌・ドラ設定</div>
+
+    <!-- パレット追加先トグル (副露モード中は非表示) -->
+    <div class="target-toggle" id="target-toggle">
+      <button class="target-btn active" id="target-hand-btn" onclick="setPaletteTarget('hand')">手牌に追加</button>
+      <button class="target-btn" id="target-dora-btn" onclick="setPaletteTarget('dora')">ドラ表示牌に追加</button>
+    </div>
+    <!-- 副露モード表示 -->
+    <div class="meld-mode-indicator" id="meld-mode-indicator">
+      副露牌に追加中 — パレットから牌を選択してください
+    </div>
+
+    <!-- パレット -->
+    <div class="palette-group">
+      <div class="palette-group-label">萬子（1〜9・赤5）</div>
+      <div class="palette-row" id="palette-man"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-group-label">筒子（1〜9・赤5）</div>
+      <div class="palette-row" id="palette-pin"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-group-label">索子（1〜9・赤5）</div>
+      <div class="palette-row" id="palette-sou"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-group-label">字牌（東南西北 白發中）</div>
+      <div class="palette-row" id="palette-ji"></div>
+    </div>
+
+    <!-- 手牌 -->
+    <div class="hand-count">現在の手牌: <strong id="hand-count">0</strong> / 14 枚</div>
+    <div class="editor-hand" id="editor-hand"></div>
+    <p class="answer-hint" id="answer-hint">手牌の牌をクリックして<strong>正解牌</strong>を設定してください</p>
+
+    <!-- ドラ -->
+    <div class="dora-wrap">
+      <div class="dora-wrap-title">ドラ表示牌: <strong id="dora-count">0</strong> / 5 枚（「ドラ表示牌に追加」モードで追加）</div>
+      <div class="editor-dora" id="editor-dora"></div>
+    </div>
+  </div>
+
+  <!-- 副露牌 -->
+  <div class="section">
+    <div class="section-title">副露牌（鳴き）</div>
+
+    <!-- 確定済み副露一覧 -->
+    <div id="melds-list"></div>
+
+    <!-- 副露ビルダー (副露追加中のみ表示) -->
+    <div class="meld-builder-box" id="meld-builder" style="display:none">
+      <div class="meld-builder-title">副露牌を選択（パレットからクリックして追加）</div>
+
+      <div class="hand-count">副露牌: <strong id="mb-count">0</strong> / 4 枚</div>
+      <div class="mb-preview" id="mb-preview"></div>
+      <p class="meld-hint" id="mb-hint">副露牌をクリックして<strong>鳴いた牌</strong>（横向き表示）を指定してください</p>
+
+      <!-- 副露種別 -->
+      <div class="meld-type-group">
+        <input type="radio" name="meld-type" id="mt-chi"    class="mt-radio" value="chi"    checked>
+        <label class="mt-label" for="mt-chi">チー</label>
+        <input type="radio" name="meld-type" id="mt-pon"    class="mt-radio" value="pon">
+        <label class="mt-label" for="mt-pon">ポン</label>
+        <input type="radio" name="meld-type" id="mt-minkan" class="mt-radio" value="minkan">
+        <label class="mt-label" for="mt-minkan">明槓</label>
+        <input type="radio" name="meld-type" id="mt-ankan"  class="mt-radio" value="ankan">
+        <label class="mt-label" for="mt-ankan">暗槓</label>
+      </div>
+
+      <div class="meld-builder-actions">
+        <button class="btn btn-ghost btn-sm" onclick="cancelMeld()">キャンセル</button>
+        <button class="btn btn-accent btn-sm" onclick="confirmMeld()">副露を確定</button>
+      </div>
+    </div>
+
+    <!-- 副露追加ボタン -->
+    <button class="btn btn-ghost btn-sm" id="add-meld-btn" onclick="startNewMeld()">＋ 副露を追加</button>
+  </div>
+
+  <!-- 局情報 -->
+  <div class="section">
+    <div class="section-title">局情報（任意）</div>
+    <label class="field-label" for="round-select">局</label>
+    <select class="select-input" id="round-select">
+      <option value="">（設定なし）</option>
+      <optgroup label="東場">
+        <option>東1局</option><option>東2局</option><option>東3局</option><option>東4局</option>
+      </optgroup>
+      <optgroup label="南場">
+        <option>南1局</option><option>南2局</option><option>南3局</option><option>南4局</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <!-- 解説 -->
+  <div class="section">
+    <div class="section-title">解説</div>
+    <label class="field-label" for="commentary">解説文（クイズ回答後に表示されます）</label>
+    <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
+  </div>
+
+  <div class="editor-actions">
+    <button class="btn btn-ghost" onclick="openList()">キャンセル</button>
+    <button class="btn btn-accent" onclick="saveProblem()">保存する</button>
+  </div>
+</div>
+
+<script>
+// ===== TILE DEFINITIONS =====
+const TILE_GROUPS = {
+  man: ['1m','2m','3m','4m','0m','5m','6m','7m','8m','9m'],
+  pin: ['1p','2p','3p','4p','0p','5p','6p','7p','8p','9p'],
+  sou: ['1s','2s','3s','4s','0s','5s','6s','7s','8s','9s'],
+  ji:  ['1z','2z','3z','4z','5z','6z','7z']
+};
+const RED_TILES = new Set(['0m','0p','0s']);
+const TILE_LABELS = {
+  '1z':'東','2z':'南','3z':'西','4z':'北','5z':'白','6z':'發','7z':'中',
+  '0m':'赤5m','0p':'赤5p','0s':'赤5s'
+};
+const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
+function tileLabel(code) { return TILE_LABELS[code] || code; }
+
+// ===== STORAGE =====
+const PROB_KEY = 'nankiru_problems';
+function loadProblems() { return JSON.parse(localStorage.getItem(PROB_KEY) || '[]'); }
+function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
+
+// ===== EDIT STATE =====
+let editState = {
+  id: null, hand: [], correctAnswer: null,
+  dora: [], round: '', commentary: '',
+  melds: [],
+  paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
+};
+
+// 副露ビルダー一時状態
+let meldDraft = { tiles: [], calledIndex: null };
+
+// ===== UTIL =====
+function makeMiniTile(code, extraClass) {
+  const div = document.createElement('div');
+  div.className = 'tile-mini' + (extraClass ? ' ' + extraClass : '');
+  const img = document.createElement('img');
+  img.src = 'images/' + code + '.png';
+  img.alt = tileLabel(code);
+  img.onerror = function() { this.style.display = 'none'; div.insertAdjacentText('beforeend', tileLabel(code)); };
+  div.appendChild(img);
+  return div;
+}
+
+function makeRemoveBtn(onclick) {
+  const btn = document.createElement('button');
+  btn.className = 'remove-btn';
+  btn.textContent = '×';
+  btn.onclick = e => { e.stopPropagation(); onclick(); };
+  return btn;
+}
+
+// ===== SCREENS =====
+function showScreen(id) {
+  ['list','editor'].forEach(s =>
+    document.getElementById('screen-' + s).style.display = s === id ? '' : 'none'
+  );
+}
+
+// ===== LIST =====
+function openList() { showScreen('list'); renderList(); }
+
+function renderList() {
+  const problems = loadProblems();
+  const el = document.getElementById('problem-list');
+  el.innerHTML = '';
+
+  if (!problems.length) {
+    el.innerHTML = '<div class="empty-msg">問題がまだありません。<br>「＋ 新規問題を追加」から登録してください。</div>';
+    return;
+  }
+
+  problems.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'problem-card';
+
+    // 上段: メタ
+    const top = document.createElement('div');
+    top.className = 'problem-card-top';
+    const meta = document.createElement('div');
+    meta.className = 'problem-meta';
+    const num = document.createElement('span');
+    num.textContent = '問題 ' + (i + 1) + '  (' + p.hand.length + '枚)';
+    meta.appendChild(num);
+    if (p.round) {
+      const rnd = document.createElement('span');
+      rnd.textContent = p.round;
+      rnd.style.cssText = 'color:var(--accent);font-weight:600';
+      meta.appendChild(rnd);
+    }
+    if (p.melds && p.melds.length) {
+      const ml = document.createElement('span');
+      ml.textContent = '副露 ' + p.melds.length + '組';
+      ml.style.cssText = 'color:var(--text-dim)';
+      meta.appendChild(ml);
+    }
+    top.appendChild(meta);
+    card.appendChild(top);
+
+    // 手牌プレビュー
+    const handDiv = document.createElement('div');
+    handDiv.className = 'problem-hand-preview';
+    p.hand.forEach(c => handDiv.appendChild(makeMiniTile(c, c === p.correctAnswer ? 'correct-tile' : '')));
+    card.appendChild(handDiv);
+
+    // 副露プレビュー
+    if (p.melds && p.melds.length) {
+      const meldRow = document.createElement('div');
+      meldRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap';
+      p.melds.forEach(meld => {
+        const grp = document.createElement('div');
+        grp.style.cssText = 'display:flex;align-items:center;gap:2px;background:rgba(0,0,0,0.2);padding:3px 5px;border-radius:5px';
+        const lbl = document.createElement('span');
+        lbl.style.cssText = 'font-size:0.65rem;color:var(--accent);font-weight:700;margin-right:2px';
+        lbl.textContent = MELD_TYPE_NAMES[meld.type] || '';
+        grp.appendChild(lbl);
+        meld.tiles.forEach((c, ti) => {
+          const isCalled = ti === meld.calledIndex;
+          grp.appendChild(makeMiniTile(c, isCalled ? 'called-tile' : ''));
+        });
+        meldRow.appendChild(grp);
+      });
+      card.appendChild(meldRow);
+    }
+
+    // ドラプレビュー
+    if (p.dora && p.dora.length) {
+      const doraRow = document.createElement('div');
+      doraRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:6px';
+      const dl = document.createElement('span');
+      dl.style.cssText = 'font-size:0.72rem;color:var(--text-dim)';
+      dl.textContent = 'ドラ表示牌:';
+      doraRow.appendChild(dl);
+      p.dora.forEach(c => doraRow.appendChild(makeMiniTile(c, 'dora-tile')));
+      card.appendChild(doraRow);
+    }
+
+    // 下段
+    const bot = document.createElement('div');
+    bot.className = 'problem-card-bottom';
+    const ans = document.createElement('span');
+    ans.className = 'answer-badge';
+    ans.textContent = '正解: ' + tileLabel(p.correctAnswer);
+    const btns = document.createElement('div');
+    btns.className = 'card-btns';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-ghost btn-sm'; editBtn.textContent = '編集';
+    editBtn.onclick = () => openEditor(p);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm'; delBtn.textContent = '削除';
+    delBtn.onclick = () => deleteProblem(p.id);
+    btns.appendChild(editBtn); btns.appendChild(delBtn);
+    bot.appendChild(ans); bot.appendChild(btns);
+    card.appendChild(bot);
+    el.appendChild(card);
+  });
+}
+
+function deleteProblem(id) {
+  if (!confirm('この問題を削除しますか？')) return;
+  saveProblems(loadProblems().filter(p => p.id !== id));
+  renderList();
+}
+
+// ===== EDITOR =====
+function openEditor(problem) {
+  editState = problem ? {
+    id: problem.id, hand: [...problem.hand],
+    correctAnswer: problem.correctAnswer,
+    dora: [...(problem.dora || [])],
+    round: problem.round || '',
+    commentary: problem.commentary || '',
+    melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
+    paletteTarget: 'hand'
+  } : {
+    id: null, hand: [], correctAnswer: null,
+    dora: [], round: '', commentary: '',
+    melds: [], paletteTarget: 'hand'
+  };
+
+  document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
+  document.getElementById('commentary').value = editState.commentary;
+  document.getElementById('round-select').value = editState.round;
+
+  // 副露ビルダーを閉じた状態に
+  meldDraft = { tiles: [], calledIndex: null };
+  document.getElementById('meld-builder').style.display = 'none';
+  document.getElementById('add-meld-btn').style.display = '';
+
+  setPaletteTarget('hand');
+  buildPalette();
+  renderEditorHand();
+  renderEditorDora();
+  renderMelds();
+  showScreen('editor');
+}
+
+// ===== PALETTE TARGET =====
+function setPaletteTarget(target) {
+  editState.paletteTarget = target;
+  const isMeld = target === 'meld';
+  document.getElementById('target-toggle').style.display       = isMeld ? 'none' : '';
+  document.getElementById('meld-mode-indicator').style.display = isMeld ? 'flex' : 'none';
+  document.getElementById('target-hand-btn').classList.toggle('active', target === 'hand');
+  document.getElementById('target-dora-btn').classList.toggle('active', target === 'dora');
+  updatePaletteState();
+}
+
+// ===== PALETTE =====
+function buildPalette() {
+  const groups = { man:'palette-man', pin:'palette-pin', sou:'palette-sou', ji:'palette-ji' };
+  Object.entries(groups).forEach(([suit, id]) => {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    TILE_GROUPS[suit].forEach(code => {
+      const btn = document.createElement('button');
+      btn.className = 'palette-tile' + (RED_TILES.has(code) ? ' red-tile' : '');
+      btn.title = tileLabel(code);
+      const img = document.createElement('img');
+      img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+      img.onerror = function() { this.style.display = 'none'; btn.insertAdjacentText('beforeend', tileLabel(code)); };
+      btn.appendChild(img);
+      btn.onclick = () => addTile(code);
+      el.appendChild(btn);
+    });
+  });
+  updatePaletteState();
+}
+
+function updatePaletteState() {
+  let maxed = false;
+  if      (editState.paletteTarget === 'hand') maxed = editState.hand.length >= 14;
+  else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 5;
+  else if (editState.paletteTarget === 'meld') maxed = meldDraft.tiles.length >= 4;
+  document.querySelectorAll('.palette-tile').forEach(btn => { btn.disabled = maxed; });
+}
+
+function addTile(code) {
+  if (editState.paletteTarget === 'dora') {
+    if (editState.dora.length >= 5) return;
+    editState.dora.push(code);
+    renderEditorDora();
+  } else if (editState.paletteTarget === 'meld') {
+    if (meldDraft.tiles.length >= 4) return;
+    meldDraft.tiles.push(code);
+    renderMeldPreview();
+  } else {
+    if (editState.hand.length >= 14) return;
+    editState.hand.push(code);
+    renderEditorHand();
+  }
+  updatePaletteState();
+}
+
+// ===== HAND =====
+function removeTile(idx) {
+  const removed = editState.hand[idx];
+  editState.hand.splice(idx, 1);
+  if (editState.correctAnswer === removed && !editState.hand.includes(removed)) editState.correctAnswer = null;
+  renderEditorHand();
+  updatePaletteState();
+}
+
+function toggleAnswer(code) {
+  editState.correctAnswer = editState.correctAnswer === code ? null : code;
+  renderEditorHand();
+}
+
+function renderEditorHand() {
+  const el = document.getElementById('editor-hand');
+  el.innerHTML = '';
+  editState.hand.forEach((code, idx) => {
+    const tile = document.createElement('div');
+    tile.className = 'e-tile' + (code === editState.correctAnswer ? ' is-answer' : '');
+    tile.title = code === editState.correctAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に設定';
+    const img = document.createElement('img');
+    img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+    img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
+    tile.appendChild(img);
+    tile.appendChild(makeRemoveBtn(() => removeTile(idx)));
+    tile.addEventListener('click', () => toggleAnswer(code));
+    el.appendChild(tile);
+  });
+  document.getElementById('hand-count').textContent = editState.hand.length;
+  const hint = document.getElementById('answer-hint');
+  hint.innerHTML = editState.correctAnswer
+    ? '正解牌: <strong>' + tileLabel(editState.correctAnswer) + '</strong>（クリックで変更）'
+    : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください';
+}
+
+// ===== DORA =====
+function removeDoraTile(idx) {
+  editState.dora.splice(idx, 1);
+  renderEditorDora();
+  updatePaletteState();
+}
+
+function renderEditorDora() {
+  const el = document.getElementById('editor-dora');
+  el.innerHTML = '';
+  editState.dora.forEach((code, idx) => {
+    const tile = document.createElement('div');
+    tile.className = 'd-tile';
+    tile.title = tileLabel(code) + '（×で削除）';
+    const img = document.createElement('img');
+    img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+    img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
+    tile.appendChild(img);
+    const xBtn = makeRemoveBtn(() => removeDoraTile(idx));
+    xBtn.style.display = 'none';
+    tile.appendChild(xBtn);
+    tile.addEventListener('mouseenter', () => xBtn.style.display = 'block');
+    tile.addEventListener('mouseleave', () => xBtn.style.display = 'none');
+    el.appendChild(tile);
+  });
+  document.getElementById('dora-count').textContent = editState.dora.length;
+}
+
+// ===== 副露 BUILDER =====
+function startNewMeld() {
+  meldDraft = { tiles: [], calledIndex: null };
+  // チーを初期選択に戻す
+  const chiRadio = document.getElementById('mt-chi');
+  if (chiRadio) chiRadio.checked = true;
+  renderMeldPreview();
+  document.getElementById('meld-builder').style.display = '';
+  document.getElementById('add-meld-btn').style.display = 'none';
+  setPaletteTarget('meld');
+}
+
+function cancelMeld() {
+  meldDraft = { tiles: [], calledIndex: null };
+  document.getElementById('meld-builder').style.display = 'none';
+  document.getElementById('add-meld-btn').style.display = '';
+  setPaletteTarget('hand');
+}
+
+function removeMeldDraftTile(idx) {
+  meldDraft.tiles.splice(idx, 1);
+  if (meldDraft.calledIndex === idx) meldDraft.calledIndex = null;
+  else if (meldDraft.calledIndex !== null && meldDraft.calledIndex > idx) meldDraft.calledIndex--;
+  renderMeldPreview();
+  updatePaletteState();
+}
+
+function toggleMeldCalled(idx) {
+  const isAnkan = document.querySelector('input[name="meld-type"]:checked')?.value === 'ankan';
+  if (isAnkan) return;
+  meldDraft.calledIndex = meldDraft.calledIndex === idx ? null : idx;
+  renderMeldPreview();
+}
+
+function renderMeldPreview() {
+  const el = document.getElementById('mb-preview');
+  el.innerHTML = '';
+  const isAnkan = document.querySelector('input[name="meld-type"]:checked')?.value === 'ankan';
+
+  meldDraft.tiles.forEach((code, idx) => {
+    const isCalled = !isAnkan && idx === meldDraft.calledIndex;
+    const tile = document.createElement('div');
+    tile.className = 'mb-tile' + (isCalled ? ' is-called' : '');
+    tile.title = isAnkan
+      ? tileLabel(code) + '（×で削除）'
+      : (isCalled ? '鳴いた牌（クリックで解除）' : 'クリックで鳴いた牌を設定 / ×で削除');
+    const img = document.createElement('img');
+    img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+    img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
+    tile.appendChild(img);
+    tile.appendChild(makeRemoveBtn(() => removeMeldDraftTile(idx)));
+    if (!isAnkan) tile.addEventListener('click', () => toggleMeldCalled(idx));
+    el.appendChild(tile);
+  });
+
+  document.getElementById('mb-count').textContent = meldDraft.tiles.length;
+
+  const hint = document.getElementById('mb-hint');
+  if (isAnkan) {
+    hint.innerHTML = '暗槓は鳴いた牌の指定不要です';
+  } else if (meldDraft.calledIndex !== null && meldDraft.tiles[meldDraft.calledIndex]) {
+    hint.innerHTML = '鳴いた牌: <strong>' + tileLabel(meldDraft.tiles[meldDraft.calledIndex]) + '</strong>（クリックで変更）';
+  } else {
+    hint.innerHTML = '副露牌をクリックして<strong>鳴いた牌</strong>（横向き表示）を指定してください';
+  }
+}
+
+function confirmMeld() {
+  const type = document.querySelector('input[name="meld-type"]:checked').value;
+  const minTiles = (type === 'minkan' || type === 'ankan') ? 4 : 3;
+  const maxTiles = minTiles;
+
+  if (meldDraft.tiles.length !== maxTiles) {
+    alert(MELD_TYPE_NAMES[type] + 'は ' + maxTiles + ' 枚必要です（現在 ' + meldDraft.tiles.length + ' 枚）');
+    return;
+  }
+  if (type !== 'ankan' && meldDraft.calledIndex === null) {
+    alert('鳴いた牌を選択してください（副露牌をクリック）');
+    return;
+  }
+
+  editState.melds.push({
+    tiles: [...meldDraft.tiles],
+    calledIndex: type === 'ankan' ? null : meldDraft.calledIndex,
+    type
+  });
+  cancelMeld();
+  renderMelds();
+}
+
+function removeMeld(idx) {
+  editState.melds.splice(idx, 1);
+  renderMelds();
+}
+
+function renderMelds() {
+  const el = document.getElementById('melds-list');
+  el.innerHTML = '';
+  editState.melds.forEach((meld, idx) => {
+    const item = document.createElement('div');
+    item.className = 'meld-list-item';
+
+    const left = document.createElement('div');
+    left.className = 'meld-list-left';
+
+    const badge = document.createElement('span');
+    badge.className = 'meld-type-badge';
+    badge.textContent = MELD_TYPE_NAMES[meld.type] || meld.type;
+    left.appendChild(badge);
+
+    const tilesDiv = document.createElement('div');
+    tilesDiv.className = 'meld-list-tiles';
+    meld.tiles.forEach((c, ti) => {
+      const isCalled = ti === meld.calledIndex;
+      const t = document.createElement('div');
+      t.className = 'meld-list-tile' + (isCalled ? ' called' : '');
+      t.title = tileLabel(c) + (isCalled ? '（鳴き牌）' : '');
+      const img = document.createElement('img');
+      img.src = 'images/' + c + '.png'; img.alt = tileLabel(c);
+      img.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(c)); };
+      t.appendChild(img);
+      tilesDiv.appendChild(t);
+    });
+    left.appendChild(tilesDiv);
+    item.appendChild(left);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = '削除';
+    delBtn.onclick = () => removeMeld(idx);
+    item.appendChild(delBtn);
+
+    el.appendChild(item);
+  });
+}
+
+// 副露種別変更時にプレビューを更新
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[name="meld-type"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if (r.value === 'ankan') meldDraft.calledIndex = null;
+      renderMeldPreview();
+    });
+  });
+});
+
+// ===== SAVE =====
+function saveProblem() {
+  if (!editState.hand.length) { alert('手牌を設定してください'); return; }
+  if (!editState.correctAnswer) { alert('正解牌を選択してください\n（手牌の牌をクリックして選択）'); return; }
+  if (!editState.hand.includes(editState.correctAnswer)) { alert('正解牌は手牌に含まれている必要があります'); return; }
+
+  const problem = {
+    id:            editState.id || Date.now().toString(),
+    hand:          [...editState.hand],
+    correctAnswer: editState.correctAnswer,
+    dora:          [...editState.dora],
+    melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
+    round:         document.getElementById('round-select').value,
+    commentary:    document.getElementById('commentary').value.trim(),
+    createdAt:     new Date().toISOString().slice(0, 10)
+  };
+
+  const problems = loadProblems();
+  if (editState.id) {
+    const i = problems.findIndex(p => p.id === editState.id);
+    if (i >= 0) problems[i] = problem; else problems.push(problem);
+  } else {
+    problems.push(problem);
+  }
+  saveProblems(problems);
+  openList();
+}
+
+// ===== JSON IO =====
+function exportJSON() {
+  const problems = loadProblems();
+  if (!problems.length) { alert('エクスポートする問題がありません'); return; }
+  const blob = new Blob([JSON.stringify(problems, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'nankiru_problems.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('配列形式のJSONを選択してください');
+      const merge = confirm(imported.length + ' 件の問題が見つかりました。\n\n「OK」→ 既存の問題に追加\n「キャンセル」→ 上書き');
+      if (merge) {
+        const existing = loadProblems();
+        const existIds = new Set(existing.map(p => p.id));
+        saveProblems([...existing, ...imported.filter(p => !existIds.has(p.id))]);
+      } else { saveProblems(imported); }
+      renderList(); alert('インポートが完了しました');
+    } catch (err) { alert('JSONの読み込みに失敗しました\n' + err.message); }
+  };
+  reader.readAsText(file); event.target.value = '';
+}
+
+// ===== SAMPLE DATA =====
+function insertSamples() {
+  saveProblems([
+    {
+      id: 'sample-001',
+      hand: ['1m','2m','3m','4m','5m','6m','3p','4p','5p','7s','8s','9s','1z','2z'],
+      correctAnswer: '2z', dora: ['9p'], round: '東1局', melds: [],
+      commentary: '数牌の面子が揃っているため、孤立した字牌から切ります。\n東（1z）は役牌の可能性があるため南（2z）から切るのが基本です。',
+      createdAt: '2026-04-10'
+    },
+    {
+      id: 'sample-002',
+      hand: ['5m','6m','7m','2p','3p','4p','9s'],
+      correctAnswer: '9s', dora: ['3m'], round: '東2局',
+      melds: [
+        { tiles: ['3s','4s','5s'], calledIndex: 0, type: 'chi' },
+        { tiles: ['1z','1z','1z'], calledIndex: 2, type: 'pon' }
+      ],
+      commentary: '副露で面子が2組あります。手牌の中で孤立した9sを切って手を整えます。',
+      createdAt: '2026-04-10'
+    },
+    {
+      id: 'sample-003',
+      hand: ['1m','2m','4m','5m','6m','3p','4p','5p','6p','7p','4s','5s','6s','9m'],
+      correctAnswer: '1m', dora: ['0m'], round: '南1局', melds: [],
+      commentary: '4〜6mの面子があるため1m-2mの搭子より優先します。1mは端牌のため先に切ります。',
+      createdAt: '2026-04-10'
+    }
+  ]);
+  renderList();
+}
+
+// ===== INIT =====
+(function init() {
+  openList();
+  if (!loadProblems().length) insertSamples();
+})();
+</script>
+</body>
+</html>
