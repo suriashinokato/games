@@ -18,9 +18,9 @@
       --text: #e0e0e0;
       --text-dim: #888;
       /* 14枚+スペーサー(0.4w)が画面内に収まるよう自動計算:
-         14w + 13gap(4px) + spacer(0.4w) + padding(16px) + screen-padding(32px) ≤ 100vw
-         14.4w ≤ 100vw - 100px → w ≤ (100vw - 100px) / 14.4 */
-      --tile-w: min(60px, calc((100vw - 100px) / 14.4));
+         14w + spacer(0.4w) + hand-padding(16px) + screen-padding(32px) ≤ 100vw
+         14.4w ≤ 100vw - 48px → w ≤ (100vw - 48px) / 14.4 */
+      --tile-w: min(68px, calc((100vw - 48px) / 14.4));
       --tile-h: calc(var(--tile-w) * 1.4);
       --meld-w: min(44px, calc(var(--tile-w) * 0.74));
       --meld-h: calc(var(--meld-w) * 1.41);
@@ -126,18 +126,18 @@
     .m-tile {
       width: var(--meld-w);
       height: var(--meld-h);
-      background: #f5f0e8;
+      background: none;
       border-radius: 4px;
-      border: 2px solid rgba(0,0,0,0.1);
+      border: none;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.6rem;
       color: #333;
       font-weight: bold;
-      overflow: hidden;
+      overflow: visible;
     }
-    .m-tile img { width: 100%; height: 100%; object-fit: contain; }
+    .m-tile img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
 
     /* 鳴いた牌（横向き）: ラッパーのサイズを回転後の見た目に合わせる */
     .meld-slot.called {
@@ -156,7 +156,8 @@
     /* 暗槓の裏向き牌 */
     .meld-slot.back .m-tile {
       background: #2a3b4c;
-      border-color: #1a2533;
+      border-radius: 4px;
+      overflow: hidden;
     }
 
     .instruction { text-align: center; color: var(--text-dim); font-size: 0.95rem; margin-bottom: 14px; min-height: 1.4em; }
