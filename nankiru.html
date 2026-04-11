@@ -94,10 +94,17 @@
     .melds-area {
       display: flex;
       gap: 8px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: flex-end;
-      padding: 6px 8px 10px;
-      margin-bottom: 10px;
+      padding: 4px 0;
+      flex-shrink: 0;
+    }
+
+    .hand-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 8px;
     }
 
     .meld-group {
@@ -134,8 +141,8 @@
 
     /* 鳴いた牌（横向き）: ラッパーのサイズを回転後の見た目に合わせる */
     .meld-slot.called {
-      width: var(--meld-h);   /* 回転後の視覚的な幅 = 元の高さ */
-      height: var(--meld-w);  /* 回転後の視覚的な高さ = 元の幅 */
+      width: var(--meld-h);
+      height: var(--meld-w);
     }
     .meld-slot.called .m-tile {
       position: absolute;
@@ -143,7 +150,7 @@
       left: 50%;
       width: var(--meld-w);
       height: var(--meld-h);
-      transform: translate(-50%, -50%) rotate(90deg);
+      transform: translate(-50%, -50%) rotate(270deg);
     }
 
     /* 暗槓の裏向き牌 */
@@ -163,10 +170,15 @@
       width: var(--tile-w); height: var(--tile-h); background: #f5f0e8; border-radius: 6px;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
       border: 3px solid transparent; transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
-      flex-shrink: 0; overflow: hidden; font-size: 0.7rem; color: #333; font-weight: bold;
-      position: relative; user-select: none;
+      flex-shrink: 0; font-size: 0.7rem; color: #333; font-weight: bold;
+      position: relative; user-select: none; overflow: visible;
     }
-    .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; border-radius: 4px; }
+    .tsumo-label {
+      position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+      font-size: 0.7rem; font-weight: 700; color: var(--accent);
+      white-space: nowrap; pointer-events: none;
+    }
     .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: 0 8px 20px rgba(201,168,76,0.45); z-index: 1; }
     .hand-tiles.answered .tile-slot { cursor: default; }
 
@@ -257,13 +269,14 @@
     </div>
   </div>
 
-  <!-- 副露牌エリア -->
-  <div class="melds-area" id="melds-area" style="display:none"></div>
-
   <p class="instruction" id="q-instruction">どの牌を切りますか？</p>
 
   <div class="hand-wrap">
-    <div class="hand-tiles" id="hand-tiles"></div>
+    <div class="hand-row">
+      <div class="hand-tiles" id="hand-tiles"></div>
+      <!-- 副露牌エリア -->
+      <div class="melds-area" id="melds-area" style="display:none"></div>
+    </div>
   </div>
 
   <div class="feedback-area" id="feedback-area" style="display:none">
@@ -330,7 +343,7 @@ function makeTile(code, extraClass, small) {
   slot.className = 'tile-slot' + (extraClass ? ' ' + extraClass : '') + (small ? ' sm' : '');
   slot.dataset.code = code;
   const img = document.createElement('img');
-  img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() {
     this.style.display = 'none';
     const sp = document.createElement('span'); sp.textContent = tileLabel(code); slot.appendChild(sp);
@@ -344,7 +357,7 @@ function makeDoraEl(code, small) {
   const d = document.createElement('div');
   d.className = 'dora-tile' + (small ? ' sm' : '');
   const img = document.createElement('img');
-  img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() { this.style.display = 'none'; d.insertAdjacentText('beforeend', tileLabel(code)); };
   d.appendChild(img);
   return d;
@@ -368,7 +381,7 @@ function makeMeldGroup(meld) {
 
     if (!isBack) {
       const img = document.createElement('img');
-      img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+      img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
       img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
       tile.appendChild(img);
     }
@@ -399,7 +412,7 @@ function makeMeldGroupSmall(meld) {
     t.style.cssText = 'width:' + (isCalled ? smMeldH : smMeldW) + ';height:' + (isCalled ? smMeldW : smMeldH) + ';background:' + (isBack ? '#2a3b4c' : '#f5f0e8') + ';border-radius:3px;border:1px solid ' + (isCalled ? 'var(--accent)' : 'rgba(0,0,0,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#333;overflow:hidden;flex-shrink:0';
     if (!isBack) {
       const img = document.createElement('img');
-      img.src = 'images/' + code + '.png'; img.alt = tileLabel(code);
+      img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
       img.style.cssText = 'width:100%;height:100%;object-fit:contain';
       img.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(code)); };
       t.appendChild(img);
@@ -474,14 +487,20 @@ function renderQ() {
   handEl.innerHTML = ''; handEl.className = 'hand-tiles';
   const has14 = q.hand.length === 14;
   q.hand.forEach((code, i) => {
-    // 14枚手牌のとき、13枚目と14枚目（ツモ牌）の間にスペーサーを挿入
-    if (has14 && i === 13) {
+    // 14枚手牌、または副露がある場合、最後の牌の前にスペーサーを挿入
+    if ((has14 || hasMelds) && i === q.hand.length - 1) {
       const spacer = document.createElement('div');
       spacer.className = 'tsumo-spacer';
       handEl.appendChild(spacer);
     }
     const slot = makeTile(code);
     slot.dataset.index = i;
+    if ((has14 || hasMelds) && i === q.hand.length - 1) {
+      const lbl = document.createElement('span');
+      lbl.className = 'tsumo-label';
+      lbl.textContent = 'ツモ';
+      slot.appendChild(lbl);
+    }
     slot.addEventListener('click', () => onTileClick(i, code, q));
     handEl.appendChild(slot);
   });
@@ -566,22 +585,26 @@ function showResult() {
         card.appendChild(meta);
       }
 
-      // 副露
-      if (q.melds && q.melds.length) {
-        const mr = document.createElement('div');
-        mr.className = 'review-melds';
-        q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
-        card.appendChild(mr);
-      }
+      // 手牌 + 副露（同一行：手牌左・副露右）
+      const handRow = document.createElement('div');
+      handRow.style.cssText = 'display:flex;align-items:flex-end;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
 
-      // 手牌
       const handDiv = document.createElement('div');
-      handDiv.className = 'review-hand';
+      handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
       q.hand.forEach(c => {
         const isOk = c === q.correctAnswer, isNg = c === selectedCode && !isOk;
         handDiv.appendChild(makeTile(c, (isOk ? 'correct' : '') + (isNg ? ' wrong' : ''), true));
       });
-      card.appendChild(handDiv);
+      handRow.appendChild(handDiv);
+
+      if (q.melds && q.melds.length) {
+        const mr = document.createElement('div');
+        mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;';
+        q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
+        handRow.appendChild(mr);
+      }
+
+      card.appendChild(handRow);
 
       // 正解・解説
       const info = document.createElement('div');
