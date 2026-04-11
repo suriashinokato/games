@@ -163,15 +163,16 @@
 
     .hand-wrap { padding: 8px 0 16px; margin-bottom: 16px; }
 
-    .hand-tiles { display: flex; gap: 4px; padding: 4px 8px; justify-content: center; flex-wrap: nowrap; }
+    .hand-tiles { display: flex; gap: 1px; padding: 4px 8px; justify-content: center; flex-wrap: nowrap; }
     .tsumo-spacer { width: calc(var(--tile-w) * 0.4); flex-shrink: 0; }
 
     .tile-slot {
-      width: var(--tile-w); height: var(--tile-h); background: #f5f0e8; border-radius: 6px;
+      width: var(--tile-w); height: var(--tile-h); border-radius: 4px;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
       border: 3px solid transparent; transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
       flex-shrink: 0; font-size: 0.7rem; color: #333; font-weight: bold;
       position: relative; user-select: none; overflow: visible;
+      background: none;
     }
     .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; border-radius: 4px; }
     .tsumo-label {
