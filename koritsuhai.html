@@ -201,7 +201,7 @@
     /* 牌エリア */
     #tile-area {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       gap: 20px;
       margin-bottom: 24px;
@@ -258,13 +258,13 @@
 
     /* 正解・不正解スタイル */
     .tile-slot.correct {
-      border-color: var(--accent-green);
-      box-shadow: 0 0 0 3px rgba(76,175,80,0.3), var(--shadow-tile);
+      border-color: var(--accent-red);
+      box-shadow: 0 0 0 3px rgba(229,57,53,0.3), var(--shadow-tile);
       animation: pulse-correct 0.45s ease;
     }
     .tile-slot.wrong {
-      border-color: var(--accent-red);
-      box-shadow: 0 0 0 3px rgba(229,57,53,0.3), var(--shadow-tile);
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.3), var(--shadow-tile);
       animation: shake-wrong 0.4s ease;
     }
     .tile-slot.answered {
@@ -278,19 +278,39 @@
       position: absolute;
       top: 6px;
       right: 6px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      font-size: 0.75rem;
+      width: auto;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 11px;
+      font-size: 0.7rem;
       font-weight: bold;
       align-items: center;
       justify-content: center;
       color: #fff;
+      white-space: nowrap;
     }
     .tile-slot.correct .badge,
     .tile-slot.wrong .badge { display: flex; }
-    .tile-slot.correct .badge { background: var(--accent-green); }
-    .tile-slot.wrong .badge   { background: var(--accent-red); }
+    .tile-slot.correct .badge { background: var(--accent-red); }
+    .tile-slot.wrong .badge   { background: var(--accent-green); }
+
+    /* 牌ラッパー */
+    .tile-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tile-msg {
+      font-size: 1.1rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      min-height: 1.5em;
+      text-align: center;
+    }
+    .tile-msg.correct { color: var(--accent-red); }
+    .tile-msg.wrong   { color: var(--accent-green); }
 
     /* VS */
     .vs-divider {
@@ -315,8 +335,8 @@
       margin-bottom: 14px;
       letter-spacing: 0.08em;
     }
-    #feedback-text.correct { color: var(--accent-green); }
-    #feedback-text.wrong   { color: var(--accent-red); }
+    #feedback-text.correct { color: var(--accent-red); }
+    #feedback-text.wrong   { color: var(--accent-green); }
 
     #commentary-box {
       margin-bottom: 18px;
@@ -551,7 +571,7 @@
   <div id="screen-home" class="screen active">
     <div class="card">
       <p class="home-subtitle">
-        2枚の牌姿のうち、<strong>残すべき牌（より優れている牌）</strong>を選んでください。<br>
+        2枚の牌姿のうち、<strong>切るべき牌（より劣っている牌）</strong>を選んでください。<br>
         モードを選んでスタート。ランダムで30問を解く方式です。
       </p>
 
@@ -597,34 +617,40 @@
 
       <!-- 牌ペア -->
       <div id="tile-area">
-        <div class="tile-slot" id="tile-a">
-          <div class="badge" id="badge-a"></div>
-          <img id="img-a" src="" alt="">
-          <div class="tile-label" id="label-a"></div>
-          <div class="tile-placeholder" id="placeholder-a" style="display:none"></div>
+        <div class="tile-wrapper">
+          <div class="tile-slot" id="tile-a">
+            <div class="badge" id="badge-a"></div>
+            <img id="img-a" src="" alt="">
+            <div class="tile-label" id="label-a"></div>
+            <div class="tile-placeholder" id="placeholder-a" style="display:none"></div>
+          </div>
+          <div class="tile-msg" id="msg-a"></div>
         </div>
 
         <div class="vs-divider">VS</div>
 
-        <div class="tile-slot" id="tile-b">
-          <div class="badge" id="badge-b"></div>
-          <img id="img-b" src="" alt="">
-          <div class="tile-label" id="label-b"></div>
-          <div class="tile-placeholder" id="placeholder-b" style="display:none"></div>
+        <div class="tile-wrapper">
+          <div class="tile-slot" id="tile-b">
+            <div class="badge" id="badge-b"></div>
+            <img id="img-b" src="" alt="">
+            <div class="tile-label" id="label-b"></div>
+            <div class="tile-placeholder" id="placeholder-b" style="display:none"></div>
+          </div>
+          <div class="tile-msg" id="msg-b"></div>
         </div>
       </div>
 
       <!-- フィードバック -->
       <div id="feedback-area">
-        <div id="feedback-text"></div>
+        <div id="feedback-text" style="display:none"></div>
         <div id="commentary-box">
-          <div class="commentary-entry commentary-superior">
-            <div class="commentary-label" id="commentary-superior-label"></div>
-            <div id="commentary-superior-text"></div>
-          </div>
           <div class="commentary-entry commentary-inferior">
             <div class="commentary-label" id="commentary-inferior-label"></div>
             <div id="commentary-inferior-text"></div>
+          </div>
+          <div class="commentary-entry commentary-superior">
+            <div class="commentary-label" id="commentary-superior-label"></div>
+            <div id="commentary-superior-text"></div>
           </div>
         </div>
         <button id="next-btn">次の問題 →</button>
@@ -937,6 +963,12 @@
     const fb = document.getElementById('feedback-area');
     fb.classList.remove('visible');
 
+    // タイル下メッセージをリセット
+    ['a', 'b'].forEach(function(k) {
+      const m = document.getElementById('msg-' + k);
+      m.textContent = ''; m.className = 'tile-msg';
+    });
+
     state.answered = false;
   }
 
@@ -978,7 +1010,7 @@
     state.answered = true;
 
     const q         = state.questions[state.currentIndex];
-    const isCorrect = (chosen !== q.inferior); // 残すべき牌（優る牌）が正解
+    const isCorrect = (chosen === q.inferior); // 切るべき牌（劣る牌）が正解
 
     if (isCorrect) {
       state.correctCount++;
@@ -1007,33 +1039,32 @@
     slotA.classList.add('answered');
     slotB.classList.add('answered');
 
-    // 正解スロット = superior 牌（残すべき牌）
-    const correctSlot = (q.inferior === 'A') ? slotB : slotA;
-    const wrongSlot   = (q.inferior === 'A') ? slotA : slotB;
+    // 正解スロット = inferior 牌（切るべき牌）
+    const correctSlot = (q.inferior === 'A') ? slotA : slotB;
+    const wrongSlot   = (q.inferior === 'A') ? slotB : slotA;
 
     // 選んだスロット
     const chosenSlot  = (chosen === 'A') ? slotA : slotB;
 
+    const cutKey  = q.inferior.toLowerCase();
+    const keepKey = (q.inferior === 'A') ? 'b' : 'a';
+    const msgCut  = document.getElementById('msg-' + cutKey);
+    const msgKeep = document.getElementById('msg-' + keepKey);
+
     if (isCorrect) {
       chosenSlot.classList.add('correct');
-      document.getElementById('badge-' + chosen.toLowerCase()).textContent = '○';
+      document.getElementById('badge-' + chosen.toLowerCase()).textContent = '切る';
+      wrongSlot.classList.add('wrong');
+      document.getElementById('badge-' + keepKey).textContent = '残す';
+      msgCut.textContent  = '正解！';  msgCut.className  = 'tile-msg correct';
+      msgKeep.textContent = '';         msgKeep.className = 'tile-msg';
     } else {
       chosenSlot.classList.add('wrong');
-      document.getElementById('badge-' + chosen.toLowerCase()).textContent = '✕';
-      // 正解（優る牌）も緑で表示
+      document.getElementById('badge-' + chosen.toLowerCase()).textContent = '残す';
       correctSlot.classList.add('correct');
-      const correctKey = (q.inferior === 'A') ? 'b' : 'a';
-      document.getElementById('badge-' + correctKey).textContent = '○';
-    }
-
-    // フィードバックテキスト
-    const fbText = document.getElementById('feedback-text');
-    if (isCorrect) {
-      fbText.textContent = '正解！';
-      fbText.className = 'correct';
-    } else {
-      fbText.textContent = '不正解…';
-      fbText.className = 'wrong';
+      document.getElementById('badge-' + cutKey).textContent = '切る';
+      msgKeep.textContent = '不正解…'; msgKeep.className = 'tile-msg wrong';
+      msgCut.textContent  = '';         msgCut.className  = 'tile-msg';
     }
 
     // 考察（劣る牌・優る牌の両方を表示）
