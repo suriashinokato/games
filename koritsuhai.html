@@ -574,9 +574,18 @@
   <div id="screen-home" class="screen active">
     <div class="card">
       <p class="home-subtitle">
-        2枚の牌姿のうち、<strong>切るべき牌（より劣っている牌）</strong>を選んでください。<br>
+        2枚の牌姿のうち、<strong>孤立牌を切るべき方</strong>を選んでください。<br>
         モードを選んでスタート。ランダムで30問を解く方式です。
       </p>
+
+      <!-- 難易度トグル -->
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="display:inline-flex;border:2px solid var(--border-gold);border-radius:var(--radius);overflow:hidden;">
+          <button id="btn-diff-normal" style="padding:8px 22px;border:none;background:var(--accent-gold);color:#fff;font-family:var(--font);font-size:0.88rem;cursor:pointer;font-weight:bold;">基礎</button>
+          <button id="btn-diff-hard"   style="padding:8px 22px;border:none;background:var(--bg-card);color:var(--text-main);font-family:var(--font);font-size:0.88rem;cursor:pointer;">高難易度</button>
+        </div>
+        <div id="diff-desc" style="font-size:0.78rem;color:var(--text-sub);margin-top:6px;">1種類の色で比較します</div>
+      </div>
 
       <div class="mode-buttons">
         <button class="btn-mode" id="btn-mode-19">
@@ -591,16 +600,26 @@
 
       <div class="score-summary">
         <h3>ベストスコア</h3>
-        <div class="score-grid">
+        <div class="score-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
           <div class="score-item">
-            <div class="mode-name">19牌</div>
+            <div class="mode-name">19牌 基礎</div>
             <div class="best-val" id="home-best-19">—</div>
             <div class="best-label" id="home-attempts-19"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">28牌</div>
+            <div class="mode-name">28牌 基礎</div>
             <div class="best-val" id="home-best-28">—</div>
             <div class="best-label" id="home-attempts-28"></div>
+          </div>
+          <div class="score-item">
+            <div class="mode-name">19牌 高難易度</div>
+            <div class="best-val" id="home-best-19-hard">—</div>
+            <div class="best-label" id="home-attempts-19-hard"></div>
+          </div>
+          <div class="score-item">
+            <div class="mode-name">28牌 高難易度</div>
+            <div class="best-val" id="home-best-28-hard">—</div>
+            <div class="best-label" id="home-attempts-28-hard"></div>
           </div>
         </div>
       </div>
@@ -795,6 +814,78 @@
   };
 
   /* =====================================================
+     高難易度タイル生成
+     ─ 元タイルに p/s/m の色バリエーションと上下反転を追加
+  ===================================================== */
+  const flipMap = {'1':'9','2':'8','3':'7','4':'6','5':'5','6':'4','7':'3','8':'2','9':'1'};
+
+  function applyFlip(numStr) {
+    return numStr.split('').map(function(c){ return flipMap[c] || c; }).join('');
+  }
+
+  function buildHardTiles(baseMode) {
+    const sourceTiles = TILES[baseMode];
+    const suits = ['p', 's', 'm'];
+    const result = [];
+    sourceTiles.forEach(function(tile) {
+      const m = tile.image.match(/images_koritsuhai\/(\d+)([psm])\.png$/);
+      if (!m) return;
+      const numPart = m[1];
+      const numSorted = numPart.split('').sort().join('');
+      const flipped = applyFlip(numPart);
+      const flippedSorted = flipped.split('').sort().join('');
+      const isKoritsu = /^孤立/.test(tile.label);
+
+      // 考察見出し用: 「元の数字（反転数字）」形式
+      const baseLabel = isKoritsu ? tile.label : numSorted;
+      const flipLabel = isKoritsu ? '孤立' + flippedSorted : flippedSorted;
+      const rankLabel = flippedSorted !== numSorted
+        ? baseLabel + '（' + flipLabel + '）'
+        : baseLabel;
+
+      suits.forEach(function(suit) {
+        // オリジナル向き
+        result.push({
+          id: numSorted + '_' + suit,
+          image: 'images_koritsuhai/' + numSorted + suit + '.png',
+          label: isKoritsu ? tile.label : numSorted + suit,
+          rankLabel: rankLabel,
+          rank: tile.rank,
+          commentary: tile.commentary,
+          suit: suit
+        });
+        // 上下反転（数字が変わるものだけ）
+        if (flippedSorted !== numSorted) {
+          result.push({
+            id: 'flip_' + numSorted + '_' + suit,
+            image: 'images_koritsuhai/' + flippedSorted + suit + '.png',
+            label: isKoritsu ? '孤立' + flippedSorted : flippedSorted + suit,
+            rankLabel: rankLabel,
+            rank: tile.rank,
+            commentary: tile.commentary,
+            suit: suit
+          });
+        }
+      });
+    });
+    return result;
+  }
+
+  TILES['19-hard'] = buildHardTiles('19');
+  TILES['28-hard'] = buildHardTiles('28');
+
+  // 同rankのタイルは考察を統一する（基礎モードも含む）
+  ['19', '28', '19-hard', '28-hard'].forEach(function(mode) {
+    const rankCommentary = {};
+    TILES[mode].forEach(function(tile) {
+      if (!rankCommentary[tile.rank]) rankCommentary[tile.rank] = tile.commentary;
+    });
+    TILES[mode].forEach(function(tile) {
+      tile.commentary = rankCommentary[tile.rank];
+    });
+  });
+
+  /* =====================================================
      ペア固有の考察（省略可能）
      ─ キー形式: "劣る牌のid_優る牌のid"
      ─ 例: '1m_9m' → 1萬 vs 9萬 で1萬が劣る場合の考察
@@ -825,7 +916,12 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultStorage();
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const defaults = defaultStorage();
+      Object.keys(defaults).forEach(function(key) {
+        if (!parsed[key]) parsed[key] = defaults[key];
+      });
+      return parsed;
     } catch (_) {
       return defaultStorage();
     }
@@ -833,8 +929,10 @@
 
   function defaultStorage() {
     return {
-      '19': { bestScore: null, totalAttempts: 0, wrongIds: [] },
-      '28': { bestScore: null, totalAttempts: 0, wrongIds: [] }
+      '19':      { bestScore: null, totalAttempts: 0, wrongIds: [] },
+      '28':      { bestScore: null, totalAttempts: 0, wrongIds: [] },
+      '19-hard': { bestScore: null, totalAttempts: 0, wrongIds: [] },
+      '28-hard': { bestScore: null, totalAttempts: 0, wrongIds: [] }
     };
   }
 
@@ -881,7 +979,9 @@
       for (let j = i + 1; j < tiles.length; j++) {
         const t1 = tiles[i];
         const t2 = tiles[j];
-        const t1IsInferior = t1.rank <= t2.rank;
+        if (t1.rank === t2.rank) continue;
+        if (t1.suit && t2.suit && t1.suit === t2.suit) continue;
+        const t1IsInferior = t1.rank < t2.rank;
         const inferiorTile = t1IsInferior ? t1 : t2;
         const superiorTile = t1IsInferior ? t2 : t1;
         // ペアキー: 劣る牌_優る牌
@@ -1074,11 +1174,11 @@
     const inferiorTile = q.inferior === 'A' ? q.tileA : q.tileB;
     const superiorTile = q.inferior === 'A' ? q.tileB : q.tileA;
     document.getElementById('commentary-inferior-label').textContent =
-      '【切り推奨】' + inferiorTile.label + ' の考察';
+      '【切り推奨】' + (inferiorTile.rankLabel || inferiorTile.label.replace(/[psm]$/, '')) + ' の考察';
     document.getElementById('commentary-inferior-text').textContent =
       q.inferiorCommentary;
     document.getElementById('commentary-superior-label').textContent =
-      '【残す牌】' + superiorTile.label + ' の考察';
+      '【残す牌】' + (superiorTile.rankLabel || superiorTile.label.replace(/[psm]$/, '')) + ' の考察';
     document.getElementById('commentary-superior-text').textContent =
       q.superiorCommentary;
 
@@ -1113,8 +1213,9 @@
     // スコア表示
     document.getElementById('result-correct').textContent = correct;
     document.getElementById('result-total').textContent = '/ ' + total + ' 正解';
+    const modeLabels = {'19':'19牌 基礎','28':'28牌 基礎','19-hard':'19牌 高難易度','28-hard':'28牌 高難易度'};
     document.getElementById('result-mode-label').textContent =
-      mode + '牌クイズ（' + total + '問）';
+      (modeLabels[mode] || mode) + 'クイズ（' + total + '問）';
 
     // localStorage 更新
     const data = loadStorage();
@@ -1174,12 +1275,12 @@
       const commInf = document.createElement('div');
       commInf.className = 'review-commentary review-commentary-inferior';
       commInf.innerHTML = '<span class="review-comm-label">【切り推奨】' +
-        inferiorTile.label + '</span>' + q.inferiorCommentary;
+        (inferiorTile.rankLabel || inferiorTile.label.replace(/[psm]$/, '')) + '</span>' + q.inferiorCommentary;
 
       const commSup = document.createElement('div');
       commSup.className = 'review-commentary review-commentary-superior';
       commSup.innerHTML = '<span class="review-comm-label">【残す牌】' +
-        superiorTile.label + '</span>' + q.superiorCommentary;
+        (superiorTile.rankLabel || superiorTile.label.replace(/[psm]$/, '')) + '</span>' + q.superiorCommentary;
 
       item.appendChild(tilesDiv);
       item.appendChild(commSup);
@@ -1217,10 +1318,11 @@
   ===================================================== */
   function renderHomeScores() {
     const data = loadStorage();
-    ['19', '28'].forEach(function(mode) {
+    ['19', '28', '19-hard', '28-hard'].forEach(function(mode) {
       const d      = data[mode];
       const bestEl = document.getElementById('home-best-' + mode);
       const attEl  = document.getElementById('home-attempts-' + mode);
+      if (!bestEl || !d) return;
 
       if (d.bestScore !== null) {
         bestEl.textContent = d.bestScore + ' / 30';
@@ -1236,12 +1338,30 @@
      初期化
   ===================================================== */
   function init() {
+    // 難易度状態管理
+    let currentDifficulty = 'normal';
+
+    document.getElementById('btn-diff-normal').addEventListener('click', function() {
+      currentDifficulty = 'normal';
+      this.style.background = 'var(--accent-gold)'; this.style.color = '#fff';
+      document.getElementById('btn-diff-hard').style.background = 'var(--bg-card)';
+      document.getElementById('btn-diff-hard').style.color = 'var(--text-main)';
+      document.getElementById('diff-desc').textContent = '1種類の色で比較します';
+    });
+    document.getElementById('btn-diff-hard').addEventListener('click', function() {
+      currentDifficulty = 'hard';
+      this.style.background = 'var(--accent-gold)'; this.style.color = '#fff';
+      document.getElementById('btn-diff-normal').style.background = 'var(--bg-card)';
+      document.getElementById('btn-diff-normal').style.color = 'var(--text-main)';
+      document.getElementById('diff-desc').textContent = '全色＋上下反転で比較します';
+    });
+
     // モード選択ボタン
     document.getElementById('btn-mode-19').addEventListener('click', function() {
-      startQuiz('19');
+      startQuiz(currentDifficulty === 'hard' ? '19-hard' : '19');
     });
     document.getElementById('btn-mode-28').addEventListener('click', function() {
-      startQuiz('28');
+      startQuiz(currentDifficulty === 'hard' ? '28-hard' : '28');
     });
 
     // 牌クリック
