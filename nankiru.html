@@ -196,13 +196,21 @@
     .feedback-result { font-size: 1.3rem; font-weight: 700; margin-bottom: 10px; }
     .feedback-result.correct { color: var(--correct); }
     .feedback-result.wrong   { color: var(--wrong); }
+    .shanten-badge {
+      display: inline-block; background: var(--accent-dim); color: var(--accent);
+      font-size: 0.82rem; font-weight: 700; padding: 3px 12px; border-radius: 20px;
+      border: 1px solid var(--accent); margin-top: 10px; margin-bottom: 2px;
+    }
     .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
     .ukeireru-row {
       display: flex; flex-wrap: wrap; align-items: center;
-      gap: 6px; margin-top: 12px; padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      gap: 6px; margin-top: 8px;
     }
-    .ukeireru-label { font-size: 0.78rem; color: var(--text-dim); flex-shrink: 0; margin-right: 2px; }
+    .ukeireru-label {
+      display: inline-block; background: rgba(76,175,80,0.15); color: var(--correct);
+      font-size: 0.82rem; font-weight: 700; padding: 3px 12px; border-radius: 20px;
+      border: 1px solid var(--correct); flex-shrink: 0;
+    }
     .ukeireru-chip {
       display: flex; align-items: center; gap: 3px;
       background: var(--card); padding: 3px 8px 3px 4px; border-radius: 8px;
@@ -308,6 +316,7 @@
   <div class="feedback-area" id="feedback-area" style="display:none">
     <div class="feedback-result" id="feedback-result"></div>
     <div class="feedback-commentary" id="feedback-commentary"></div>
+    <div id="feedback-shanten" style="display:none"></div>
     <div class="ukeireru-row" id="feedback-ukeireru" style="display:none"></div>
   </div>
 
@@ -377,7 +386,7 @@ function renderUkeireru(entries, container) {
 
   const lbl = document.createElement('span');
   lbl.className = 'ukeireru-label';
-  lbl.textContent = '受け入れ:';
+  lbl.textContent = '受け入れ';
   container.appendChild(lbl);
 
   entries.forEach(entry => {
@@ -558,7 +567,7 @@ function renderQ() {
   const hasDora  = q.dora && q.dora.length > 0;
   const sBar = document.getElementById('situation-bar');
   sBar.style.display = (hasRound || hasDora) ? '' : 'none';
-  const roundText = [q.round, q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' ');
+  const roundText = [q.round, q.seat ? q.seat + '家' : '', q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' ');
   document.getElementById('q-round').textContent = roundText;
   const doraBlock = document.getElementById('dora-block');
   const doraEl    = document.getElementById('q-dora');
@@ -628,6 +637,13 @@ function onTileClick(idx, code, q) {
   fr.textContent = ok ? '正解！' : '不正解';
   fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
   fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
+  const shantenEl = document.getElementById('feedback-shanten');
+  if (q.shanten) {
+    shantenEl.innerHTML = '<span class="shanten-badge">' + q.shanten + 'シャンテン</span>';
+    shantenEl.style.display = '';
+  } else {
+    shantenEl.style.display = 'none';
+  }
   renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
   renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
   fa.style.display = '';
@@ -673,7 +689,7 @@ function showResult() {
       if (q.round || (q.dora && q.dora.length)) {
         const meta = document.createElement('div');
         meta.className = 'review-meta';
-        if (q.round) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = q.round; meta.appendChild(rnd); }
+        if (q.round || q.seat) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' '); meta.appendChild(rnd); }
         if (q.dora && q.dora.length) {
           const dw = document.createElement('div'); dw.className = 'review-meta-dora';
           const dl = document.createElement('span'); dl.className = 'review-meta-dora-label'; dl.textContent = 'ドラ表示牌:'; dw.appendChild(dl);
@@ -709,6 +725,10 @@ function showResult() {
       const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
       const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
       info.appendChild(ans); info.appendChild(cmt);
+      if (q.shanten) {
+        const sb = document.createElement('span'); sb.className = 'shanten-badge';
+        sb.textContent = q.shanten + 'シャンテン'; info.appendChild(sb);
+      }
       if (q.ukeireru && q.ukeireru.length) {
         const urow = document.createElement('div');
         urow.className = 'ukeireru-row';

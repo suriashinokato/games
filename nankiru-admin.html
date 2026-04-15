@@ -355,6 +355,16 @@
         </select>
       </div>
       <div>
+        <label class="field-label" for="seat-select">家（空欄で非表示）</label>
+        <select class="select-input" id="seat-select">
+          <option value="">（設定なし）</option>
+          <option value="東">東家</option>
+          <option value="南">南家</option>
+          <option value="西">西家</option>
+          <option value="北">北家</option>
+        </select>
+      </div>
+      <div>
         <label class="field-label" for="turn-input">巡目（空欄で非表示）</label>
         <input type="number" class="num-input" id="turn-input" min="1" max="18" placeholder="例: 5">
       </div>
@@ -364,6 +374,18 @@
   <!-- 解説 -->
   <div class="section">
     <div class="section-title">解説</div>
+    <div style="margin-bottom:14px">
+      <label class="field-label" for="shanten-select">シャンテン数（任意）</label>
+      <select class="select-input" id="shanten-select" style="max-width:180px">
+        <option value="">（設定なし）</option>
+        <option value="1">1シャンテン</option>
+        <option value="2">2シャンテン</option>
+        <option value="3">3シャンテン</option>
+        <option value="4">4シャンテン</option>
+        <option value="5">5シャンテン</option>
+        <option value="6">6シャンテン</option>
+      </select>
+    </div>
     <label class="field-label" for="commentary">解説文（クイズ回答後に表示されます）</label>
     <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
   </div>
@@ -412,7 +434,7 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 let editState = {
   id: null, hand: [], correctAnswer: null,
   dora: [], round: '', turn: '', commentary: '',
-  melds: [], ukeireru: [],
+  melds: [], ukeireru: [], shanten: '', seat: '',
   paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
 };
 
@@ -562,17 +584,21 @@ function openEditor(problem) {
     commentary: problem.commentary || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
+    shanten: problem.shanten != null ? String(problem.shanten) : '',
+    seat: problem.seat || '',
     paletteTarget: 'hand'
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '',
-    melds: [], ukeireru: [], paletteTarget: 'hand'
+    melds: [], ukeireru: [], shanten: '', seat: '', paletteTarget: 'hand'
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
   document.getElementById('commentary').value = editState.commentary;
   document.getElementById('round-select').value = editState.round;
   document.getElementById('turn-input').value = editState.turn;
+  document.getElementById('shanten-select').value = editState.shanten;
+  document.getElementById('seat-select').value = editState.seat;
 
   // 副露ビルダーを閉じた状態に
   meldDraft = { tiles: [], calledIndex: null };
@@ -971,7 +997,9 @@ function saveProblem() {
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru:      editState.ukeireru.map(e => ({ ...e })),
     round:         document.getElementById('round-select').value,
+    seat:          document.getElementById('seat-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
+    shanten:       parseInt(document.getElementById('shanten-select').value) || null,
     commentary:    document.getElementById('commentary').value.trim(),
     createdAt:     new Date().toISOString().slice(0, 10)
   };
