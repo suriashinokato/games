@@ -838,7 +838,7 @@
 
       // 考察見出し用: 「元の数字（反転数字）」形式
       const baseLabel = isKoritsu ? tile.label : numSorted;
-      const flipLabel = isKoritsu ? '孤立' + flippedSorted : flippedSorted;
+      const flipLabel = isKoritsu ? flippedSorted : flippedSorted;
       const rankLabel = flippedSorted !== numSorted
         ? baseLabel + '（' + flipLabel + '）'
         : baseLabel;
