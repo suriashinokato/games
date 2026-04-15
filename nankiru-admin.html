@@ -59,15 +59,15 @@
     .problem-hand-preview { display: flex; gap: 2px; overflow-x: auto; padding: 2px 0 6px; }
 
     .tile-mini {
-      width: 30px; height: 42px; background: #f5f0e8; border-radius: 4px;
+      width: 30px; height: 42px; background: transparent; border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.5rem; color: #333; font-weight: bold; flex-shrink: 0;
       border: 2px solid transparent; overflow: hidden;
     }
     .tile-mini img { width: 100%; height: 100%; object-fit: contain; }
     .tile-mini.correct-tile { border-color: var(--correct); }
-    .tile-mini.dora-tile    { border-color: var(--accent); }
-    .tile-mini.called-tile  { border-color: var(--accent); background: #fff8ec; }
+    .tile-mini.dora-tile    { border-color: transparent; }
+    .tile-mini.called-tile  { border-color: var(--accent); background: transparent; }
 
     .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
     .answer-badge { background: rgba(76,175,80,0.15); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
@@ -104,7 +104,7 @@
     .palette-group-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; }
     .palette-row { display: flex; flex-wrap: wrap; gap: 4px; }
     .palette-tile {
-      width: 40px; height: 56px; background: #f5f0e8; border-radius: 5px; border: 2px solid transparent;
+      width: 40px; height: 56px; background: transparent; border-radius: 5px; border: 2px solid transparent;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       font-size: 0.6rem; color: #333; font-weight: bold;
       transition: border-color 0.15s, transform 0.1s; overflow: hidden; flex-shrink: 0;
@@ -112,7 +112,7 @@
     .palette-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .palette-tile:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-3px); }
     .palette-tile:disabled { opacity: 0.3; cursor: default; transform: none; }
-    .palette-tile.red-tile { background: #fff0f0; }
+    .palette-tile.red-tile { background: transparent; }
 
     /* 手牌エリア */
     .hand-count { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
@@ -123,7 +123,7 @@
       min-height: 80px; padding: 8px; background: var(--card); border-radius: 8px; margin-bottom: 10px;
     }
     .editor-hand .e-tile, .mb-preview .mb-tile {
-      width: var(--tile-w); height: var(--tile-h); background: #f5f0e8;
+      width: var(--tile-w); height: var(--tile-h); background: transparent;
       border-radius: 6px; border: 3px solid transparent;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative;
@@ -157,8 +157,8 @@
       min-height: 56px; padding: 6px; background: var(--card); border-radius: 8px;
     }
     .editor-dora .d-tile {
-      width: 40px; height: 56px; background: #f5f0e8;
-      border-radius: 5px; border: 2px solid var(--accent);
+      width: 40px; height: 56px; background: transparent;
+      border-radius: 5px; border: 2px solid transparent;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative;
       font-size: 0.6rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
@@ -201,7 +201,7 @@
     }
     .meld-list-tiles { display: flex; align-items: flex-end; gap: 2px; }
     .meld-list-tile {
-      width: 32px; height: 44px; background: #f5f0e8; border-radius: 4px; border: 2px solid transparent;
+      width: 32px; height: 44px; background: transparent; border-radius: 4px; border: 2px solid transparent;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.55rem; color: #333; overflow: hidden; flex-shrink: 0;
     }
@@ -368,6 +368,19 @@
     <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
   </div>
 
+  <!-- 受け入れ牌 -->
+  <div class="section">
+    <div class="section-title">受け入れ牌（任意）</div>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:12px">切り牌後の受け入れ牌と残り枚数を登録します（牌コード例: 2m / 5p / 7z）</p>
+    <div id="ukeireru-list" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="ukeireru-tile-input" class="num-input" placeholder="牌コード (例: 2m)" style="min-width:120px;max-width:140px">
+      <span style="color:var(--text-dim);font-size:1rem;font-weight:700">×</span>
+      <input type="number" id="ukeireru-count-input" class="num-input" min="1" max="99" placeholder="枚数 (1〜99)" style="min-width:110px;max-width:130px">
+      <button class="btn btn-ghost btn-sm" onclick="addUkeireruEntry()">追加</button>
+    </div>
+  </div>
+
   <div class="editor-actions">
     <button class="btn btn-ghost" onclick="openList()">キャンセル</button>
     <button class="btn btn-accent" onclick="saveProblem()">保存する</button>
@@ -399,7 +412,7 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 let editState = {
   id: null, hand: [], correctAnswer: null,
   dora: [], round: '', turn: '', commentary: '',
-  melds: [],
+  melds: [], ukeireru: [],
   paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
 };
 
@@ -548,11 +561,12 @@ function openEditor(problem) {
     turn: problem.turn != null ? String(problem.turn) : '',
     commentary: problem.commentary || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
+    ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
     paletteTarget: 'hand'
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '',
-    melds: [], paletteTarget: 'hand'
+    melds: [], ukeireru: [], paletteTarget: 'hand'
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
@@ -570,6 +584,7 @@ function openEditor(problem) {
   renderEditorHand();
   renderEditorDora();
   renderMelds();
+  renderUkeireruList();
   showScreen('editor');
 }
 
@@ -857,9 +872,94 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ===== 受け入れ牌 =====
+function addUkeireruEntry() {
+  const tileInput  = document.getElementById('ukeireru-tile-input');
+  const countInput = document.getElementById('ukeireru-count-input');
+  const tile  = tileInput.value.trim().toLowerCase();
+  const count = parseInt(countInput.value);
+
+  if (!/^[0-9][mpsz]$/.test(tile)) {
+    alert('牌コードを正しく入力してください\n例: 2m / 5p / 7z / 1z〜7z');
+    return;
+  }
+  if (!count || count < 1 || count > 99) {
+    alert('枚数を 1〜99 で入力してください');
+    return;
+  }
+
+  editState.ukeireru.push({ tile, count });
+  tileInput.value  = '';
+  countInput.value = '';
+  tileInput.focus();
+  renderUkeireruList();
+}
+
+function removeUkeireruEntry(idx) {
+  editState.ukeireru.splice(idx, 1);
+  renderUkeireruList();
+}
+
+function renderUkeireruList() {
+  const el = document.getElementById('ukeireru-list');
+  if (!el) return;
+  el.innerHTML = '';
+
+  if (!editState.ukeireru.length) {
+    el.innerHTML = '<p style="font-size:0.82rem;color:var(--text-dim);padding:2px 0">未登録</p>';
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
+
+  editState.ukeireru.forEach((entry, idx) => {
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;gap:5px;background:var(--card);padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.07)';
+
+    // 牌画像
+    const tileWrap = document.createElement('div');
+    tileWrap.style.cssText = 'width:28px;height:38px;background:#f5f0e8;border-radius:3px;overflow:hidden;flex-shrink:0';
+    const img = document.createElement('img');
+    img.src = 'images_hai/' + entry.tile + '.png';
+    img.alt = tileLabel(entry.tile);
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain';
+    img.onerror = function() { this.style.display = 'none'; tileWrap.insertAdjacentText('beforeend', tileLabel(entry.tile)); };
+    tileWrap.appendChild(img);
+
+    const x = document.createElement('span');
+    x.style.cssText = 'color:var(--text-dim);font-size:0.85rem';
+    x.textContent = '×';
+
+    const cnt = document.createElement('span');
+    cnt.style.cssText = 'color:var(--text);font-weight:700;font-size:0.95rem;min-width:12px';
+    cnt.textContent = entry.count;
+
+    const del = document.createElement('button');
+    del.className = 'btn btn-danger btn-sm';
+    del.style.cssText = 'padding:2px 7px;font-size:0.75rem;margin-left:4px';
+    del.textContent = '×';
+    del.onclick = () => removeUkeireruEntry(idx);
+
+    chip.appendChild(tileWrap);
+    chip.appendChild(x);
+    chip.appendChild(cnt);
+    chip.appendChild(del);
+    wrap.appendChild(chip);
+  });
+
+
+  el.appendChild(wrap);
+}
+
 // ===== SAVE =====
 function saveProblem() {
   if (!editState.hand.length) { alert('手牌を設定してください'); return; }
+  const total = totalTileCount();
+  if (total < 14) {
+    alert('手牌と副露の合計が14枚に達していません（現在 ' + total + ' 枚）\n\nあと ' + (14 - total) + ' 枚追加してください。');
+    return;
+  }
   if (!editState.correctAnswer) { alert('正解牌を選択してください\n（手牌の牌をクリックして選択）'); return; }
   if (!editState.hand.includes(editState.correctAnswer)) { alert('正解牌は手牌に含まれている必要があります'); return; }
 
@@ -869,6 +969,7 @@ function saveProblem() {
     correctAnswer: editState.correctAnswer,
     dora:          [...editState.dora],
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
+    ukeireru:      editState.ukeireru.map(e => ({ ...e })),
     round:         document.getElementById('round-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
     commentary:    document.getElementById('commentary').value.trim(),

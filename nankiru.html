@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>麻雀 何切る</title>
+  <title>麻雀 何切るメーカー</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -83,7 +83,7 @@
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
     .dora-tiles-wrap { display: flex; gap: 3px; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
     .dora-tile {
-      width: 36px; height: 50px; background: #f5f0e8; border-radius: 4px; border: 2px solid var(--accent);
+      width: 36px; height: 50px; background: transparent; border-radius: 4px; border: 2px solid transparent;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.58rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
       box-shadow: 0 2px 6px rgba(0,0,0,0.4);
@@ -197,6 +197,30 @@
     .feedback-result.correct { color: var(--correct); }
     .feedback-result.wrong   { color: var(--wrong); }
     .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
+    .ukeireru-row {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 6px; margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .ukeireru-label { font-size: 0.78rem; color: var(--text-dim); flex-shrink: 0; margin-right: 2px; }
+    .ukeireru-chip {
+      display: flex; align-items: center; gap: 3px;
+      background: var(--card); padding: 3px 8px 3px 4px; border-radius: 8px;
+    }
+    .ukeireru-chip .u-tile {
+      width: 22px; height: 30px; background: #f5f0e8;
+      border-radius: 3px; overflow: hidden; flex-shrink: 0;
+    }
+    .ukeireru-chip .u-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .ukeireru-chip .u-x { color: var(--text-dim); font-size: 0.78rem; margin: 0 1px; }
+    .ukeireru-chip .u-cnt { color: var(--text); font-weight: 700; font-size: 0.88rem; }
+    .commentary-tile {
+      display: inline-block; vertical-align: middle;
+      width: 22px; height: 30px; margin: 0 1px 2px;
+      border-radius: 3px; overflow: hidden; flex-shrink: 0;
+      background: #f5f0e8;
+    }
+    .commentary-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
     .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
     .btn-next:hover { opacity: 0.85; }
@@ -223,7 +247,7 @@
     .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; border-width: 2px; border-radius: 4px; }
 
     .review-answer-label { display: inline-block; background: rgba(76,175,80,0.18); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
-    .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; }
+    .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 
     .result-actions { display: flex; gap: 12px; margin-top: 20px; }
     .btn-ghost { flex: 1; padding: 13px; background: transparent; color: var(--text); border: 2px solid var(--text-dim); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
@@ -236,8 +260,8 @@
 
 <!-- ===== HOME ===== -->
 <div id="screen-home" class="screen">
-  <h1 class="home-title">麻雀 何切る</h1>
-  <p class="home-subtitle">最善の一手を選べ</p>
+  <h1 class="home-title">麻雀 何切るメーカー</h1>
+  <p class="home-subtitle">最善の一手を選ぶために</p>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <button class="btn-start" id="btn-start" onclick="startQuiz()">スタート</button>
   <div class="score-card">
@@ -284,6 +308,7 @@
   <div class="feedback-area" id="feedback-area" style="display:none">
     <div class="feedback-result" id="feedback-result"></div>
     <div class="feedback-commentary" id="feedback-commentary"></div>
+    <div class="ukeireru-row" id="feedback-ukeireru" style="display:none"></div>
   </div>
 
   <button class="btn-next" id="btn-next" style="display:none" onclick="nextQ()">次の問題</button>
@@ -313,6 +338,76 @@ const TILE_LABELS = {
 };
 const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
 function tileLabel(code) { return TILE_LABELS[code] || code; }
+
+// ===== COMMENTARY RENDERER =====
+// 解説文中の牌コード（例: 1m, 0p, 7z）を牌画像に置き換えてcontainerへ描画する
+function renderCommentary(text, container) {
+  container.innerHTML = '';
+  if (!text) return;
+  // 牌コードのパターン: 数字(0-9) + スーツ(m/p/s/z)
+  const parts = text.split(/([0-9][mpsz])/);
+  parts.forEach(part => {
+    if (/^[0-9][mpsz]$/.test(part)) {
+      const span = document.createElement('span');
+      span.className = 'commentary-tile';
+      span.title = tileLabel(part);
+      const img = document.createElement('img');
+      img.src = 'images_hai/' + part + '.png';
+      img.alt = tileLabel(part);
+      img.onerror = function() {
+        this.style.display = 'none';
+        span.insertAdjacentText('beforeend', tileLabel(part));
+      };
+      span.appendChild(img);
+      container.appendChild(span);
+    } else if (part) {
+      container.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
+// 受け入れ牌を描画する
+function renderUkeireru(entries, container) {
+  container.innerHTML = '';
+  if (!entries || !entries.length) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = '';
+
+  const lbl = document.createElement('span');
+  lbl.className = 'ukeireru-label';
+  lbl.textContent = '受け入れ:';
+  container.appendChild(lbl);
+
+  entries.forEach(entry => {
+    const chip = document.createElement('span');
+    chip.className = 'ukeireru-chip';
+
+    const tileEl = document.createElement('span');
+    tileEl.className = 'u-tile';
+    tileEl.title = tileLabel(entry.tile);
+    const img = document.createElement('img');
+    img.src = 'images_hai/' + entry.tile + '.png';
+    img.alt = tileLabel(entry.tile);
+    img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(entry.tile)); };
+    tileEl.appendChild(img);
+
+    const x = document.createElement('span');
+    x.className = 'u-x';
+    x.textContent = '×';
+
+    const cnt = document.createElement('span');
+    cnt.className = 'u-cnt';
+    cnt.textContent = entry.count;
+
+    chip.appendChild(tileEl);
+    chip.appendChild(x);
+    chip.appendChild(cnt);
+    container.appendChild(chip);
+  });
+
+}
 
 // ===== STATE =====
 const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false };
@@ -533,7 +628,8 @@ function onTileClick(idx, code, q) {
   fr.textContent = ok ? '正解！' : '不正解';
   fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
   fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
-  document.getElementById('feedback-commentary').textContent = q.commentary || '';
+  renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
+  renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
   fa.style.display = '';
   document.getElementById('q-instruction').style.display = 'none';
   document.getElementById('q-score').textContent = st.correct + ' 正解';
@@ -611,8 +707,15 @@ function showResult() {
       // 正解・解説
       const info = document.createElement('div');
       const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
-      const cmt = document.createElement('p'); cmt.className = 'review-commentary'; cmt.textContent = q.commentary || '';
+      const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
       info.appendChild(ans); info.appendChild(cmt);
+      if (q.ukeireru && q.ukeireru.length) {
+        const urow = document.createElement('div');
+        urow.className = 'ukeireru-row';
+        urow.style.marginTop = '8px';
+        renderUkeireru(q.ukeireru, urow);
+        info.appendChild(urow);
+      }
       card.appendChild(info);
       revEl.appendChild(card);
     });
