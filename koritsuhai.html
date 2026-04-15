@@ -582,7 +582,7 @@
       <div style="text-align:center;margin-bottom:14px;">
         <div style="display:inline-flex;border:2px solid var(--border-gold);border-radius:var(--radius);overflow:hidden;">
           <button id="btn-diff-normal" style="padding:8px 22px;border:none;background:var(--accent-gold);color:#fff;font-family:var(--font);font-size:0.88rem;cursor:pointer;font-weight:bold;">基礎</button>
-          <button id="btn-diff-hard"   style="padding:8px 22px;border:none;background:var(--bg-card);color:var(--text-main);font-family:var(--font);font-size:0.88rem;cursor:pointer;">高難易度</button>
+          <button id="btn-diff-hard"   style="padding:8px 22px;border:none;background:var(--bg-card);color:var(--text-main);font-family:var(--font);font-size:0.88rem;cursor:pointer;">実践</button>
         </div>
         <div id="diff-desc" style="font-size:0.78rem;color:var(--text-sub);margin-top:6px;">1種類の色で比較します</div>
       </div>
@@ -612,12 +612,12 @@
             <div class="best-label" id="home-attempts-28"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">19牌 高難易度</div>
+            <div class="mode-name">19牌 実践</div>
             <div class="best-val" id="home-best-19-hard">—</div>
             <div class="best-label" id="home-attempts-19-hard"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">28牌 高難易度</div>
+            <div class="mode-name">28牌 実践</div>
             <div class="best-val" id="home-best-28-hard">—</div>
             <div class="best-label" id="home-attempts-28-hard"></div>
           </div>
@@ -814,7 +814,7 @@
   };
 
   /* =====================================================
-     高難易度タイル生成
+     実践タイル生成
      ─ 元タイルに p/s/m の色バリエーションと上下反転を追加
   ===================================================== */
   const flipMap = {'1':'9','2':'8','3':'7','4':'6','5':'5','6':'4','7':'3','8':'2','9':'1'};
@@ -1213,7 +1213,7 @@
     // スコア表示
     document.getElementById('result-correct').textContent = correct;
     document.getElementById('result-total').textContent = '/ ' + total + ' 正解';
-    const modeLabels = {'19':'19牌 基礎','28':'28牌 基礎','19-hard':'19牌 高難易度','28-hard':'28牌 高難易度'};
+    const modeLabels = {'19':'19牌 基礎','28':'28牌 基礎','19-hard':'19牌 実践','28-hard':'28牌 実践'};
     document.getElementById('result-mode-label').textContent =
       (modeLabels[mode] || mode) + 'クイズ（' + total + '問）';
 
