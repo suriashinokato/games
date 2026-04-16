@@ -342,7 +342,6 @@
     #feedback-text.wrong   { color: var(--accent-green); }
 
     #commentary-box {
-      margin-bottom: 18px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -378,6 +377,7 @@
       display: block;
       width: 100%;
       padding: 13px;
+      margin-bottom: 18px;
       background: var(--accent-gold);
       color: #fff;
       border: none;
@@ -665,7 +665,8 @@
       <!-- フィードバック -->
       <div id="feedback-area">
         <div id="feedback-text" style="display:none"></div>
-        <div id="commentary-box">
+        <button id="next-btn">次の問題 →</button>
+        <div id="commentary-box" style="margin-top:18px;">
           <div class="commentary-entry commentary-inferior">
             <div class="commentary-label" id="commentary-inferior-label"></div>
             <div id="commentary-inferior-text"></div>
@@ -675,7 +676,6 @@
             <div id="commentary-superior-text"></div>
           </div>
         </div>
-        <button id="next-btn">次の問題 →</button>
       </div>
     </div>
   </div>
