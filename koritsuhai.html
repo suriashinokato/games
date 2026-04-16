@@ -373,24 +373,48 @@
     #commentary-superior-text { white-space: pre-wrap; }
 
     /* 次の問題ボタン */
-    #next-btn {
-      display: block;
-      width: auto;
-      margin-left: auto;
-      margin-bottom: 18px;
-      padding: 0 0 12px 0;
+    /* ナビゲーション行（ホーム ←→ 次の問題） */
+    #quiz-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    #btn-back-home {
+      padding: 7px 14px;
       background: none;
-      color: var(--text-sub);
-      border: none;
+      border: 1.5px solid var(--border-gold);
+      border-radius: var(--radius);
       font-family: var(--font);
       font-size: 0.82rem;
-      font-weight: normal;
-      letter-spacing: 0.06em;
+      color: var(--text-sub);
       cursor: pointer;
-      transition: color 0.18s;
+      letter-spacing: 0.06em;
+      transition: background 0.15s, color 0.15s;
+    }
+    #btn-back-home:hover {
+      background: #fff8ea;
+      color: var(--text-main);
+    }
+
+    #next-btn {
+      display: none;
+      padding: 7px 16px;
+      background: var(--accent-gold);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
     }
     #next-btn:hover {
-      color: var(--text-main);
+      background: #b8943a;
+      transform: translateY(-1px);
     }
 
     /* ===== 結果画面 ===== */
@@ -632,7 +656,10 @@
   <!-- ===== クイズ画面 ===== -->
   <div id="screen-quiz" class="screen">
     <div class="card">
-      <button id="btn-back-home" style="background:none;border:none;padding:0 0 12px 0;font-family:var(--font);font-size:0.82rem;color:var(--text-sub);cursor:pointer;letter-spacing:0.06em;">← ホーム</button>
+      <div id="quiz-nav">
+        <button id="btn-back-home">← ホーム</button>
+        <button id="next-btn">次の問題 →</button>
+      </div>
       <div id="progress-text">問題 1 / 1</div>
       <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
 
@@ -664,8 +691,7 @@
       <!-- フィードバック -->
       <div id="feedback-area">
         <div id="feedback-text" style="display:none"></div>
-        <button id="next-btn">次の問題 →</button>
-        <div id="commentary-box" style="margin-top:18px;">
+        <div id="commentary-box">
           <div class="commentary-entry commentary-inferior">
             <div class="commentary-label" id="commentary-inferior-label"></div>
             <div id="commentary-inferior-text"></div>
@@ -1064,6 +1090,7 @@
     // フィードバックを非表示
     const fb = document.getElementById('feedback-area');
     fb.classList.remove('visible');
+    document.getElementById('next-btn').style.display = 'none';
 
     // タイル下メッセージをリセット
     ['a', 'b'].forEach(function(k) {
@@ -1181,9 +1208,11 @@
     document.getElementById('commentary-superior-text').textContent =
       q.superiorCommentary;
 
-    // 次ボタンのラベル
+    // 次ボタンのラベルを更新して表示
     const isLast = (state.currentIndex === state.questions.length - 1);
-    document.getElementById('next-btn').textContent = isLast ? '結果を見る' : '次の問題 →';
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.textContent = isLast ? '結果を見る →' : '次の問題 →';
+    nextBtn.style.display = 'block';
 
     // フィードバックエリアを表示
     document.getElementById('feedback-area').classList.add('visible');
