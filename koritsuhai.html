@@ -1300,13 +1300,13 @@
       img.style.display = 'none';
       const ph = document.createElement('div');
       ph.style.cssText = 'font-size:0.75rem;color:#7a6a55;text-align:center;padding:4px';
-      ph.textContent = tileData.label;
+      ph.textContent = tileData.label.replace(/[psm]$/, '');
       div.appendChild(ph);
     };
 
     const label = document.createElement('div');
     label.className = 'review-tile-label';
-    label.textContent = tileData.label;
+    label.textContent = tileData.label.replace(/[psm]$/, '');
 
     div.appendChild(img);
     div.appendChild(label);
