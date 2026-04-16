@@ -375,23 +375,22 @@
     /* 次の問題ボタン */
     #next-btn {
       display: block;
-      width: 100%;
-      padding: 13px;
+      width: auto;
+      margin-left: auto;
       margin-bottom: 18px;
-      background: var(--accent-gold);
-      color: #fff;
+      padding: 0 0 12px 0;
+      background: none;
+      color: var(--text-sub);
       border: none;
-      border-radius: var(--radius);
       font-family: var(--font);
-      font-size: 1rem;
-      font-weight: bold;
-      letter-spacing: 0.1em;
+      font-size: 0.82rem;
+      font-weight: normal;
+      letter-spacing: 0.06em;
       cursor: pointer;
-      transition: background 0.18s, transform 0.1s;
+      transition: color 0.18s;
     }
     #next-btn:hover {
-      background: #b8943a;
-      transform: translateY(-1px);
+      color: var(--text-main);
     }
 
     /* ===== 結果画面 ===== */
