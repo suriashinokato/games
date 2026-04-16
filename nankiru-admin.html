@@ -388,6 +388,10 @@
     </div>
     <label class="field-label" for="commentary">解説文（クイズ回答後に表示されます）</label>
     <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
+    <div style="margin-top:14px">
+      <label class="field-label" for="source-input">出典（任意）</label>
+      <input type="text" class="num-input" id="source-input" placeholder="例: 麻雀本 第3章 / X(Twitter) @username">
+    </div>
   </div>
 
   <!-- 受け入れ牌 -->
@@ -433,7 +437,7 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 // ===== EDIT STATE =====
 let editState = {
   id: null, hand: [], correctAnswer: null,
-  dora: [], round: '', turn: '', commentary: '',
+  dora: [], round: '', turn: '', commentary: '', source: '',
   melds: [], ukeireru: [], shanten: '', seat: '',
   paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
 };
@@ -582,6 +586,7 @@ function openEditor(problem) {
     round: problem.round || '',
     turn: problem.turn != null ? String(problem.turn) : '',
     commentary: problem.commentary || '',
+    source: problem.source || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
     shanten: problem.shanten != null ? String(problem.shanten) : '',
@@ -589,12 +594,13 @@ function openEditor(problem) {
     paletteTarget: 'hand'
   } : {
     id: null, hand: [], correctAnswer: null,
-    dora: [], round: '', turn: '', commentary: '',
+    dora: [], round: '', turn: '', commentary: '', source: '',
     melds: [], ukeireru: [], shanten: '', seat: '', paletteTarget: 'hand'
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
   document.getElementById('commentary').value = editState.commentary;
+  document.getElementById('source-input').value = editState.source;
   document.getElementById('round-select').value = editState.round;
   document.getElementById('turn-input').value = editState.turn;
   document.getElementById('shanten-select').value = editState.shanten;
@@ -650,11 +656,24 @@ function totalTileCount() {
   return editState.hand.length + editState.melds.reduce((s, m) => s + m.tiles.length, 0);
 }
 
+// 手牌・ドラ・確定済み副露・副露ドラフト全体での同一牌の使用枚数
+function tileCount(code) {
+  return editState.hand.filter(c => c === code).length
+    + editState.dora.filter(c => c === code).length
+    + editState.melds.reduce((s, m) => s + m.tiles.filter(c => c === code).length, 0)
+    + meldDraft.tiles.filter(c => c === code).length;
+}
+
 function updatePaletteState() {
   let maxed = false;
   if      (editState.paletteTarget === 'hand') maxed = totalTileCount() >= 14;
   else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 5;
-  else if (editState.paletteTarget === 'meld') maxed = meldDraft.tiles.length >= 4;
+  else if (editState.paletteTarget === 'meld') {
+    const meldType = document.querySelector('input[name="meld-type"]:checked')?.value;
+    maxed = (meldType === 'pon' || meldType === 'ankan' || meldType === 'minkan')
+      ? meldDraft.tiles.length > 0
+      : meldDraft.tiles.length >= 3;
+  }
   document.querySelectorAll('.palette-tile').forEach(btn => { btn.disabled = maxed; });
 
   // 副露追加ボタン：残り枚数が3未満なら無効化
@@ -665,14 +684,31 @@ function updatePaletteState() {
 function addTile(code) {
   if (editState.paletteTarget === 'dora') {
     if (editState.dora.length >= 5) return;
+    if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
     editState.dora.push(code);
     renderEditorDora();
   } else if (editState.paletteTarget === 'meld') {
-    if (meldDraft.tiles.length >= 4) return;
-    meldDraft.tiles.push(code);
+    const meldType = document.querySelector('input[name="meld-type"]:checked')?.value;
+    if (meldType === 'pon' || meldType === 'ankan' || meldType === 'minkan') {
+      if (meldDraft.tiles.length > 0) return; // 既に設定済み
+      const need = meldType === 'pon' ? 3 : 4;
+      const avail = 4 - tileCount(code);
+      if (avail < need) {
+        alert(tileLabel(code) + ' の残り枚数は ' + avail + ' 枚のため、' + MELD_TYPE_NAMES[meldType] + ' には使用できません');
+        return;
+      }
+      meldDraft.tiles = Array(need).fill(code);
+      if (meldType !== 'ankan') meldDraft.calledIndex = 0;
+    } else {
+      // チー: 1枚ずつ追加
+      if (meldDraft.tiles.length >= 3) return;
+      if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
+      meldDraft.tiles.push(code);
+    }
     renderMeldPreview();
   } else {
     if (totalTileCount() >= 14) return;
+    if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
     editState.hand.push(code);
     renderEditorHand();
   }
@@ -782,7 +818,9 @@ function toggleMeldCalled(idx) {
 function renderMeldPreview() {
   const el = document.getElementById('mb-preview');
   el.innerHTML = '';
-  const isAnkan = document.querySelector('input[name="meld-type"]:checked')?.value === 'ankan';
+  const type = document.querySelector('input[name="meld-type"]:checked')?.value;
+  const isAnkan   = type === 'ankan';
+  const isAutoFill = type === 'pon' || type === 'ankan' || type === 'minkan';
 
   meldDraft.tiles.forEach((code, idx) => {
     const isCalled = !isAnkan && idx === meldDraft.calledIndex;
@@ -790,7 +828,7 @@ function renderMeldPreview() {
     tile.className = 'mb-tile' + (isCalled ? ' is-called' : '');
     tile.title = isAnkan
       ? tileLabel(code) + '（×で削除）'
-      : (isCalled ? '鳴いた牌（クリックで解除）' : 'クリックで鳴いた牌を設定 / ×で削除');
+      : (isCalled ? '鳴いた牌（クリックで解除）' : 'クリックで鳴いた牌を変更 / ×で全消し');
     const img = document.createElement('img');
     img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
@@ -803,7 +841,9 @@ function renderMeldPreview() {
   document.getElementById('mb-count').textContent = meldDraft.tiles.length;
 
   const hint = document.getElementById('mb-hint');
-  if (isAnkan) {
+  if (isAutoFill && meldDraft.tiles.length === 0) {
+    hint.innerHTML = 'パレットから牌を<strong>1種類</strong>選んでください（枚数は自動補完）';
+  } else if (isAnkan) {
     hint.innerHTML = '暗槓は鳴いた牌の指定不要です';
   } else if (meldDraft.calledIndex !== null && meldDraft.tiles[meldDraft.calledIndex]) {
     hint.innerHTML = '鳴いた牌: <strong>' + tileLabel(meldDraft.tiles[meldDraft.calledIndex]) + '</strong>（クリックで変更）';
@@ -892,8 +932,11 @@ function renderMelds() {
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[name="meld-type"]').forEach(r => {
     r.addEventListener('change', () => {
-      if (r.value === 'ankan') meldDraft.calledIndex = null;
+      // 種別変更時は選択済み牌をリセット
+      meldDraft.tiles = [];
+      meldDraft.calledIndex = null;
       renderMeldPreview();
+      updatePaletteState();
     });
   });
 });
@@ -1001,6 +1044,7 @@ function saveProblem() {
     turn:          parseInt(document.getElementById('turn-input').value) || null,
     shanten:       parseInt(document.getElementById('shanten-select').value) || null,
     commentary:    document.getElementById('commentary').value.trim(),
+    source:        document.getElementById('source-input').value.trim() || null,
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
@@ -1051,7 +1095,7 @@ function insertSamples() {
       id: 'sample-001',
       hand: ['1m','2m','3m','4m','5m','6m','3p','4p','5p','7s','8s','9s','1z','2z'],
       correctAnswer: '2z', dora: ['9p'], round: '東1局', melds: [],
-      commentary: '数牌の面子が揃っているため、孤立した字牌から切ります。\n東（1z）は役牌の可能性があるため南（2z）から切るのが基本です。',
+      commentary: '数牌の面子が揃っているため、孤立した字牌から切ります。\n1zは役牌の可能性があるため2zから切るのが基本です。',
       createdAt: '2026-04-10'
     },
     {
@@ -1069,7 +1113,7 @@ function insertSamples() {
       id: 'sample-003',
       hand: ['1m','2m','4m','5m','6m','3p','4p','5p','6p','7p','4s','5s','6s','9m'],
       correctAnswer: '1m', dora: ['0m'], round: '南1局', melds: [],
-      commentary: '4〜6mの面子があるため1m-2mの搭子より優先します。1mは端牌のため先に切ります。',
+      commentary: '4m〜6mの面子があるため1m-2mの搭子より優先します。1mは端牌のため先に切ります。',
       createdAt: '2026-04-10'
     }
   ]);

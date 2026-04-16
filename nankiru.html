@@ -81,7 +81,7 @@
     .situation-round { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; padding-bottom: 2px; }
     .dora-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
-    .dora-tiles-wrap { display: flex; gap: 3px; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
+    .dora-tiles-wrap { display: flex; gap: 0; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
     .dora-tile {
       width: 36px; height: 50px; background: transparent; border-radius: 4px; border: 2px solid transparent;
       display: flex; align-items: center; justify-content: center;
@@ -89,6 +89,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
     .dora-tile img { width: 100%; height: 100%; object-fit: contain; }
+    .dora-back-group { display: flex; align-items: center; flex-shrink: 0; }
 
     /* ===== 副露牌エリア ===== */
     .melds-area {
@@ -170,7 +171,7 @@
     .tile-slot {
       width: var(--tile-w); height: var(--tile-h); border-radius: 4px;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
-      border: 3px solid transparent; transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      outline: 3px solid transparent; transition: transform 0.15s, outline-color 0.2s, box-shadow 0.2s;
       flex-shrink: 0; font-size: 0.7rem; color: #333; font-weight: bold;
       position: relative; user-select: none; overflow: visible;
       background: none;
@@ -181,11 +182,17 @@
       font-size: 0.7rem; font-weight: 700; color: var(--accent);
       white-space: nowrap; pointer-events: none;
     }
-    .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); border-color: var(--accent); box-shadow: 0 8px 20px rgba(201,168,76,0.45); z-index: 1; }
+    .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); outline-color: var(--accent); box-shadow: 0 8px 20px rgba(201,168,76,0.45); z-index: 1; }
     .hand-tiles.answered .tile-slot { cursor: default; }
 
-    .tile-slot.correct { border-color: var(--correct); box-shadow: 0 0 14px rgba(76,175,80,0.6); animation: pulse-correct 0.45s ease; }
-    .tile-slot.wrong   { border-color: var(--wrong);   box-shadow: 0 0 14px rgba(229,57,53,0.6); animation: shake-wrong 0.4s ease; }
+    .tile-slot.correct { box-shadow: 0 0 14px rgba(76,175,80,0.6); animation: pulse-correct 0.45s ease; }
+    .tile-slot.wrong   { box-shadow: 0 0 14px rgba(229,57,53,0.6); animation: shake-wrong 0.4s ease; }
+    .tile-slot.correct::after, .tile-slot.wrong::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 4px; z-index: 2; pointer-events: none;
+    }
+    .tile-slot.correct::after { border: 3px solid var(--correct); }
+    .tile-slot.wrong::after   { border: 3px solid var(--wrong); }
 
     @keyframes pulse-correct { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.1) translateY(-8px); } 100% { transform: scale(1) translateY(0); } }
     @keyframes shake-wrong   { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 60% { transform: translateX(6px); } }
@@ -202,6 +209,7 @@
       border: 1px solid var(--accent); margin-top: 10px; margin-bottom: 2px;
     }
     .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
+    .feedback-source { color: var(--text-dim); font-size: 0.78rem; margin-top: 10px; text-align: right; }
     .ukeireru-row {
       display: flex; flex-wrap: wrap; align-items: center;
       gap: 6px; margin-top: 8px;
@@ -252,7 +260,7 @@
     .review-melds { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
 
     .review-hand { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
-    .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; border-width: 2px; border-radius: 4px; }
+    .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; outline-width: 2px; border-radius: 4px; }
 
     .review-answer-label { display: inline-block; background: rgba(76,175,80,0.18); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
     .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
@@ -298,7 +306,6 @@
   <div class="situation-bar" id="situation-bar" style="display:none">
     <span class="situation-round" id="q-round"></span>
     <div class="dora-block" id="dora-block" style="display:none">
-      <span class="dora-block-label">ドラ表示牌</span>
       <div class="dora-tiles-wrap" id="q-dora"></div>
     </div>
   </div>
@@ -318,6 +325,7 @@
     <div class="feedback-commentary" id="feedback-commentary"></div>
     <div id="feedback-shanten" style="display:none"></div>
     <div class="ukeireru-row" id="feedback-ukeireru" style="display:none"></div>
+    <div class="feedback-source" id="feedback-source" style="display:none"></div>
   </div>
 
   <button class="btn-next" id="btn-next" style="display:none" onclick="nextQ()">次の問題</button>
@@ -347,6 +355,22 @@ const TILE_LABELS = {
 };
 const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
 function tileLabel(code) { return TILE_LABELS[code] || code; }
+
+// ===== TILE SORT =====
+const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 };
+function tileNum(code) { const n = parseInt(code[0]); return n === 0 ? 5 : n; }
+function compareTiles(a, b) {
+  const sa = SUIT_ORDER[a[1]] ?? 4, sb = SUIT_ORDER[b[1]] ?? 4;
+  if (sa !== sb) return sa - sb;
+  return tileNum(a) - tileNum(b);
+}
+// keepTsumo=true のとき最後の1枚（ツモ牌）はソートせず末尾に残す
+function sortedHand(hand, keepTsumo) {
+  if (!keepTsumo) return [...hand].sort(compareTiles);
+  const sorted = [...hand.slice(0, -1)].sort(compareTiles);
+  sorted.push(hand[hand.length - 1]);
+  return sorted;
+}
 
 // ===== COMMENTARY RENDERER =====
 // 解説文中の牌コード（例: 1m, 0p, 7z）を牌画像に置き換えてcontainerへ描画する
@@ -469,6 +493,23 @@ function makeDoraEl(code, small) {
   return d;
 }
 
+// ドラ表示牌の左に置く伏せ牌グループ（2枚重ね）
+// 実際の牌PNGと同じ66x90のback.pngを使い、object-fit:containで完全に同サイズに描画する
+function makeDoraBackGroup(small) {
+  const grp = document.createElement('div');
+  grp.className = 'dora-back-group';
+  [0, 1].forEach(i => {
+    const d = document.createElement('div');
+    d.className = 'dora-tile' + (small ? ' sm' : '');
+    const img = document.createElement('img');
+    img.src = 'images_hai/back.png';
+    img.alt = '伏せ牌';
+    d.appendChild(img);
+    grp.appendChild(d);
+  });
+  return grp;
+}
+
 // 副露グループ要素（回転あり）
 function makeMeldGroup(meld) {
   const group = document.createElement('div');
@@ -573,6 +614,7 @@ function renderQ() {
   const doraEl    = document.getElementById('q-dora');
   doraEl.innerHTML = '';
   if (hasDora) {
+    doraEl.appendChild(makeDoraBackGroup(false));
     q.dora.forEach(c => doraEl.appendChild(makeDoraEl(c)));
     doraBlock.style.display = '';
   } else {
@@ -592,16 +634,18 @@ function renderQ() {
   const handEl = document.getElementById('hand-tiles');
   handEl.innerHTML = ''; handEl.className = 'hand-tiles';
   const has14 = q.hand.length === 14;
-  q.hand.forEach((code, i) => {
-    // 14枚手牌、または副露がある場合、最後の牌の前にスペーサーを挿入
-    if ((has14 || hasMelds) && i === q.hand.length - 1) {
+  const keepTsumo = has14 || hasMelds;
+  const displayHand = sortedHand(q.hand, keepTsumo);
+  displayHand.forEach((code, i) => {
+    // ツモ牌の前にスペーサーを挿入
+    if (keepTsumo && i === displayHand.length - 1) {
       const spacer = document.createElement('div');
       spacer.className = 'tsumo-spacer';
       handEl.appendChild(spacer);
     }
     const slot = makeTile(code);
     slot.dataset.index = i;
-    if ((has14 || hasMelds) && i === q.hand.length - 1) {
+    if (keepTsumo && i === displayHand.length - 1) {
       const lbl = document.createElement('span');
       lbl.className = 'tsumo-label';
       lbl.textContent = 'ツモ';
@@ -646,6 +690,9 @@ function onTileClick(idx, code, q) {
   }
   renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
   renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
+  const srcEl = document.getElementById('feedback-source');
+  if (q.source) { srcEl.textContent = '出典: ' + q.source; srcEl.style.display = ''; }
+  else { srcEl.style.display = 'none'; }
   fa.style.display = '';
   document.getElementById('q-instruction').style.display = 'none';
   document.getElementById('q-score').textContent = st.correct + ' 正解';
@@ -692,7 +739,7 @@ function showResult() {
         if (q.round || q.seat) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' '); meta.appendChild(rnd); }
         if (q.dora && q.dora.length) {
           const dw = document.createElement('div'); dw.className = 'review-meta-dora';
-          const dl = document.createElement('span'); dl.className = 'review-meta-dora-label'; dl.textContent = 'ドラ表示牌:'; dw.appendChild(dl);
+          dw.appendChild(makeDoraBackGroup(true));
           q.dora.forEach(c => dw.appendChild(makeDoraEl(c, true)));
           meta.appendChild(dw);
         }
@@ -705,7 +752,7 @@ function showResult() {
 
       const handDiv = document.createElement('div');
       handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
-      q.hand.forEach(c => {
+      sortedHand(q.hand, q.hand.length === 14).forEach(c => {
         const isOk = c === q.correctAnswer, isNg = c === selectedCode && !isOk;
         handDiv.appendChild(makeTile(c, (isOk ? 'correct' : '') + (isNg ? ' wrong' : ''), true));
       });
@@ -735,6 +782,13 @@ function showResult() {
         urow.style.marginTop = '8px';
         renderUkeireru(q.ukeireru, urow);
         info.appendChild(urow);
+      }
+      if (q.source) {
+        const src = document.createElement('p');
+        src.className = 'feedback-source';
+        src.style.marginTop = '8px';
+        src.textContent = '出典: ' + q.source;
+        info.appendChild(src);
       }
       card.appendChild(info);
       revEl.appendChild(card);
