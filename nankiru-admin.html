@@ -652,8 +652,13 @@ function buildPalette() {
   updatePaletteState();
 }
 
+// 暗槓・明槓は手牌上の扱いを3枚としてカウント
+function meldTileCount(meld) {
+  return (meld.type === 'ankan' || meld.type === 'minkan') ? 3 : meld.tiles.length;
+}
+
 function totalTileCount() {
-  return editState.hand.length + editState.melds.reduce((s, m) => s + m.tiles.length, 0);
+  return editState.hand.length + editState.melds.reduce((s, m) => s + meldTileCount(m), 0);
 }
 
 // 手牌・ドラ・確定済み副露・副露ドラフト全体での同一牌の使用枚数
@@ -861,8 +866,9 @@ function confirmMeld() {
     alert(MELD_TYPE_NAMES[type] + 'は ' + maxTiles + ' 枚必要です（現在 ' + meldDraft.tiles.length + ' 枚）');
     return;
   }
-  if (totalTileCount() + meldDraft.tiles.length > 14) {
-    alert('手牌と副露牌の合計が14枚を超えます（現在合計 ' + totalTileCount() + ' 枚 + ' + meldDraft.tiles.length + ' 枚）');
+  const meldContrib = (type === 'ankan' || type === 'minkan') ? 3 : meldDraft.tiles.length;
+  if (totalTileCount() + meldContrib > 14) {
+    alert('手牌と副露牌の合計が14枚を超えます（現在合計 ' + totalTileCount() + ' 枚 + ' + meldContrib + ' 枚）');
     return;
   }
   if (type !== 'ankan' && meldDraft.calledIndex === null) {

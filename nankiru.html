@@ -22,8 +22,8 @@
          14.4w ≤ 100vw - 48px → w ≤ (100vw - 48px) / 14.4 */
       --tile-w: min(68px, calc((100vw - 48px) / 14.4));
       --tile-h: calc(var(--tile-w) * 1.4);
-      --meld-w: min(44px, calc(var(--tile-w) * 0.74));
-      --meld-h: calc(var(--meld-w) * 1.41);
+      --meld-w: var(--tile-w);
+      --meld-h: var(--tile-h);
     }
 
     body {
@@ -74,11 +74,11 @@
 
     /* 局情報・ドラ表示牌バー */
     .situation-bar {
-      display: flex; align-items: flex-end; gap: 20px;
+      display: flex; align-items: center; gap: 20px;
       background: var(--surface); border-radius: 8px; padding: 10px 16px;
       margin-bottom: 12px; flex-wrap: wrap;
     }
-    .situation-round { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; padding-bottom: 2px; }
+    .situation-round { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
     .dora-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
     .dora-tiles-wrap { display: flex; gap: 0; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
@@ -110,9 +110,9 @@
     .meld-group {
       display: flex;
       align-items: flex-end;
-      gap: 2px;
+      gap: 0;
       background: rgba(0,0,0,0.2);
-      padding: 5px 6px;
+      padding: 5px 4px 0;
       border-radius: 6px;
       flex-shrink: 0;
     }
@@ -139,18 +139,18 @@
     }
     .m-tile img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
 
-    /* 鳴いた牌（横向き）: ラッパーのサイズを回転後の見た目に合わせる */
+    /* 鳴いた牌（横向き）: 高さを通常牌と揃えて下ずれを防ぐ */
     .meld-slot.called {
       width: var(--meld-h);
-      height: var(--meld-w);
+      height: var(--meld-h);
     }
     .meld-slot.called .m-tile {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: calc((var(--meld-h) - var(--meld-w)) / 2);
+      left: calc((var(--meld-h) - var(--meld-w)) / 2);
       width: var(--meld-w);
       height: var(--meld-h);
-      transform: translate(-50%, -50%) rotate(270deg);
+      transform: rotate(270deg);
     }
 
     /* 暗槓の裏向き牌 */
@@ -519,9 +519,18 @@ function makeMeldGroup(meld) {
   group.className = 'meld-group';
   group.title = MELD_TYPE_NAMES[meld.type] || meld.type;
 
-  meld.tiles.forEach((code, ti) => {
-    const isCalled = ti === meld.calledIndex;
-    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === meld.tiles.length - 1);
+  // チーは鳴いた牌を常に左端へ
+  let tiles = meld.tiles;
+  let calledIndex = meld.calledIndex;
+  if (meld.type === 'chi' && calledIndex !== 0) {
+    const called = tiles[calledIndex];
+    tiles = [called, ...tiles.filter((_, i) => i !== calledIndex)];
+    calledIndex = 0;
+  }
+
+  tiles.forEach((code, ti) => {
+    const isCalled = ti === calledIndex;
+    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === tiles.length - 1);
 
     const slot = document.createElement('div');
     slot.className = 'meld-slot' + (isCalled ? ' called' : '') + (isBack ? ' back' : '');
@@ -555,9 +564,18 @@ function makeMeldGroupSmall(meld) {
   const smMeldW = 'calc(var(--meld-w) * 0.75)';
   const smMeldH = 'calc(var(--meld-h) * 0.75)';
 
-  meld.tiles.forEach((code, ti) => {
-    const isCalled = ti === meld.calledIndex;
-    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === meld.tiles.length - 1);
+  // チーは鳴いた牌を常に左端へ
+  let tiles2 = meld.tiles;
+  let calledIndex2 = meld.calledIndex;
+  if (meld.type === 'chi' && calledIndex2 !== 0) {
+    const called2 = tiles2[calledIndex2];
+    tiles2 = [called2, ...tiles2.filter((_, i) => i !== calledIndex2)];
+    calledIndex2 = 0;
+  }
+
+  tiles2.forEach((code, ti) => {
+    const isCalled = ti === calledIndex2;
+    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === tiles2.length - 1);
     const t = document.createElement('div');
     t.style.cssText = 'width:' + (isCalled ? smMeldH : smMeldW) + ';height:' + (isCalled ? smMeldW : smMeldH) + ';background:' + (isBack ? '#2a3b4c' : '#f5f0e8') + ';border-radius:3px;border:1px solid ' + (isCalled ? 'var(--accent)' : 'rgba(0,0,0,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#333;overflow:hidden;flex-shrink:0';
     if (!isBack) {
