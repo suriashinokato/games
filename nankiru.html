@@ -83,12 +83,11 @@
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
     .dora-tiles-wrap { display: flex; gap: 0; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
     .dora-tile {
-      width: 36px; height: 50px; background: transparent; border-radius: 4px; border: 2px solid transparent;
+      width: 36px; height: 50px; background: transparent; border-radius: 0; outline: 1px solid rgba(0,0,0,0.3);
       display: flex; align-items: center; justify-content: center;
       font-size: 0.58rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
-    .dora-tile img { width: 100%; height: 100%; object-fit: contain; }
+    .dora-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .dora-back-group { display: flex; align-items: center; flex-shrink: 0; }
 
     /* ===== 副露牌エリア ===== */
@@ -493,21 +492,25 @@ function makeDoraEl(code, small) {
   return d;
 }
 
-// ドラ表示牌の左に置く伏せ牌グループ（2枚重ね）
-// 実際の牌PNGと同じ66x90のback.pngを使い、object-fit:containで完全に同サイズに描画する
-function makeDoraBackGroup(small) {
-  const grp = document.createElement('div');
-  grp.className = 'dora-back-group';
-  [0, 1].forEach(i => {
-    const d = document.createElement('div');
-    d.className = 'dora-tile' + (small ? ' sm' : '');
-    const img = document.createElement('img');
-    img.src = 'images_hai/back.png';
-    img.alt = '伏せ牌';
-    d.appendChild(img);
-    grp.appendChild(d);
-  });
-  return grp;
+// 伏せ牌1枚要素
+function makeBackTile(small) {
+  const d = document.createElement('div');
+  d.className = 'dora-tile' + (small ? ' sm' : '');
+  const img = document.createElement('img');
+  img.src = 'images_hai/back.png';
+  img.alt = '伏せ牌';
+  d.appendChild(img);
+  return d;
+}
+
+// ドラ表示牌ストリップを描画: 伏せ2枚 + 表示牌(最大4枚) + 未開封分の伏せ牌 + 末尾伏せ1枚 = 合計7枚
+function buildDoraStrip(doras, container, small) {
+  container.innerHTML = '';
+  for (let i = 0; i < 2; i++) container.appendChild(makeBackTile(small));
+  const count = Math.min(doras.length, 4);
+  for (let i = 0; i < count; i++) container.appendChild(makeDoraEl(doras[i], small));
+  for (let i = count; i < 4; i++) container.appendChild(makeBackTile(small));
+  container.appendChild(makeBackTile(small));
 }
 
 // 副露グループ要素（回転あり）
@@ -614,8 +617,7 @@ function renderQ() {
   const doraEl    = document.getElementById('q-dora');
   doraEl.innerHTML = '';
   if (hasDora) {
-    doraEl.appendChild(makeDoraBackGroup(false));
-    q.dora.forEach(c => doraEl.appendChild(makeDoraEl(c)));
+    buildDoraStrip(q.dora, doraEl, false);
     doraBlock.style.display = '';
   } else {
     doraBlock.style.display = 'none';
@@ -739,8 +741,7 @@ function showResult() {
         if (q.round || q.seat) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' '); meta.appendChild(rnd); }
         if (q.dora && q.dora.length) {
           const dw = document.createElement('div'); dw.className = 'review-meta-dora';
-          dw.appendChild(makeDoraBackGroup(true));
-          q.dora.forEach(c => dw.appendChild(makeDoraEl(c, true)));
+          buildDoraStrip(q.dora, dw, true);
           meta.appendChild(dw);
         }
         card.appendChild(meta);

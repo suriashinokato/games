@@ -296,7 +296,7 @@
 
     <!-- ドラ -->
     <div class="dora-wrap">
-      <div class="dora-wrap-title">ドラ表示牌: <strong id="dora-count">0</strong> / 5 枚（「ドラ表示牌に追加」モードで追加）</div>
+      <div class="dora-wrap-title">ドラ表示牌: <strong id="dora-count">0</strong> / 4 枚（「ドラ表示牌に追加」モードで追加）</div>
       <div class="editor-dora" id="editor-dora"></div>
     </div>
   </div>
@@ -667,7 +667,7 @@ function tileCount(code) {
 function updatePaletteState() {
   let maxed = false;
   if      (editState.paletteTarget === 'hand') maxed = totalTileCount() >= 14;
-  else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 5;
+  else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 4;
   else if (editState.paletteTarget === 'meld') {
     const meldType = document.querySelector('input[name="meld-type"]:checked')?.value;
     maxed = (meldType === 'pon' || meldType === 'ankan' || meldType === 'minkan')
@@ -683,7 +683,7 @@ function updatePaletteState() {
 
 function addTile(code) {
   if (editState.paletteTarget === 'dora') {
-    if (editState.dora.length >= 5) return;
+    if (editState.dora.length >= 4) return;
     if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
     editState.dora.push(code);
     renderEditorDora();
