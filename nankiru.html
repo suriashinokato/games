@@ -730,8 +730,9 @@ function onTileClick(idx, code, q) {
   fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
   fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
   const shantenEl = document.getElementById('feedback-shanten');
-  if (q.shanten) {
-    shantenEl.innerHTML = '<span class="shanten-badge">' + q.shanten + 'シャンテン</span>';
+  if (q.shanten != null && q.shanten !== '') {
+    const label = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン';
+    shantenEl.innerHTML = '<span class="shanten-badge">' + label + '</span>';
     shantenEl.style.display = '';
   } else {
     shantenEl.style.display = 'none';
@@ -819,9 +820,9 @@ function showResult() {
       const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
       const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
       info.appendChild(ans); info.appendChild(cmt);
-      if (q.shanten) {
+      if (q.shanten != null && q.shanten !== '') {
         const sb = document.createElement('span'); sb.className = 'shanten-badge';
-        sb.textContent = q.shanten + 'シャンテン'; info.appendChild(sb);
+        sb.textContent = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン'; info.appendChild(sb);
       }
       if (q.ukeireru && q.ukeireru.length) {
         const urow = document.createElement('div');
