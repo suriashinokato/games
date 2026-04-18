@@ -99,6 +99,46 @@
       color: var(--accent);
     }
 
+    /* ===== セクションタブ ===== */
+    .section-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--card);
+    }
+    .section-tab {
+      padding: 9px 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      background: transparent;
+      color: var(--text-dim);
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 18px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 9px;
+      font-size: 0.72rem;
+      padding: 0 5px;
+    }
+    .section-tab.active .tab-count { background: var(--accent); color: #1a1a2e; }
+    .tab-panel { display: none; padding-top: 12px; }
+    .tab-panel.active { display: block; }
+
     /* パレット */
     .palette-group { margin-bottom: 12px; }
     .palette-group-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; }
@@ -123,7 +163,7 @@
       min-height: 80px; padding: 8px; background: var(--card); border-radius: 8px; margin-bottom: 10px;
     }
     .editor-hand .e-tile, .mb-preview .mb-tile {
-      width: var(--tile-w); height: var(--tile-h); background: transparent;
+      width: 40px; height: 56px; background: transparent;
       border-radius: 6px; border: 3px solid transparent;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; position: relative;
@@ -257,21 +297,76 @@
     <button class="btn btn-ghost btn-sm" onclick="openList()">← 一覧に戻る</button>
   </div>
 
-  <!-- 手牌・ドラ設定 -->
+  <!-- 手牌・ドラ・副露 設定 -->
   <div class="section">
-    <div class="section-title">手牌・ドラ設定</div>
+    <div class="section-title">牌選択・手牌設定</div>
 
-    <!-- パレット追加先トグル (副露モード中は非表示) -->
-    <div class="target-toggle" id="target-toggle">
-      <button class="target-btn active" id="target-hand-btn" onclick="setPaletteTarget('hand')">手牌に追加</button>
-      <button class="target-btn" id="target-dora-btn" onclick="setPaletteTarget('dora')">ドラ表示牌に追加</button>
+    <!-- タブ切り替え -->
+    <div class="section-tabs">
+      <button class="section-tab active" id="tab-hand-btn" onclick="setActiveTab('hand')">
+        手牌<span class="tab-count" id="tab-hand-count">0</span>
+      </button>
+      <button class="section-tab" id="tab-dora-btn" onclick="setActiveTab('dora')">
+        ドラ表示牌<span class="tab-count" id="tab-dora-count">0</span>
+      </button>
+      <button class="section-tab" id="tab-meld-btn" onclick="setActiveTab('melds')">
+        副露<span class="tab-count" id="tab-meld-count">0</span>
+      </button>
     </div>
+
+    <!-- 手牌パネル -->
+    <div class="tab-panel active" id="panel-hand">
+      <div class="hand-count">手牌: <strong id="hand-count">0</strong> 枚 ／ 合計（手牌＋副露）: <strong id="total-count">0</strong> / 14 枚</div>
+      <div class="editor-hand" id="editor-hand"></div>
+      <p class="answer-hint" id="answer-hint">手牌の牌をクリックして<strong>正解牌</strong>を設定してください</p>
+    </div>
+
+    <!-- ドラパネル -->
+    <div class="tab-panel" id="panel-dora">
+      <div class="dora-wrap-title">ドラ表示牌: <strong id="dora-count">0</strong> / 4 枚</div>
+      <div class="editor-dora" id="editor-dora"></div>
+    </div>
+
+    <!-- 副露パネル -->
+    <div class="tab-panel" id="panel-melds">
+      <div id="melds-list"></div>
+
+      <!-- 副露ビルダー (副露追加中のみ表示) -->
+      <div class="meld-builder-box" id="meld-builder" style="display:none">
+        <div class="meld-builder-title">副露牌を選択（パレットからクリックして追加）</div>
+
+        <div class="hand-count">副露牌: <strong id="mb-count">0</strong> / 4 枚</div>
+        <div class="mb-preview" id="mb-preview"></div>
+        <p class="meld-hint" id="mb-hint">副露牌をクリックして<strong>鳴いた牌</strong>（横向き表示）を指定してください</p>
+
+        <!-- 副露種別 -->
+        <div class="meld-type-group">
+          <input type="radio" name="meld-type" id="mt-chi"    class="mt-radio" value="chi"    checked>
+          <label class="mt-label" for="mt-chi">チー</label>
+          <input type="radio" name="meld-type" id="mt-pon"    class="mt-radio" value="pon">
+          <label class="mt-label" for="mt-pon">ポン</label>
+          <input type="radio" name="meld-type" id="mt-minkan" class="mt-radio" value="minkan">
+          <label class="mt-label" for="mt-minkan">明槓</label>
+          <input type="radio" name="meld-type" id="mt-ankan"  class="mt-radio" value="ankan">
+          <label class="mt-label" for="mt-ankan">暗槓</label>
+        </div>
+
+        <div class="meld-builder-actions">
+          <button class="btn btn-ghost btn-sm" onclick="cancelMeld()">キャンセル</button>
+          <button class="btn btn-accent btn-sm" onclick="confirmMeld()">副露を確定</button>
+        </div>
+      </div>
+
+      <!-- 副露追加ボタン -->
+      <button class="btn btn-ghost btn-sm" id="add-meld-btn" onclick="startNewMeld()">＋ 副露を追加</button>
+    </div>
+
     <!-- 副露モード表示 -->
     <div class="meld-mode-indicator" id="meld-mode-indicator">
       副露牌に追加中 — パレットから牌を選択してください
     </div>
 
-    <!-- パレット -->
+    <!-- パレット（常時表示） -->
     <div class="palette-group">
       <div class="palette-group-label">萬子（1〜9・赤5）</div>
       <div class="palette-row" id="palette-man"></div>
@@ -288,54 +383,6 @@
       <div class="palette-group-label">字牌（東南西北 白發中）</div>
       <div class="palette-row" id="palette-ji"></div>
     </div>
-
-    <!-- 手牌 -->
-    <div class="hand-count">手牌: <strong id="hand-count">0</strong> 枚 ／ 合計（手牌＋副露）: <strong id="total-count">0</strong> / 14 枚</div>
-    <div class="editor-hand" id="editor-hand"></div>
-    <p class="answer-hint" id="answer-hint">手牌の牌をクリックして<strong>正解牌</strong>を設定してください</p>
-
-    <!-- ドラ -->
-    <div class="dora-wrap">
-      <div class="dora-wrap-title">ドラ表示牌: <strong id="dora-count">0</strong> / 4 枚（「ドラ表示牌に追加」モードで追加）</div>
-      <div class="editor-dora" id="editor-dora"></div>
-    </div>
-  </div>
-
-  <!-- 副露牌 -->
-  <div class="section">
-    <div class="section-title">副露牌（鳴き）</div>
-
-    <!-- 確定済み副露一覧 -->
-    <div id="melds-list"></div>
-
-    <!-- 副露ビルダー (副露追加中のみ表示) -->
-    <div class="meld-builder-box" id="meld-builder" style="display:none">
-      <div class="meld-builder-title">副露牌を選択（パレットからクリックして追加）</div>
-
-      <div class="hand-count">副露牌: <strong id="mb-count">0</strong> / 4 枚</div>
-      <div class="mb-preview" id="mb-preview"></div>
-      <p class="meld-hint" id="mb-hint">副露牌をクリックして<strong>鳴いた牌</strong>（横向き表示）を指定してください</p>
-
-      <!-- 副露種別 -->
-      <div class="meld-type-group">
-        <input type="radio" name="meld-type" id="mt-chi"    class="mt-radio" value="chi"    checked>
-        <label class="mt-label" for="mt-chi">チー</label>
-        <input type="radio" name="meld-type" id="mt-pon"    class="mt-radio" value="pon">
-        <label class="mt-label" for="mt-pon">ポン</label>
-        <input type="radio" name="meld-type" id="mt-minkan" class="mt-radio" value="minkan">
-        <label class="mt-label" for="mt-minkan">明槓</label>
-        <input type="radio" name="meld-type" id="mt-ankan"  class="mt-radio" value="ankan">
-        <label class="mt-label" for="mt-ankan">暗槓</label>
-      </div>
-
-      <div class="meld-builder-actions">
-        <button class="btn btn-ghost btn-sm" onclick="cancelMeld()">キャンセル</button>
-        <button class="btn btn-accent btn-sm" onclick="confirmMeld()">副露を確定</button>
-      </div>
-    </div>
-
-    <!-- 副露追加ボタン -->
-    <button class="btn btn-ghost btn-sm" id="add-meld-btn" onclick="startNewMeld()">＋ 副露を追加</button>
   </div>
 
   <!-- 局情報 -->
@@ -611,7 +658,8 @@ function openEditor(problem) {
   document.getElementById('meld-builder').style.display = 'none';
   document.getElementById('add-meld-btn').style.display = '';
 
-  setPaletteTarget('hand');
+  activeTab = 'hand';
+  setActiveTab('hand');
   buildPalette();
   renderEditorHand();
   renderEditorDora();
@@ -620,14 +668,30 @@ function openEditor(problem) {
   showScreen('editor');
 }
 
+// ===== TAB SWITCHING =====
+let activeTab = 'hand';
+
+function setActiveTab(tab) {
+  activeTab = tab;
+  ['hand', 'dora', 'melds'].forEach(t => {
+    const tabId = t === 'melds' ? 'meld' : t;
+    document.getElementById('tab-' + tabId + '-btn').classList.toggle('active', t === tab);
+    document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'hand') {
+    setPaletteTarget('hand');
+  } else if (tab === 'dora') {
+    setPaletteTarget('dora');
+  } else {
+    const builderOpen = document.getElementById('meld-builder').style.display !== 'none';
+    setPaletteTarget(builderOpen ? 'meld' : 'none');
+  }
+}
+
 // ===== PALETTE TARGET =====
 function setPaletteTarget(target) {
   editState.paletteTarget = target;
-  const isMeld = target === 'meld';
-  document.getElementById('target-toggle').style.display       = isMeld ? 'none' : '';
-  document.getElementById('meld-mode-indicator').style.display = isMeld ? 'flex' : 'none';
-  document.getElementById('target-hand-btn').classList.toggle('active', target === 'hand');
-  document.getElementById('target-dora-btn').classList.toggle('active', target === 'dora');
+  document.getElementById('meld-mode-indicator').style.display = target === 'meld' ? 'flex' : 'none';
   updatePaletteState();
 }
 
@@ -671,7 +735,8 @@ function tileCount(code) {
 
 function updatePaletteState() {
   let maxed = false;
-  if      (editState.paletteTarget === 'hand') maxed = totalTileCount() >= 14;
+  if      (editState.paletteTarget === 'none') maxed = true;
+  else if (editState.paletteTarget === 'hand') maxed = totalTileCount() >= 14;
   else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 4;
   else if (editState.paletteTarget === 'meld') {
     const meldType = document.querySelector('input[name="meld-type"]:checked')?.value;
@@ -687,6 +752,7 @@ function updatePaletteState() {
 }
 
 function addTile(code) {
+  if (editState.paletteTarget === 'none') return;
   if (editState.paletteTarget === 'dora') {
     if (editState.dora.length >= 4) return;
     if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
@@ -750,6 +816,8 @@ function renderEditorHand() {
     el.appendChild(tile);
   });
   document.getElementById('hand-count').textContent = editState.hand.length;
+  const hcBadge = document.getElementById('tab-hand-count');
+  if (hcBadge) hcBadge.textContent = editState.hand.length;
   const totalEl = document.getElementById('total-count');
   if (totalEl) totalEl.textContent = totalTileCount();
   const hint = document.getElementById('answer-hint');
@@ -784,25 +852,26 @@ function renderEditorDora() {
     el.appendChild(tile);
   });
   document.getElementById('dora-count').textContent = editState.dora.length;
+  const dcBadge = document.getElementById('tab-dora-count');
+  if (dcBadge) dcBadge.textContent = editState.dora.length;
 }
 
 // ===== 副露 BUILDER =====
 function startNewMeld() {
   meldDraft = { tiles: [], calledIndex: null };
-  // チーを初期選択に戻す
   const chiRadio = document.getElementById('mt-chi');
   if (chiRadio) chiRadio.checked = true;
   renderMeldPreview();
   document.getElementById('meld-builder').style.display = '';
   document.getElementById('add-meld-btn').style.display = 'none';
-  setPaletteTarget('meld');
+  setActiveTab('melds'); // builder表示後に呼ぶことでpaletteTarget='meld'になる
 }
 
 function cancelMeld() {
   meldDraft = { tiles: [], calledIndex: null };
   document.getElementById('meld-builder').style.display = 'none';
   document.getElementById('add-meld-btn').style.display = '';
-  setPaletteTarget('hand');
+  setPaletteTarget('none'); // 副露タブに留まりパレットを無効化
 }
 
 function removeMeldDraftTile(idx) {
@@ -894,6 +963,8 @@ function removeMeld(idx) {
 function renderMelds() {
   const totalEl = document.getElementById('total-count');
   if (totalEl) totalEl.textContent = totalTileCount();
+  const mcBadge = document.getElementById('tab-meld-count');
+  if (mcBadge) mcBadge.textContent = editState.melds.length;
   const el = document.getElementById('melds-list');
   el.innerHTML = '';
   editState.melds.forEach((meld, idx) => {
