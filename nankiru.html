@@ -394,6 +394,47 @@ function sortedHand(hand, keepTsumo) {
   return sorted;
 }
 
+// ===== SUIT RANDOMIZATION =====
+function generateSuitMapping() {
+  const suits = ['m', 'p', 's'];
+  for (let i = suits.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [suits[i], suits[j]] = [suits[j], suits[i]];
+  }
+  return { m: suits[0], p: suits[1], s: suits[2] };
+}
+
+function applyTileMapping(code, mapping) {
+  if (!code) return code;
+  const suit = code[1];
+  if (suit === 'z') return code;
+  return code[0] + mapping[suit];
+}
+
+function applyTextMapping(text, mapping) {
+  if (!text) return text;
+  return text.replace(/([0-9])([mps])/g, (_, num, suit) => num + mapping[suit]);
+}
+
+function transformQuestion(q, mapping) {
+  return {
+    ...q,
+    hand: q.hand.map(c => applyTileMapping(c, mapping)),
+    correctAnswer: applyTileMapping(q.correctAnswer, mapping),
+    dora: q.dora ? q.dora.map(c => applyTileMapping(c, mapping)) : q.dora,
+    melds: q.melds ? q.melds.map(meld => ({
+      ...meld,
+      tiles: meld.tiles.map(c => applyTileMapping(c, mapping))
+    })) : q.melds,
+    ukeireru: q.ukeireru ? q.ukeireru.map(u => ({
+      ...u,
+      tile: applyTileMapping(u.tile, mapping)
+    })) : q.ukeireru,
+    commentary: applyTextMapping(q.commentary, mapping),
+    memo: applyTextMapping(q.memo, mapping),
+  };
+}
+
 // ===== COMMENTARY RENDERER =====
 // 解説文中の牌コード（例: 1m, 0p, 7z）を牌画像に置き換えてcontainerへ描画する
 function renderCommentary(text, container) {
@@ -667,7 +708,8 @@ function startQuiz() {
 }
 
 function renderQ() {
-  const q = st.problems[st.idx];
+  const rawQ = st.problems[st.idx];
+  const q = transformQuestion(rawQ, generateSuitMapping());
   st.answered = false;
   st.riichiSelected = null;
 
