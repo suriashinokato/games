@@ -83,7 +83,8 @@
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
     .dora-tiles-wrap { display: flex; gap: 0; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
     .dora-tile {
-      width: 36px; height: 50px; background: transparent; border-radius: 0; outline: 1px solid rgba(0,0,0,0.3);
+      width: min(36px, var(--tile-w)); height: calc(min(36px, var(--tile-w)) * 1.4);
+      background: transparent; border-radius: 0; outline: 1px solid rgba(0,0,0,0.3);
       display: flex; align-items: center; justify-content: center;
       font-size: 0.58rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
     }
@@ -441,6 +442,30 @@ function renderUkeireru(entries, container) {
 
 }
 
+// ===== TILE WIDTH CALCULATOR =====
+// 手牌枚数と副露内容からタイル幅CSS変数を動的に計算する
+function calcTileWidth(hand, melds) {
+  const handCount = hand.length;
+  const tileEqHand = handCount + 0.4; // +0.4 = ツモスペーサー
+
+  let meldTileEq = 0;
+  let meldPx = 0;
+  if (melds && melds.length > 0) {
+    melds.forEach(meld => {
+      const n = meld.tiles.length;
+      // 暗槓は全て縦向き、それ以外は鳴いた1枚が横向き(幅=tile-h=1.4w)
+      meldTileEq += meld.type === 'ankan' ? n : (n - 1) + 1.4;
+      meldPx += 8; // meld-group の左右padding(4px×2)
+    });
+    meldPx += (melds.length - 1) * 8; // melds-area 内のgap
+    meldPx += 8; // hand-row のgap(手牌↔副露エリア)
+  }
+
+  const totalTileEq = tileEqHand + meldTileEq;
+  const totalPx = 48 + meldPx; // 16px(hand内padding) + 32px(screen padding) + 副露分
+  return 'min(68px, calc((100vw - ' + totalPx + 'px) / ' + totalTileEq + '))';
+}
+
 // ===== STATE =====
 const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false };
 
@@ -618,6 +643,9 @@ function startQuiz() {
 function renderQ() {
   const q = st.problems[st.idx];
   st.answered = false;
+
+  // 副露がある場合はタイル幅を縮小して見切れを防ぐ
+  document.documentElement.style.setProperty('--tile-w', calcTileWidth(q.hand, q.melds));
 
   const total = st.problems.length, cur = st.idx + 1;
   document.getElementById('q-progress').textContent = '問題 ' + cur + ' / ' + total;
