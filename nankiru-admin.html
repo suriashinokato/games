@@ -257,20 +257,23 @@
     }
     textarea.commentary-input:focus { outline: none; border-color: var(--accent); }
 
-    select.select-input, input.num-input {
+    select.select-input, input.num-input, input.text-input {
       background: var(--card); border: 2px solid rgba(255,255,255,0.1);
       border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 8px 12px;
       transition: border-color 0.2s; min-width: 140px; width: 100%;
     }
     select.select-input { cursor: pointer; }
-    select.select-input:focus, input.num-input:focus { outline: none; border-color: var(--accent); }
+    select.select-input:focus, input.num-input:focus, input.text-input:focus { outline: none; border-color: var(--accent); }
     select.select-input option { background: var(--surface); }
-    input.num-input::placeholder { color: var(--text-dim); }
+    input.num-input::placeholder, input.text-input::placeholder { color: var(--text-dim); }
+    input.text-input { width: 100%; max-width: 480px; }
     .row-fields { display: flex; gap: 16px; flex-wrap: wrap; }
     .row-fields > div { flex: 1; min-width: 120px; }
 
     .editor-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
+
+    .answer-badge-riichi { background: rgba(201,168,76,0.15); color: var(--accent); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -416,6 +419,10 @@
         <input type="number" class="num-input" id="turn-input" min="1" max="18" placeholder="例: 5">
       </div>
     </div>
+    <div style="margin-top:12px">
+      <label class="field-label" for="memo-input">条件メモ（任意）— ドラ表示牌の横に表示されます</label>
+      <input type="text" class="text-input" id="memo-input" placeholder="例: アガリトップ、ラス目3000点差など">
+    </div>
   </div>
 
   <!-- 解説 -->
@@ -436,6 +443,14 @@
     </div>
     <label class="field-label" for="commentary">解説文（クイズ回答後に表示されます）</label>
     <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
+    <div style="margin-top:14px">
+      <label class="field-label" for="riichi-choice-select">リーチ/ダマ選択（任意）— 有効にすると牌を選ぶ前にリーチ/ダマを選択させます</label>
+      <select class="select-input" id="riichi-choice-select" style="max-width:200px">
+        <option value="">（設定なし）</option>
+        <option value="riichi">正解: リーチ</option>
+        <option value="dama">正解: ダマ</option>
+      </select>
+    </div>
     <div style="margin-top:14px">
       <label class="field-label" for="source-input">出典（任意）</label>
       <input type="text" class="num-input" id="source-input" placeholder="例: 麻雀本 第3章 / X(Twitter) @username">
@@ -486,7 +501,7 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 let editState = {
   id: null, hand: [], correctAnswer: null,
   dora: [], round: '', turn: '', commentary: '', source: '',
-  melds: [], ukeireru: [], shanten: '', seat: '',
+  melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
   paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
 };
 
@@ -601,9 +616,18 @@ function renderList() {
     // 下段
     const bot = document.createElement('div');
     bot.className = 'problem-card-bottom';
+    const ansWrap = document.createElement('div');
+    ansWrap.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
     const ans = document.createElement('span');
     ans.className = 'answer-badge';
     ans.textContent = '正解: ' + tileLabel(p.correctAnswer);
+    ansWrap.appendChild(ans);
+    if (p.riichiChoice) {
+      const rb = document.createElement('span');
+      rb.className = 'answer-badge-riichi';
+      rb.textContent = p.riichiChoice === 'dama' ? 'ダマ' : 'リーチ';
+      ansWrap.appendChild(rb);
+    }
     const btns = document.createElement('div');
     btns.className = 'card-btns';
     const editBtn = document.createElement('button');
@@ -613,7 +637,7 @@ function renderList() {
     delBtn.className = 'btn btn-danger btn-sm'; delBtn.textContent = '削除';
     delBtn.onclick = () => deleteProblem(p.id);
     btns.appendChild(editBtn); btns.appendChild(delBtn);
-    bot.appendChild(ans); bot.appendChild(btns);
+    bot.appendChild(ansWrap); bot.appendChild(btns);
     card.appendChild(bot);
     el.appendChild(card);
   });
@@ -639,11 +663,14 @@ function openEditor(problem) {
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
     shanten: problem.shanten != null ? String(problem.shanten) : '',
     seat: problem.seat || '',
+    memo: problem.memo || '',
+    riichiChoice: problem.riichiChoice || '',
     paletteTarget: 'hand'
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '', source: '',
-    melds: [], ukeireru: [], shanten: '', seat: '', paletteTarget: 'hand'
+    melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
+    riichiChoice: '', paletteTarget: 'hand'
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
@@ -653,6 +680,8 @@ function openEditor(problem) {
   document.getElementById('turn-input').value = editState.turn;
   document.getElementById('shanten-select').value = editState.shanten;
   document.getElementById('seat-select').value = editState.seat;
+  document.getElementById('riichi-choice-select').value = editState.riichiChoice;
+  document.getElementById('memo-input').value = editState.memo;
 
   // 副露ビルダーを閉じた状態に
   meldDraft = { tiles: [], calledIndex: null };
@@ -1114,12 +1143,14 @@ function saveProblem() {
     id:            editState.id || Date.now().toString(),
     hand:          [...editState.hand],
     correctAnswer: editState.correctAnswer,
+    riichiChoice:  document.getElementById('riichi-choice-select').value || null,
     dora:          [...editState.dora],
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru:      editState.ukeireru.map(e => ({ ...e })),
     round:         document.getElementById('round-select').value,
     seat:          document.getElementById('seat-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
+    memo:          document.getElementById('memo-input').value.trim() || null,
     shanten:       document.getElementById('shanten-select').value !== '' ? parseInt(document.getElementById('shanten-select').value) : null,
     commentary:    document.getElementById('commentary').value.trim(),
     source:        document.getElementById('source-input').value.trim() || null,

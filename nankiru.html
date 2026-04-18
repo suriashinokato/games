@@ -79,6 +79,9 @@
       margin-bottom: 12px; flex-wrap: wrap;
     }
     .situation-round { font-size: 1rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+    .situation-memo {
+      font-size: 1rem; font-weight: 700; color: var(--text); white-space: nowrap;
+    }
     .dora-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .dora-block-label { font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
     .dora-tiles-wrap { display: flex; gap: 0; background: rgba(0,0,0,0.25); padding: 4px 6px; border-radius: 5px; }
@@ -241,6 +244,16 @@
     .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
     .btn-next:hover { opacity: 0.85; }
 
+    /* リーチ/ダマ選択ボタン */
+    .riichi-choice-row { display: none; gap: 20px; justify-content: center; margin: 4px 0 16px; }
+    .riichi-choice-row.visible { display: flex; }
+    .riichi-btn { padding: 14px 40px; border-radius: 12px; font-size: 1.15rem; font-weight: 700; border: 2px solid var(--text-dim); background: transparent; color: var(--text); cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.1s; }
+    .riichi-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+    .riichi-btn:disabled { cursor: default; transform: none; }
+    .riichi-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .riichi-btn.correct { border-color: var(--correct); background: rgba(76,175,80,0.12); color: var(--correct); }
+    .riichi-btn.wrong   { border-color: var(--wrong);   background: rgba(229,57,53,0.12); color: var(--wrong); }
+
     /* ===== RESULT ===== */
     .result-header { text-align: center; background: var(--surface); border-radius: 16px; padding: 28px 20px 20px; margin-bottom: 24px; }
     .result-label { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 6px; }
@@ -308,6 +321,7 @@
     <div class="dora-block" id="dora-block" style="display:none">
       <div class="dora-tiles-wrap" id="q-dora"></div>
     </div>
+    <span class="situation-memo" id="q-memo" style="display:none"></span>
   </div>
 
   <p class="instruction" id="q-instruction">どの牌を切りますか？</p>
@@ -318,6 +332,12 @@
       <!-- 副露牌エリア -->
       <div class="melds-area" id="melds-area" style="display:none"></div>
     </div>
+  </div>
+
+  <!-- リーチ/ダマ選択（リーチ判断問題のみ表示） -->
+  <div class="riichi-choice-row" id="riichi-choice-row">
+    <button class="riichi-btn" id="riichi-btn-riichi">リーチ</button>
+    <button class="riichi-btn" id="riichi-btn-dama">ダマ</button>
   </div>
 
   <div class="feedback-area" id="feedback-area" style="display:none">
@@ -467,7 +487,7 @@ function calcTileWidth(hand, melds) {
 }
 
 // ===== STATE =====
-const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false };
+const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null };
 
 // ===== STORAGE =====
 const PROB_KEY  = 'nankiru_problems';
@@ -643,6 +663,7 @@ function startQuiz() {
 function renderQ() {
   const q = st.problems[st.idx];
   st.answered = false;
+  st.riichiSelected = null;
 
   // 副露がある場合はタイル幅を縮小して見切れを防ぐ
   document.documentElement.style.setProperty('--tile-w', calcTileWidth(q.hand, q.melds));
@@ -652,11 +673,15 @@ function renderQ() {
   document.getElementById('q-score').textContent    = st.correct + ' 正解';
   document.getElementById('q-fill').style.width     = ((cur - 1) / total * 100) + '%';
 
-  // 局情報・ドラ
+  // 局情報・ドラ・メモ
   const hasRound = !!q.round;
   const hasDora  = q.dora && q.dora.length > 0;
+  const hasMemo  = !!q.memo;
   const sBar = document.getElementById('situation-bar');
-  sBar.style.display = (hasRound || hasDora) ? '' : 'none';
+  sBar.style.display = (hasRound || hasDora || hasMemo) ? '' : 'none';
+  const memoEl = document.getElementById('q-memo');
+  if (hasMemo) { memoEl.textContent = q.memo; memoEl.style.display = ''; }
+  else { memoEl.style.display = 'none'; }
   const roundText = [q.round, q.seat ? q.seat + '家' : '', q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' ');
   document.getElementById('q-round').textContent = roundText;
   const doraBlock = document.getElementById('dora-block');
@@ -703,6 +728,23 @@ function renderQ() {
     handEl.appendChild(slot);
   });
 
+  // リーチ/ダマ選択オプションの設定
+  const hasRiichiStep = !!q.riichiChoice;
+  const rcRow = document.getElementById('riichi-choice-row');
+  rcRow.classList.toggle('visible', hasRiichiStep);
+  if (hasRiichiStep) {
+    handEl.classList.add('answered'); // リーチ/ダマ選択前は牌を選べない
+    const rBtn = document.getElementById('riichi-btn-riichi');
+    const dBtn = document.getElementById('riichi-btn-dama');
+    rBtn.disabled = false; dBtn.disabled = false;
+    rBtn.className = 'riichi-btn'; dBtn.className = 'riichi-btn';
+    rBtn.onclick = () => onRiichiChoice('riichi', q);
+    dBtn.onclick = () => onRiichiChoice('dama', q);
+    document.getElementById('q-instruction').textContent = 'まずリーチ/ダマを選択してください';
+  } else {
+    document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
+  }
+
   document.getElementById('feedback-area').style.display = 'none';
   document.getElementById('btn-next').style.display      = 'none';
   document.getElementById('q-instruction').style.display = '';
@@ -712,16 +754,31 @@ function onTileClick(idx, code, q) {
   if (st.answered) return;
   st.answered = true;
 
-  const ok = code === q.correctAnswer;
+  const tileOk = code === q.correctAnswer;
+  const riichiOk = !q.riichiChoice || st.riichiSelected === q.riichiChoice;
+  const ok = tileOk && riichiOk;
   if (ok) st.correct++;
-  else     st.wrongs.push({ question: q, selectedCode: code });
+  else st.wrongs.push({ question: q, selectedCode: code, selectedRiichi: st.riichiSelected || null });
+
+  // リーチ/ダマボタンの正誤を表示
+  if (q.riichiChoice) {
+    const rBtn = document.getElementById('riichi-btn-riichi');
+    const dBtn = document.getElementById('riichi-btn-dama');
+    const correctBtn = q.riichiChoice === 'riichi' ? rBtn : dBtn;
+    correctBtn.classList.add('correct');
+    if (!riichiOk) {
+      const selectedBtn = st.riichiSelected === 'riichi' ? rBtn : dBtn;
+      selectedBtn.classList.remove('selected');
+      selectedBtn.classList.add('wrong');
+    }
+  }
 
   const handEl = document.getElementById('hand-tiles');
   handEl.classList.add('answered');
   handEl.querySelectorAll('.tile-slot').forEach(slot => {
     const si = +slot.dataset.index, sc = slot.dataset.code;
-    if (si === idx)                    slot.classList.add(ok ? 'correct' : 'wrong');
-    if (!ok && sc === q.correctAnswer) slot.classList.add('correct');
+    if (si === idx)                    slot.classList.add(tileOk ? 'correct' : 'wrong');
+    if (!tileOk && sc === q.correctAnswer) slot.classList.add('correct');
   });
 
   const fa = document.getElementById('feedback-area');
@@ -748,6 +805,23 @@ function onTileClick(idx, code, q) {
   const btn = document.getElementById('btn-next');
   btn.style.display = '';
   btn.textContent   = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
+}
+
+function onRiichiChoice(choice, q) {
+  // ボタンをロックしてステップ1完了を視覚表示
+  const rBtn = document.getElementById('riichi-btn-riichi');
+  const dBtn = document.getElementById('riichi-btn-dama');
+  rBtn.disabled = true; dBtn.disabled = true;
+  const selectedBtn = choice === 'riichi' ? rBtn : dBtn;
+  selectedBtn.classList.add('selected');
+
+  // リーチ/ダマ選択を state に記録
+  st.riichiSelected = choice;
+
+  // ステップ2: 牌選択を有効化
+  const handEl = document.getElementById('hand-tiles');
+  handEl.classList.remove('answered');
+  document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
 }
 
 function nextQ() {
@@ -777,7 +851,7 @@ function showResult() {
     revHdr.style.display = '';
     revHdr.textContent   = '間違えた問題 (' + st.wrongs.length + '問)';
 
-    st.wrongs.forEach(({ question: q, selectedCode }) => {
+    st.wrongs.forEach(({ question: q, selectedCode, selectedRiichi }) => {
       const card = document.createElement('div');
       card.className = 'review-card';
 
@@ -801,7 +875,8 @@ function showResult() {
       const handDiv = document.createElement('div');
       handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
       sortedHand(q.hand, q.hand.length === 14).forEach(c => {
-        const isOk = c === q.correctAnswer, isNg = c === selectedCode && !isOk;
+        const isOk = c === q.correctAnswer;
+        const isNg = c === selectedCode && !isOk;
         handDiv.appendChild(makeTile(c, (isOk ? 'correct' : '') + (isNg ? ' wrong' : ''), true));
       });
       handRow.appendChild(handDiv);
@@ -814,6 +889,24 @@ function showResult() {
       }
 
       card.appendChild(handRow);
+
+      // リーチ/ダマ選択あり問題：選択結果を表示
+      if (q.riichiChoice) {
+        const choiceRow = document.createElement('div');
+        choiceRow.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+        ['riichi', 'dama'].forEach(c => {
+          const btn = document.createElement('span');
+          const isSelected = c === selectedRiichi;
+          const isCorrect  = c === q.riichiChoice;
+          btn.style.cssText = 'padding:5px 18px;border-radius:8px;font-weight:700;font-size:0.88rem;border:2px solid ' +
+            (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
+            (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
+            (isCorrect ? 'rgba(76,175,80,0.12)' : isSelected ? 'rgba(229,57,53,0.12)' : 'transparent');
+          btn.textContent = (c === 'riichi' ? 'リーチ' : 'ダマ') + (isCorrect ? ' ✓' : '');
+          choiceRow.appendChild(btn);
+        });
+        card.appendChild(choiceRow);
+      }
 
       // 正解・解説
       const info = document.createElement('div');
