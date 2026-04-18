@@ -1153,12 +1153,8 @@ function importJSON(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) throw new Error('配列形式のJSONを選択してください');
-      const merge = confirm(imported.length + ' 件の問題が見つかりました。\n\n「OK」→ 既存の問題に追加\n「キャンセル」→ 上書き');
-      if (merge) {
-        const existing = loadProblems();
-        const existIds = new Set(existing.map(p => p.id));
-        saveProblems([...existing, ...imported.filter(p => !existIds.has(p.id))]);
-      } else { saveProblems(imported); }
+      if (!confirm(imported.length + ' 件の問題が見つかりました。\n既存の問題をすべて削除して上書きします。\nよろしいですか？')) return;
+      saveProblems(imported);
       renderList(); alert('インポートが完了しました');
     } catch (err) { alert('JSONの読み込みに失敗しました\n' + err.message); }
   };
