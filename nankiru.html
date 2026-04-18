@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>麻雀 何切るメーカー</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -293,6 +296,11 @@
 <div id="screen-home" class="screen">
   <h1 class="home-title">麻雀 何切るメーカー</h1>
   <p class="home-subtitle">最善の一手を選ぶために</p>
+  <div id="auth-bar" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;min-height:36px">
+    <span id="auth-user" style="font-size:0.82rem;color:var(--text-dim)">未ログイン（ローカルモード）</span>
+    <button id="btn-signin"  onclick="signIn()"  class="btn-start" style="width:auto;padding:8px 18px;font-size:0.88rem;margin:0">Googleでログイン</button>
+    <button id="btn-signout" onclick="signOut()" class="btn-start" style="width:auto;padding:8px 18px;font-size:0.88rem;margin:0;background:var(--surface);color:var(--text);border:1px solid var(--text-dim);display:none">ログアウト</button>
+  </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <button class="btn-start" id="btn-start" onclick="startQuiz()">スタート</button>
   <div class="score-card">
@@ -529,15 +537,71 @@ function calcTileWidth(hand, melds) {
   return 'min(68px, calc((100vw - ' + totalPx + 'px) / ' + totalTileEq + '))';
 }
 
+// ===== FIREBASE =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDqgBfduxlc5i436Ex9cLml6eeVcx8NBbQ",
+  authDomain: "nanikiru-29855.firebaseapp.com",
+  projectId: "nanikiru-29855",
+  storageBucket: "nanikiru-29855.firebasestorage.app",
+  messagingSenderId: "401045979406",
+  appId: "1:401045979406:web:00345e7a4023108ed7975f"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+
+function signIn() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch(e => alert('ログインに失敗しました: ' + e.message));
+}
+function signOut() { auth.signOut(); }
+
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  document.getElementById('auth-user').textContent    = user ? (user.displayName || user.email) : '未ログイン（ローカルモード）';
+  document.getElementById('btn-signin').style.display  = user ? 'none' : '';
+  document.getElementById('btn-signout').style.display = user ? '' : 'none';
+  await initHome();
+});
+
 // ===== STATE =====
 const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null };
 
 // ===== STORAGE =====
 const PROB_KEY  = 'nankiru_problems';
 const SCORE_KEY = 'nankiru_scores';
-function loadProblems() { return JSON.parse(localStorage.getItem(PROB_KEY) || '[]'); }
-function loadScores()   { return JSON.parse(localStorage.getItem(SCORE_KEY) || '{}'); }
-function saveScores(s)  { localStorage.setItem(SCORE_KEY, JSON.stringify(s)); }
+
+async function loadProblems() {
+  if (currentUser) {
+    try {
+      const snap = await db.collection('users/' + currentUser.uid + '/problems').get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { console.warn('Firestore読込失敗、localStorageにフォールバック', e); }
+  }
+  return JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+}
+
+async function loadScores() {
+  if (currentUser) {
+    try {
+      const snap = await db.doc('users/' + currentUser.uid + '/scores').get();
+      return snap.exists ? snap.data() : {};
+    } catch(e) { console.warn('Firestoreスコア読込失敗', e); }
+  }
+  return JSON.parse(localStorage.getItem(SCORE_KEY) || '{}');
+}
+
+async function saveScores(s) {
+  if (currentUser) {
+    try {
+      await db.doc('users/' + currentUser.uid + '/scores').set(s);
+      return;
+    } catch(e) { console.warn('Firestoreスコア書込失敗', e); }
+  }
+  localStorage.setItem(SCORE_KEY, JSON.stringify(s));
+}
 
 // ===== UTIL =====
 function shuffle(arr) {
@@ -683,23 +747,23 @@ function makeMeldGroupSmall(meld) {
 }
 
 // ===== HOME =====
-function initHome() {
-  const problems = loadProblems();
+async function initHome() {
+  const problems = await loadProblems();
   document.getElementById('prob-count').textContent = problems.length;
   document.getElementById('btn-start').disabled = problems.length === 0;
-  const sc = loadScores();
+  const sc = await loadScores();
   document.getElementById('h-best').textContent  = sc.bestScore !== undefined ? sc.bestScore + ' / ' + sc.bestTotal : '―';
   document.getElementById('h-last').textContent  = sc.lastScore !== undefined ? sc.lastScore + ' / ' + sc.lastTotal : '―';
   document.getElementById('h-tries').textContent = (sc.tries || 0) + ' 回';
 }
-function goHome() { initHome(); showScreen('home'); }
-function confirmGoHome() {
-  if (st.answered || confirm('クイズを中断してホームに戻りますか？')) goHome();
+async function goHome() { await initHome(); showScreen('home'); }
+async function confirmGoHome() {
+  if (st.answered || confirm('クイズを中断してホームに戻りますか？')) await goHome();
 }
 
 // ===== QUIZ =====
-function startQuiz() {
-  const src = loadProblems();
+async function startQuiz() {
+  const src = await loadProblems();
   if (!src.length) { alert('問題が登録されていません'); return; }
   st.problems = shuffle(src).slice(0, 20);
   st.idx = 0; st.correct = 0; st.wrongs = [];
@@ -872,18 +936,18 @@ function onRiichiChoice(choice, q) {
   document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
 }
 
-function nextQ() {
+async function nextQ() {
   st.idx++;
   if (st.idx < st.problems.length) renderQ();
-  else showResult();
+  else await showResult();
 }
 
 // ===== RESULT =====
-function showResult() {
+async function showResult() {
   const total = st.problems.length, correct = st.correct;
-  const sc = loadScores(), tries = (sc.tries || 0) + 1;
+  const sc = await loadScores(), tries = (sc.tries || 0) + 1;
   const isNew = sc.bestScore === undefined || correct > sc.bestScore;
-  saveScores({ bestScore: isNew ? correct : sc.bestScore, bestTotal: isNew ? total : sc.bestTotal, lastScore: correct, lastTotal: total, tries });
+  await saveScores({ bestScore: isNew ? correct : sc.bestScore, bestTotal: isNew ? total : sc.bestTotal, lastScore: correct, lastTotal: total, tries });
 
   document.getElementById('r-score').textContent = correct + ' / ' + total;
   document.getElementById('r-badge').style.display = isNew && correct > 0 ? '' : 'none';
@@ -988,8 +1052,9 @@ function showResult() {
 }
 
 // ===== INIT =====
-initHome();
 showScreen('home');
+// onAuthStateChanged が initHome() を呼ぶ。CDNブロック時のフォールバック:
+if (typeof firebase === 'undefined') initHome();
 </script>
 </body>
 </html>

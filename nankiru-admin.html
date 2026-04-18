@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>何切る — 問題管理</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -284,7 +287,15 @@
     <span class="page-title">問題管理</span>
     <a href="nankiru.html" class="page-back">← クイズへ戻る</a>
   </div>
-  <div class="list-actions">
+  <div id="auth-bar" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;flex-wrap:wrap">
+    <span id="auth-status" style="font-size:0.82rem;color:var(--text-dim)">認証確認中...</span>
+    <button id="btn-signin"  onclick="signIn()"  class="btn btn-accent" style="display:none">Googleでログイン</button>
+    <button id="btn-signout" onclick="signOut()" class="btn btn-ghost"  style="display:none">ログアウト</button>
+  </div>
+  <div id="admin-gate" style="display:none;padding:24px;text-align:center;color:var(--wrong)">
+    管理者権限がありません。Firebaseコンソールで <code>admins/{uid}</code> ドキュメントを作成してください。
+  </div>
+  <div class="list-actions" id="list-actions">
     <button class="btn btn-accent" onclick="openEditor(null)">＋ 新規問題を追加</button>
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
@@ -492,9 +503,78 @@ const TILE_LABELS = {
 const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
 function tileLabel(code) { return TILE_LABELS[code] || code; }
 
+// ===== FIREBASE =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDqgBfduxlc5i436Ex9cLml6eeVcx8NBbQ",
+  authDomain: "nanikiru-29855.firebaseapp.com",
+  projectId: "nanikiru-29855",
+  storageBucket: "nanikiru-29855.firebasestorage.app",
+  messagingSenderId: "401045979406",
+  appId: "1:401045979406:web:00345e7a4023108ed7975f"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+let isAdmin = false;
+
+function signIn() {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch(e => alert('ログインに失敗しました: ' + e.message));
+}
+function signOut() { auth.signOut(); }
+
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  const statusEl   = document.getElementById('auth-status');
+  const signinBtn  = document.getElementById('btn-signin');
+  const signoutBtn = document.getElementById('btn-signout');
+  const gateEl     = document.getElementById('admin-gate');
+  const actionsEl  = document.getElementById('list-actions');
+
+  if (!user) {
+    isAdmin = false;
+    statusEl.textContent = '未ログイン';
+    signinBtn.style.display = ''; signoutBtn.style.display = 'none';
+    gateEl.style.display = 'none';
+    actionsEl.style.display = 'none';
+    document.getElementById('problem-list').innerHTML = '<div class="empty-msg">Googleでログインしてください。</div>';
+    return;
+  }
+
+  statusEl.textContent = user.displayName || user.email;
+  signinBtn.style.display = 'none'; signoutBtn.style.display = '';
+
+  try {
+    isAdmin = (await db.doc('admins/' + user.uid).get()).exists;
+  } catch(e) { isAdmin = false; }
+
+  if (!isAdmin) {
+    gateEl.style.display = '';
+    actionsEl.style.display = 'none';
+    document.getElementById('problem-list').innerHTML = '';
+    return;
+  }
+
+  gateEl.style.display = 'none';
+  actionsEl.style.display = '';
+  openList();
+});
+
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
-function loadProblems() { return JSON.parse(localStorage.getItem(PROB_KEY) || '[]'); }
+
+async function loadProblems() {
+  if (currentUser && isAdmin) {
+    try {
+      const snap = await db.collection('users/' + currentUser.uid + '/problems').get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { console.warn('Firestore読込失敗', e); }
+  }
+  return JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+}
+
 function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
 
 // ===== EDIT STATE =====
@@ -536,10 +616,10 @@ function showScreen(id) {
 }
 
 // ===== LIST =====
-function openList() { showScreen('list'); renderList(); }
+async function openList() { showScreen('list'); await renderList(); }
 
-function renderList() {
-  const problems = loadProblems();
+async function renderList() {
+  const problems = await loadProblems();
   const el = document.getElementById('problem-list');
   el.innerHTML = '';
 
@@ -643,10 +723,16 @@ function renderList() {
   });
 }
 
-function deleteProblem(id) {
+async function deleteProblem(id) {
   if (!confirm('この問題を削除しますか？')) return;
-  saveProblems(loadProblems().filter(p => p.id !== id));
-  renderList();
+  if (currentUser && isAdmin) {
+    try {
+      await db.collection('users/' + currentUser.uid + '/problems').doc(id).delete();
+    } catch(e) { alert('削除に失敗しました: ' + e.message); return; }
+  } else {
+    saveProblems((await loadProblems()).filter(p => p.id !== id));
+  }
+  await renderList();
 }
 
 // ===== EDITOR =====
@@ -1129,7 +1215,7 @@ function renderUkeireruList() {
 }
 
 // ===== SAVE =====
-function saveProblem() {
+async function saveProblem() {
   if (!editState.hand.length) { alert('手牌を設定してください'); return; }
   const total = totalTileCount();
   if (total < 14) {
@@ -1157,20 +1243,26 @@ function saveProblem() {
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
-  const problems = loadProblems();
-  if (editState.id) {
-    const i = problems.findIndex(p => p.id === editState.id);
-    if (i >= 0) problems[i] = problem; else problems.push(problem);
+  if (currentUser && isAdmin) {
+    try {
+      await db.collection('users/' + currentUser.uid + '/problems').doc(problem.id).set(problem);
+    } catch(e) { alert('Firestoreへの保存に失敗しました: ' + e.message); return; }
   } else {
-    problems.push(problem);
+    const problems = await loadProblems();
+    if (editState.id) {
+      const i = problems.findIndex(p => p.id === editState.id);
+      if (i >= 0) problems[i] = problem; else problems.push(problem);
+    } else {
+      problems.push(problem);
+    }
+    saveProblems(problems);
   }
-  saveProblems(problems);
   openList();
 }
 
 // ===== JSON IO =====
-function exportJSON() {
-  const problems = loadProblems();
+async function exportJSON() {
+  const problems = await loadProblems();
   if (!problems.length) { alert('エクスポートする問題がありません'); return; }
   const blob = new Blob([JSON.stringify(problems, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1181,13 +1273,27 @@ function exportJSON() {
 function importJSON(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) throw new Error('配列形式のJSONを選択してください');
       if (!confirm(imported.length + ' 件の問題が見つかりました。\n既存の問題をすべて削除して上書きします。\nよろしいですか？')) return;
-      saveProblems(imported);
-      renderList(); alert('インポートが完了しました');
+
+      if (currentUser && isAdmin) {
+        const BATCH_SIZE = 400;
+        for (let i = 0; i < imported.length; i += BATCH_SIZE) {
+          const batch = db.batch();
+          imported.slice(i, i + BATCH_SIZE).forEach(p => {
+            const ref = db.collection('users/' + currentUser.uid + '/problems').doc(p.id || Date.now().toString());
+            batch.set(ref, p);
+          });
+          await batch.commit();
+        }
+      } else {
+        saveProblems(imported);
+      }
+      await renderList();
+      alert('インポートが完了しました (' + imported.length + ' 件)');
     } catch (err) { alert('JSONの読み込みに失敗しました\n' + err.message); }
   };
   reader.readAsText(file); event.target.value = '';
@@ -1226,10 +1332,14 @@ function insertSamples() {
 }
 
 // ===== INIT =====
-(function init() {
-  openList();
-  if (!loadProblems().length) insertSamples();
-})();
+// onAuthStateChanged が openList() を呼ぶ。CDNブロック時のフォールバック:
+if (typeof firebase === 'undefined') {
+  document.getElementById('auth-status').textContent = 'オフラインモード（localStorage）';
+  document.getElementById('list-actions').style.display = '';
+  openList().then(() => { if (!JSON.parse(localStorage.getItem(PROB_KEY) || '[]').length) insertSamples(); });
+} else {
+  document.getElementById('list-actions').style.display = 'none';
+}
 </script>
 </body>
 </html>
