@@ -1120,7 +1120,7 @@ function saveProblem() {
     round:         document.getElementById('round-select').value,
     seat:          document.getElementById('seat-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
-    shanten:       parseInt(document.getElementById('shanten-select').value) || null,
+    shanten:       document.getElementById('shanten-select').value !== '' ? parseInt(document.getElementById('shanten-select').value) : null,
     commentary:    document.getElementById('commentary').value.trim(),
     source:        document.getElementById('source-input').value.trim() || null,
     createdAt:     new Date().toISOString().slice(0, 10)
