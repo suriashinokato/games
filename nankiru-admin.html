@@ -520,12 +520,10 @@ let currentUser = null;
 let isAdmin = false;
 
 function signIn() {
-  auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider())
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .catch(e => alert('ログインに失敗しました: ' + e.message));
 }
 function signOut() { auth.signOut(); }
-
-auth.getRedirectResult().catch(e => alert('ログインに失敗しました: ' + e.message));
 
 auth.onAuthStateChanged(async user => {
   currentUser = user;
