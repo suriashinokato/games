@@ -547,7 +547,7 @@ auth.onAuthStateChanged(async user => {
   signinBtn.style.display = 'none'; signoutBtn.style.display = '';
 
   try {
-    isAdmin = (await db.doc('admins/' + user.uid).get()).exists;
+    isAdmin = (await db.doc('admin/' + user.uid).get()).exists;
   } catch(e) { isAdmin = false; }
 
   if (!isAdmin) {
