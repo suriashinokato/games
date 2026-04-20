@@ -1027,7 +1027,9 @@ function onMeldActionClick(action, q) {
     handEl.querySelectorAll('.tile-slot').forEach(slot => {
       slot.onclick = () => onMeldDiscardClick(+slot.dataset.index, slot.dataset.code, q);
     });
-    document.getElementById('q-instruction').style.display = 'none';
+    const instrElPon = document.getElementById('q-instruction');
+    instrElPon.style.display = '';
+    instrElPon.textContent = 'どの牌を切りますか？';
   } else if (action === 'chi') {
     st.meldStep = 1;
     st.chiSelectedTiles = [];
@@ -1077,7 +1079,9 @@ function onChiTileClick(idx, code, q) {
         s.onclick = () => onMeldDiscardClick(si, s.dataset.code, q);
       }
     });
-    document.getElementById('q-instruction').style.display = 'none';
+    const instrElChi = document.getElementById('q-instruction');
+    instrElChi.style.display = '';
+    instrElChi.textContent = 'どの牌を切りますか？';
   }
 }
 
