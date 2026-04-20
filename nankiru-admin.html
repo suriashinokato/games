@@ -570,6 +570,22 @@ const TILE_LABELS = {
 const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
 function tileLabel(code) { return TILE_LABELS[code] || code; }
 
+// ドラ表示牌 → 実際のドラ牌に変換
+function doraFromIndicator(code) {
+  if (code === '0m') return '6m';
+  if (code === '0p') return '6p';
+  if (code === '0s') return '6s';
+  const suit = code.slice(-1);
+  const num = parseInt(code);
+  if (suit === 'z') {
+    // 風牌: 1-4循環, 三元牌: 5-7循環
+    if (num <= 4) return (num === 4 ? 1 : num + 1) + 'z';
+    return (num === 7 ? 5 : num + 1) + 'z';
+  }
+  // 数牌: 9→1循環
+  return (num === 9 ? 1 : num + 1) + suit;
+}
+
 // ===== FIREBASE =====
 const firebaseConfig = {
   apiKey: "AIzaSyDqgBfduxlc5i436Ex9cLml6eeVcx8NBbQ",
@@ -719,27 +735,41 @@ async function renderList() {
     const card = document.createElement('div');
     card.className = 'problem-card';
 
-    // 上段: メタ
+    // 上段: メタ + 編集・削除ボタン
     const top = document.createElement('div');
     top.className = 'problem-card-top';
     const meta = document.createElement('div');
     meta.className = 'problem-meta';
     const num = document.createElement('span');
-    num.textContent = '問題 ' + (i + 1) + '  (' + p.hand.length + '枚)';
+    num.textContent = '問題 ' + (i + 1);
     meta.appendChild(num);
-    if (p.round) {
+    if (p.round || p.turn || p.seat) {
       const rnd = document.createElement('span');
-      rnd.textContent = p.round;
       rnd.style.cssText = 'color:var(--accent);font-weight:600';
+      rnd.textContent = [p.round, p.seat ? p.seat + '家' : '', p.turn ? p.turn + '巡目' : ''].filter(Boolean).join(' ');
       meta.appendChild(rnd);
     }
-    if (p.melds && p.melds.length) {
-      const ml = document.createElement('span');
-      ml.textContent = '副露 ' + p.melds.length + '組';
-      ml.style.cssText = 'color:var(--text-dim)';
-      meta.appendChild(ml);
+    if (p.dora && p.dora.length) {
+      const doraInline = document.createElement('span');
+      doraInline.style.cssText = 'display:flex;align-items:center;gap:3px;margin-left:4px';
+      const dl = document.createElement('span');
+      dl.style.cssText = 'font-size:0.72rem;color:var(--text-dim)';
+      dl.textContent = 'ドラ:';
+      doraInline.appendChild(dl);
+      p.dora.forEach(c => doraInline.appendChild(makeMiniTile(doraFromIndicator(c), 'dora-tile')));
+      meta.appendChild(doraInline);
     }
     top.appendChild(meta);
+    const topBtns = document.createElement('div');
+    topBtns.className = 'card-btns';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-ghost btn-sm'; editBtn.textContent = '編集';
+    editBtn.onclick = () => openEditor(p);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm'; delBtn.textContent = '削除';
+    delBtn.onclick = () => deleteProblem(p.id);
+    topBtns.appendChild(editBtn); topBtns.appendChild(delBtn);
+    top.appendChild(topBtns);
     card.appendChild(top);
 
     // 手牌プレビュー
@@ -768,50 +798,7 @@ async function renderList() {
       card.appendChild(meldRow);
     }
 
-    // ドラプレビュー
-    if (p.dora && p.dora.length) {
-      const doraRow = document.createElement('div');
-      doraRow.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:6px';
-      const dl = document.createElement('span');
-      dl.style.cssText = 'font-size:0.72rem;color:var(--text-dim)';
-      dl.textContent = 'ドラ表示牌:';
-      doraRow.appendChild(dl);
-      p.dora.forEach(c => doraRow.appendChild(makeMiniTile(c, 'dora-tile')));
-      card.appendChild(doraRow);
-    }
 
-    // 下段
-    const bot = document.createElement('div');
-    bot.className = 'problem-card-bottom';
-    const ansWrap = document.createElement('div');
-    ansWrap.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
-    const ans = document.createElement('span');
-    if (p.questionType === 'meld') {
-      ans.className = 'answer-badge-meld';
-      const ACTION_NAMES = { chi:'チー', pon:'ポン', kan:'カン', skip:'スルー' };
-      ans.textContent = '鳴き問題: 正解=' + (ACTION_NAMES[p.correctAction] || p.correctAction);
-    } else {
-      ans.className = 'answer-badge';
-      ans.textContent = '正解: ' + tileLabel(p.correctAnswer);
-    }
-    ansWrap.appendChild(ans);
-    if (p.riichiChoice && p.questionType !== 'meld') {
-      const rb = document.createElement('span');
-      rb.className = 'answer-badge-riichi';
-      rb.textContent = p.riichiChoice === 'dama' ? 'ダマ' : 'リーチ';
-      ansWrap.appendChild(rb);
-    }
-    const btns = document.createElement('div');
-    btns.className = 'card-btns';
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-ghost btn-sm'; editBtn.textContent = '編集';
-    editBtn.onclick = () => openEditor(p);
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn-danger btn-sm'; delBtn.textContent = '削除';
-    delBtn.onclick = () => deleteProblem(p.id);
-    btns.appendChild(editBtn); btns.appendChild(delBtn);
-    bot.appendChild(ansWrap); bot.appendChild(btns);
-    card.appendChild(bot);
     el.appendChild(card);
   });
 }
