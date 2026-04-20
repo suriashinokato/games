@@ -259,6 +259,23 @@
     .riichi-btn.correct { border-color: var(--correct); background: rgba(76,175,80,0.12); color: var(--correct); }
     .riichi-btn.wrong   { border-color: var(--wrong);   background: rgba(229,57,53,0.12); color: var(--wrong); }
 
+    /* ===== 来牌エリア ===== */
+    .incoming-tile-row { display: none; align-items: center; gap: 12px; justify-content: center; margin-bottom: 12px; }
+    .incoming-tile-row.visible { display: flex; }
+    .incoming-label { font-size: 1rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .tile-slot.incoming { outline: 2px solid var(--accent); box-shadow: 0 0 10px rgba(201,168,76,0.35); cursor: default; }
+    .tile-slot.chi-selected { outline: 3px solid var(--accent) !important; transform: translateY(-6px); }
+
+    /* ===== チー/ポン/カン アクション選択ボタン行 ===== */
+    .meld-choice-row { display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 4px 0 16px; }
+    .meld-choice-row.visible { display: flex; }
+    .meld-btn { padding: 14px 32px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; border: 2px solid var(--text-dim); background: transparent; color: var(--text); cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.1s; }
+    .meld-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+    .meld-btn:disabled { cursor: default; transform: none; }
+    .meld-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .meld-btn.correct  { border-color: var(--correct); background: rgba(76,175,80,0.12); color: var(--correct); }
+    .meld-btn.wrong    { border-color: var(--wrong);   background: rgba(229,57,53,0.12); color: var(--wrong); }
+
     /* ===== RESULT ===== */
     .result-header { text-align: center; background: var(--surface); border-radius: 16px; padding: 28px 20px 20px; margin-bottom: 24px; }
     .result-label { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 6px; }
@@ -335,6 +352,15 @@
   </div>
 
   <p class="instruction" id="q-instruction">どの牌を切りますか？</p>
+
+  <!-- 来牌表示（チー/ポン/カン問題のみ） -->
+  <div class="incoming-tile-row" id="incoming-tile-row">
+    <span class="incoming-label" id="incoming-label">来牌</span>
+    <div id="incoming-tile-display"></div>
+  </div>
+
+  <!-- チー/ポン/カン アクション選択ボタン行 -->
+  <div class="meld-choice-row" id="meld-choice-row"></div>
 
   <div class="hand-wrap">
     <div class="hand-row">
@@ -440,6 +466,9 @@ function transformQuestion(q, mapping) {
     })) : q.ukeireru,
     commentary: applyTextMapping(q.commentary, mapping),
     memo: applyTextMapping(q.memo, mapping),
+    incomingTile: applyTileMapping(q.incomingTile, mapping),
+    correctChiPair: q.correctChiPair ? q.correctChiPair.map(c => applyTileMapping(c, mapping)) : q.correctChiPair,
+    correctDiscard: applyTileMapping(q.correctDiscard, mapping),
   };
 }
 
@@ -551,8 +580,10 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 
 let currentUser = null;
+const IS_LOCAL = location.protocol === 'file:';
 
 function signIn() {
+  if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .catch(e => alert('ログインに失敗しました: ' + e.message));
 }
@@ -561,13 +592,13 @@ function signOut() { auth.signOut(); }
 auth.onAuthStateChanged(async user => {
   currentUser = user;
   document.getElementById('auth-user').textContent    = user ? (user.displayName || user.email) : '未ログイン（ローカルモード）';
-  document.getElementById('btn-signin').style.display  = user ? 'none' : '';
+  document.getElementById('btn-signin').style.display  = (user || IS_LOCAL) ? 'none' : '';
   document.getElementById('btn-signout').style.display = user ? '' : 'none';
   await initHome();
 });
 
 // ===== STATE =====
-const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null };
+const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null, meldStep: 0, meldActionSelected: null, chiSelectedTiles: [] };
 
 // ===== STORAGE =====
 const PROB_KEY  = 'nankiru_problems';
@@ -776,6 +807,10 @@ function renderQ() {
   const q = transformQuestion(rawQ, generateSuitMapping());
   st.answered = false;
   st.riichiSelected = null;
+  st.meldStep = 0;
+  st.meldActionSelected = null;
+  st.chiSelectedTiles = [];
+  const isMeldQ = !!q.questionType;
 
   // 副露がある場合はタイル幅を縮小して見切れを防ぐ
   document.documentElement.style.setProperty('--tile-w', calcTileWidth(q.hand, q.melds));
@@ -819,7 +854,7 @@ function renderQ() {
   const handEl = document.getElementById('hand-tiles');
   handEl.innerHTML = ''; handEl.className = 'hand-tiles';
   const has14 = q.hand.length === 14;
-  const keepTsumo = has14 || hasMelds;
+  const keepTsumo = !isMeldQ && (has14 || hasMelds);
   const displayHand = sortedHand(q.hand, keepTsumo);
   displayHand.forEach((code, i) => {
     // ツモ牌の前にスペーサーを挿入
@@ -836,15 +871,21 @@ function renderQ() {
       lbl.textContent = 'ツモ';
       slot.appendChild(lbl);
     }
-    slot.addEventListener('click', () => onTileClick(i, code, q));
+    if (!isMeldQ) slot.addEventListener('click', () => onTileClick(i, code, q));
     handEl.appendChild(slot);
   });
 
-  // リーチ/ダマ選択オプションの設定
+  // 鳴き/リーチ/ダマ選択オプションの設定
   const hasRiichiStep = !!q.riichiChoice;
   const rcRow = document.getElementById('riichi-choice-row');
-  rcRow.classList.toggle('visible', hasRiichiStep);
-  if (hasRiichiStep) {
+  const mcRow = document.getElementById('meld-choice-row');
+  const inRow = document.getElementById('incoming-tile-row');
+  rcRow.classList.toggle('visible', hasRiichiStep && !isMeldQ);
+  mcRow.classList.remove('visible');
+  inRow.classList.remove('visible');
+  if (isMeldQ) {
+    renderMeldQuestion(q);
+  } else if (hasRiichiStep) {
     handEl.classList.add('answered'); // リーチ/ダマ選択前は牌を選べない
     const rBtn = document.getElementById('riichi-btn-riichi');
     const dBtn = document.getElementById('riichi-btn-dama');
@@ -859,7 +900,34 @@ function renderQ() {
 
   document.getElementById('feedback-area').style.display = 'none';
   document.getElementById('btn-next').style.display      = 'none';
-  document.getElementById('q-instruction').style.display = '';
+  document.getElementById('q-instruction').style.display = isMeldQ ? 'none' : '';
+}
+
+function showFeedbackArea(ok, q) {
+  const fa = document.getElementById('feedback-area');
+  const fr = document.getElementById('feedback-result');
+  fr.textContent = ok ? '正解！' : '不正解';
+  fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
+  fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
+  const shantenEl = document.getElementById('feedback-shanten');
+  if (q.shanten != null && q.shanten !== '') {
+    const label = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン';
+    shantenEl.innerHTML = '<span class="shanten-badge">' + label + '</span>';
+    shantenEl.style.display = '';
+  } else {
+    shantenEl.style.display = 'none';
+  }
+  renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
+  renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
+  const srcEl = document.getElementById('feedback-source');
+  if (q.source) { srcEl.textContent = '出典: ' + q.source; srcEl.style.display = ''; }
+  else { srcEl.style.display = 'none'; }
+  fa.style.display = '';
+  document.getElementById('q-instruction').style.display = 'none';
+  document.getElementById('q-score').textContent = st.correct + ' 正解';
+  const btn = document.getElementById('btn-next');
+  btn.style.display = '';
+  btn.textContent   = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
 }
 
 function onTileClick(idx, code, q) {
@@ -893,30 +961,7 @@ function onTileClick(idx, code, q) {
     if (!tileOk && sc === q.correctAnswer) slot.classList.add('correct');
   });
 
-  const fa = document.getElementById('feedback-area');
-  const fr = document.getElementById('feedback-result');
-  fr.textContent = ok ? '正解！' : '不正解';
-  fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
-  fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
-  const shantenEl = document.getElementById('feedback-shanten');
-  if (q.shanten != null && q.shanten !== '') {
-    const label = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン';
-    shantenEl.innerHTML = '<span class="shanten-badge">' + label + '</span>';
-    shantenEl.style.display = '';
-  } else {
-    shantenEl.style.display = 'none';
-  }
-  renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
-  renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
-  const srcEl = document.getElementById('feedback-source');
-  if (q.source) { srcEl.textContent = '出典: ' + q.source; srcEl.style.display = ''; }
-  else { srcEl.style.display = 'none'; }
-  fa.style.display = '';
-  document.getElementById('q-instruction').style.display = 'none';
-  document.getElementById('q-score').textContent = st.correct + ' 正解';
-  const btn = document.getElementById('btn-next');
-  btn.style.display = '';
-  btn.textContent   = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
+  showFeedbackArea(ok, q);
 }
 
 function onRiichiChoice(choice, q) {
@@ -934,6 +979,283 @@ function onRiichiChoice(choice, q) {
   const handEl = document.getElementById('hand-tiles');
   handEl.classList.remove('answered');
   document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
+}
+
+// ===== チー/ポン/カン 問題 =====
+function renderMeldQuestion(q) {
+  const ACTION_LABELS = { chi: 'チー', pon: 'ポン', kan: 'カン', skip: 'スルー' };
+  const handEl = document.getElementById('hand-tiles');
+  handEl.classList.add('answered');
+
+  const inRow = document.getElementById('incoming-tile-row');
+  const inDisplay = document.getElementById('incoming-tile-display');
+  inDisplay.innerHTML = '';
+  const inTile = makeTile(q.incomingTile, 'incoming');
+  inTile.style.cursor = 'default';
+  inDisplay.appendChild(inTile);
+  document.getElementById('incoming-label').textContent = q.incomingFrom || '来牌';
+  inRow.classList.add('visible');
+
+  const mcRow = document.getElementById('meld-choice-row');
+  mcRow.innerHTML = '';
+  (q.availableActions || []).forEach(action => {
+    const btn = document.createElement('button');
+    btn.className = 'meld-btn';
+    btn.dataset.action = action;
+    btn.textContent = ACTION_LABELS[action] || action;
+    btn.onclick = () => onMeldActionClick(action, q);
+    mcRow.appendChild(btn);
+  });
+  mcRow.classList.add('visible');
+
+  document.getElementById('q-instruction').style.display = 'none';
+}
+
+function onMeldActionClick(action, q) {
+  st.meldActionSelected = action;
+  document.getElementById('meld-choice-row').querySelectorAll('.meld-btn').forEach(btn => {
+    btn.disabled = true;
+    if (btn.dataset.action === action) btn.classList.add('selected');
+  });
+
+  if (action === 'skip' || action === 'kan') {
+    evaluateMeldAnswer(q, undefined, undefined);
+  } else if (action === 'pon') {
+    st.meldStep = 2;
+    const handEl = document.getElementById('hand-tiles');
+    handEl.classList.remove('answered');
+    handEl.querySelectorAll('.tile-slot').forEach(slot => {
+      slot.onclick = () => onMeldDiscardClick(+slot.dataset.index, slot.dataset.code, q);
+    });
+    document.getElementById('q-instruction').style.display = 'none';
+  } else if (action === 'chi') {
+    st.meldStep = 1;
+    st.chiSelectedTiles = [];
+    enableHandForChiSelect(q);
+    document.getElementById('q-instruction').style.display = 'none';
+  }
+}
+
+function enableHandForChiSelect(q) {
+  const handEl = document.getElementById('hand-tiles');
+  handEl.classList.remove('answered');
+  handEl.querySelectorAll('.tile-slot').forEach(slot => {
+    slot.onclick = () => onChiTileClick(+slot.dataset.index, slot.dataset.code, q);
+  });
+}
+
+function onChiTileClick(idx, code, q) {
+  if (st.meldStep !== 1) return;
+  const handEl = document.getElementById('hand-tiles');
+  const slot = handEl.querySelector('[data-index="' + idx + '"]');
+
+  const existingIdx = st.chiSelectedTiles.findIndex(t => t.idx === idx);
+  if (existingIdx !== -1) {
+    st.chiSelectedTiles.splice(existingIdx, 1);
+    slot.classList.remove('chi-selected');
+    return;
+  }
+  if (st.chiSelectedTiles.length >= 2) return;
+
+  st.chiSelectedTiles.push({ idx, code });
+  slot.classList.add('chi-selected');
+
+  if (st.chiSelectedTiles.length === 2) {
+    st.meldStep = 2;
+    handEl.querySelectorAll('.tile-slot').forEach(s => {
+      const si = +s.dataset.index;
+      if (st.chiSelectedTiles.some(t => t.idx === si)) {
+        s.onclick = () => {
+          const pos = st.chiSelectedTiles.findIndex(t => t.idx === si);
+          if (pos !== -1) st.chiSelectedTiles.splice(pos, 1);
+          s.classList.remove('chi-selected');
+          st.meldStep = 1;
+          enableHandForChiSelect(q);
+          document.getElementById('q-instruction').style.display = 'none';
+        };
+      } else {
+        s.onclick = () => onMeldDiscardClick(si, s.dataset.code, q);
+      }
+    });
+    document.getElementById('q-instruction').style.display = 'none';
+  }
+}
+
+function onMeldDiscardClick(idx, code, q) {
+  if (st.meldStep !== 2 || st.answered) return;
+  st.answered = true;
+  evaluateMeldAnswer(q, idx, code);
+}
+
+function evaluateMeldAnswer(q, discardIdx, discardCode) {
+  st.answered = true;
+  const actionOk = st.meldActionSelected === q.correctAction;
+
+  let chiPairOk = true;
+  if (q.correctAction === 'chi' && actionOk) {
+    const selected = st.chiSelectedTiles.map(t => t.code).sort().join(',');
+    const correct  = [...(q.correctChiPair || [])].sort().join(',');
+    chiPairOk = selected === correct;
+  }
+
+  let discardOk = true;
+  if (q.correctAction === 'chi' || q.correctAction === 'pon') {
+    discardOk = discardCode === q.correctDiscard;
+  }
+
+  const ok = actionOk && chiPairOk && discardOk;
+  if (ok) st.correct++;
+  else st.wrongs.push({
+    question: q,
+    selectedAction: st.meldActionSelected,
+    selectedChiPair: st.chiSelectedTiles.map(t => t.code),
+    selectedDiscard: discardCode || null
+  });
+
+  // アクションボタンのフィードバック
+  document.getElementById('meld-choice-row').querySelectorAll('.meld-btn').forEach(btn => {
+    const a = btn.dataset.action;
+    if (a === q.correctAction) btn.classList.add('correct');
+    if (a === st.meldActionSelected && a !== q.correctAction) {
+      btn.classList.remove('selected');
+      btn.classList.add('wrong');
+    }
+  });
+
+  // 手牌タイルのフィードバック
+  const handEl = document.getElementById('hand-tiles');
+  handEl.classList.add('answered');
+  if (discardIdx !== undefined) {
+    handEl.querySelectorAll('.tile-slot').forEach(slot => {
+      const si = +slot.dataset.index;
+      const sc = slot.dataset.code;
+      if (si === discardIdx) slot.classList.add(discardOk ? 'correct' : 'wrong');
+      else if (!discardOk && sc === q.correctDiscard) slot.classList.add('correct');
+    });
+  }
+  st.chiSelectedTiles.forEach(({ idx: ci }) => {
+    const slot = handEl.querySelector('[data-index="' + ci + '"]');
+    if (slot) slot.classList.add((chiPairOk && actionOk) ? 'correct' : 'wrong');
+  });
+
+  showFeedbackArea(ok, q);
+}
+
+function renderMeldReviewCard(card, q, entry) {
+  const ACTION_LABELS = { chi: 'チー', pon: 'ポン', kan: 'カン', skip: 'スルー' };
+  const { selectedAction, selectedChiPair, selectedDiscard } = entry;
+
+  // 局情報・ドラ
+  if (q.round || (q.dora && q.dora.length)) {
+    const meta = document.createElement('div');
+    meta.className = 'review-meta';
+    if (q.round || q.seat) {
+      const rnd = document.createElement('span');
+      rnd.className = 'review-meta-round';
+      rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' ');
+      meta.appendChild(rnd);
+    }
+    if (q.dora && q.dora.length) {
+      const dw = document.createElement('div'); dw.className = 'review-meta-dora';
+      buildDoraStrip(q.dora, dw, true);
+      meta.appendChild(dw);
+    }
+    card.appendChild(meta);
+  }
+
+  // 来牌
+  const incomingRow = document.createElement('div');
+  incomingRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  const incomingLbl = document.createElement('span');
+  incomingLbl.style.cssText = 'font-size:0.8rem;color:var(--text-dim);flex-shrink:0;';
+  incomingLbl.textContent = (q.incomingFrom || '来牌') + ':';
+  incomingRow.appendChild(incomingLbl);
+  const inTileEl = makeTile(q.incomingTile, '', true);
+  inTileEl.style.cursor = 'default';
+  incomingRow.appendChild(inTileEl);
+  card.appendChild(incomingRow);
+
+  // 手牌 + 副露
+  const handRow = document.createElement('div');
+  handRow.style.cssText = 'display:flex;align-items:flex-end;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
+  const handDiv = document.createElement('div');
+  handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+  let discardMarked = false;
+  sortedHand(q.hand, q.hand.length === 14).forEach(c => {
+    let extraClass = '';
+    if (!discardMarked && selectedDiscard && c === selectedDiscard &&
+        (selectedAction === 'chi' || selectedAction === 'pon')) {
+      discardMarked = true;
+      extraClass = selectedDiscard === q.correctDiscard ? 'correct' : 'wrong';
+    }
+    if (!extraClass && q.correctDiscard && c === q.correctDiscard &&
+        (q.correctAction === 'chi' || q.correctAction === 'pon')) {
+      extraClass = 'correct';
+    }
+    handDiv.appendChild(makeTile(c, extraClass, true));
+  });
+  handRow.appendChild(handDiv);
+  if (q.melds && q.melds.length) {
+    const mr = document.createElement('div');
+    mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;';
+    q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
+    handRow.appendChild(mr);
+  }
+  card.appendChild(handRow);
+
+  // アクション選択結果
+  const choiceRow = document.createElement('div');
+  choiceRow.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;';
+  (q.availableActions || []).forEach(a => {
+    const btn = document.createElement('span');
+    const isSelected = a === selectedAction, isCorrect = a === q.correctAction;
+    btn.style.cssText = 'padding:5px 14px;border-radius:8px;font-weight:700;font-size:0.88rem;border:2px solid ' +
+      (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
+      (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
+      (isCorrect ? 'rgba(76,175,80,0.12)' : isSelected ? 'rgba(229,57,53,0.12)' : 'transparent');
+    btn.textContent = (ACTION_LABELS[a] || a) + (isCorrect ? ' ✓' : '');
+    choiceRow.appendChild(btn);
+  });
+  card.appendChild(choiceRow);
+
+  // 正解情報
+  const info = document.createElement('div');
+  const ansLine = document.createElement('div');
+  ansLine.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;';
+  const ansLbl = document.createElement('span');
+  ansLbl.className = 'review-answer-label';
+  ansLbl.textContent = '正解: ' + (ACTION_LABELS[q.correctAction] || q.correctAction);
+  ansLine.appendChild(ansLbl);
+  if (q.correctAction === 'chi' && q.correctChiPair) {
+    const pLbl = document.createElement('span');
+    pLbl.style.cssText = 'font-size:0.8rem;color:var(--text-dim);align-self:center;';
+    pLbl.textContent = '鳴く:';
+    ansLine.appendChild(pLbl);
+    q.correctChiPair.forEach(c => {
+      const t = makeTile(c, 'correct', true); t.style.cursor = 'default';
+      ansLine.appendChild(t);
+    });
+  }
+  if (q.correctDiscard && (q.correctAction === 'chi' || q.correctAction === 'pon')) {
+    const dLbl = document.createElement('span');
+    dLbl.style.cssText = 'font-size:0.8rem;color:var(--text-dim);align-self:center;';
+    dLbl.textContent = '打:';
+    ansLine.appendChild(dLbl);
+    const dt = makeTile(q.correctDiscard, 'correct', true); dt.style.cursor = 'default';
+    ansLine.appendChild(dt);
+  }
+  info.appendChild(ansLine);
+  const cmt = document.createElement('p');
+  cmt.className = 'review-commentary';
+  renderCommentary(q.commentary || '', cmt);
+  info.appendChild(cmt);
+  if (q.source) {
+    const src = document.createElement('p');
+    src.className = 'feedback-source'; src.style.marginTop = '8px';
+    src.textContent = '出典: ' + q.source;
+    info.appendChild(src);
+  }
+  card.appendChild(info);
 }
 
 async function nextQ() {
@@ -963,9 +1285,17 @@ async function showResult() {
     revHdr.style.display = '';
     revHdr.textContent   = '間違えた問題 (' + st.wrongs.length + '問)';
 
-    st.wrongs.forEach(({ question: q, selectedCode, selectedRiichi }) => {
+    st.wrongs.forEach(entry => {
+      const q = entry.question;
       const card = document.createElement('div');
       card.className = 'review-card';
+
+      if (q.questionType) {
+        renderMeldReviewCard(card, q, entry);
+        revEl.appendChild(card);
+        return;
+      }
+      const { selectedCode, selectedRiichi } = entry;
 
       // 局情報・ドラ
       if (q.round || (q.dora && q.dora.length)) {

@@ -277,6 +277,20 @@
     .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
 
     .answer-badge-riichi { background: rgba(201,168,76,0.15); color: var(--accent); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge-meld { background: rgba(76,175,80,0.12); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+
+    /* チー/ポン/カン問題用タイル選択 */
+    .meld-q-tile {
+      width: 40px; height: 56px; background: transparent;
+      border-radius: 6px; border: 3px solid transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.7rem; color: #333; font-weight: bold;
+      overflow: hidden; transition: border-color 0.15s; flex-shrink: 0;
+    }
+    .meld-q-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .meld-q-tile:hover { border-color: var(--accent); }
+    .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px rgba(201,168,76,0.5); }
+    .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(76,175,80,0.5); }
   </style>
 </head>
 <body>
@@ -330,7 +344,7 @@
 
     <!-- 手牌パネル -->
     <div class="tab-panel active" id="panel-hand">
-      <div class="hand-count">手牌: <strong id="hand-count">0</strong> 枚 ／ 合計（手牌＋副露）: <strong id="total-count">0</strong> / 14 枚</div>
+      <div class="hand-count">手牌: <strong id="hand-count">0</strong> 枚 ／ 合計（手牌＋副露）: <strong id="total-count">0</strong> / <span id="max-total">14</span> 枚</div>
       <div class="editor-hand" id="editor-hand"></div>
       <p class="answer-hint" id="answer-hint">手牌の牌をクリックして<strong>正解牌</strong>を設定してください</p>
     </div>
@@ -481,6 +495,59 @@
     </div>
   </div>
 
+  <!-- チー/ポン/カン問題設定 -->
+  <div class="section">
+    <div class="section-title">チー/ポン/カン問題設定（任意）</div>
+    <div style="margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem">
+        <input type="checkbox" id="meld-q-toggle" onchange="toggleMeldQuestion(this.checked)">
+        チー/ポン/カン問題として設定する
+      </label>
+    </div>
+    <div id="meld-q-fields" style="display:none">
+      <div style="margin-bottom:14px">
+        <label class="field-label">来牌（必須）</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input type="text" id="incoming-tile-input" class="num-input" placeholder="牌コード (例: 3m)" style="min-width:140px;max-width:160px" oninput="updateIncomingTilePreview()">
+          <div id="incoming-tile-preview" style="width:40px;height:56px;background:var(--card);border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,0.1);flex-shrink:0"></div>
+          <div>
+            <label class="field-label" style="margin-bottom:4px">来牌元ラベル（任意）</label>
+            <input type="text" id="incoming-from-input" class="text-input" placeholder="例: 上家から" style="max-width:240px">
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="field-label">選択可能なアクション（1つ以上）</label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px;background:var(--card);border-radius:8px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem"><input type="checkbox" id="mq-act-chi"  onchange="onAvailableActionsChange()"> チー</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem"><input type="checkbox" id="mq-act-pon"  onchange="onAvailableActionsChange()"> ポン</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem"><input type="checkbox" id="mq-act-kan"  onchange="onAvailableActionsChange()"> カン</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem"><input type="checkbox" id="mq-act-skip" onchange="onAvailableActionsChange()"> スルー</label>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="field-label" for="mq-correct-action">正解アクション</label>
+        <select class="select-input" id="mq-correct-action" style="max-width:200px" onchange="onCorrectActionChange()">
+          <option value="">（選択してください）</option>
+          <option value="chi">チー</option>
+          <option value="pon">ポン</option>
+          <option value="kan">カン</option>
+          <option value="skip">スルー</option>
+        </select>
+      </div>
+      <div id="mq-chi-pair-section" style="display:none;margin-bottom:14px">
+        <label class="field-label">チーで使う手牌2枚を選択（クリックで選択/解除）</label>
+        <div id="mq-chi-hand" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:var(--card);border-radius:8px;min-height:68px;margin-bottom:6px"></div>
+        <p id="mq-chi-hint" style="font-size:0.82rem;color:var(--text-dim)">手牌をクリックして2枚選んでください</p>
+      </div>
+      <div id="mq-discard-section" style="display:none;margin-bottom:14px">
+        <label class="field-label">鳴いた後の正解打牌を選択（クリックで選択）</label>
+        <div id="mq-discard-hand" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:var(--card);border-radius:8px;min-height:68px;margin-bottom:6px"></div>
+        <p id="mq-discard-hint" style="font-size:0.82rem;color:var(--text-dim)">打牌する牌をクリックして選んでください</p>
+      </div>
+    </div>
+  </div>
+
   <div class="editor-actions">
     <button class="btn btn-ghost" onclick="openList()">キャンセル</button>
     <button class="btn btn-accent" onclick="saveProblem()">保存する</button>
@@ -518,20 +585,32 @@ const db   = firebase.firestore();
 
 let currentUser = null;
 let isAdmin = false;
+const IS_LOCAL = location.protocol === 'file:';
 
 function signIn() {
+  if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .catch(e => alert('ログインに失敗しました: ' + e.message));
 }
 function signOut() { auth.signOut(); }
 
 auth.onAuthStateChanged(async user => {
-  currentUser = user;
   const statusEl   = document.getElementById('auth-status');
   const signinBtn  = document.getElementById('btn-signin');
   const signoutBtn = document.getElementById('btn-signout');
   const gateEl     = document.getElementById('admin-gate');
   const actionsEl  = document.getElementById('list-actions');
+
+  if (IS_LOCAL) {
+    statusEl.textContent = 'ローカルモード（localStorage）';
+    signinBtn.style.display = 'none'; signoutBtn.style.display = 'none';
+    gateEl.style.display = 'none';
+    actionsEl.style.display = '';
+    openList();
+    return;
+  }
+
+  currentUser = user;
 
   if (!user) {
     isAdmin = false;
@@ -582,7 +661,15 @@ let editState = {
   id: null, hand: [], correctAnswer: null,
   dora: [], round: '', turn: '', commentary: '', source: '',
   melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
-  paletteTarget: 'hand'  // 'hand' | 'dora' | 'meld'
+  paletteTarget: 'hand',  // 'hand' | 'dora' | 'meld'
+  // チー/ポン/カン問題
+  questionType: '',           // '' | 'meld'
+  incomingTile: '',
+  incomingFrom: '',
+  availableActions: [],       // ['chi','pon','kan','skip']
+  correctAction: '',          // 'chi'|'pon'|'kan'|'skip'
+  correctChiPairIndices: [],  // 手牌インデックス2つ（チーの場合）
+  correctDiscardIndex: null   // 手牌インデックス（チー/ポンの場合）
 };
 
 // 副露ビルダー一時状態
@@ -699,10 +786,16 @@ async function renderList() {
     const ansWrap = document.createElement('div');
     ansWrap.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
     const ans = document.createElement('span');
-    ans.className = 'answer-badge';
-    ans.textContent = '正解: ' + tileLabel(p.correctAnswer);
+    if (p.questionType === 'meld') {
+      ans.className = 'answer-badge-meld';
+      const ACTION_NAMES = { chi:'チー', pon:'ポン', kan:'カン', skip:'スルー' };
+      ans.textContent = '鳴き問題: 正解=' + (ACTION_NAMES[p.correctAction] || p.correctAction);
+    } else {
+      ans.className = 'answer-badge';
+      ans.textContent = '正解: ' + tileLabel(p.correctAnswer);
+    }
     ansWrap.appendChild(ans);
-    if (p.riichiChoice) {
+    if (p.riichiChoice && p.questionType !== 'meld') {
       const rb = document.createElement('span');
       rb.className = 'answer-badge-riichi';
       rb.textContent = p.riichiChoice === 'dama' ? 'ダマ' : 'リーチ';
@@ -751,12 +844,24 @@ function openEditor(problem) {
     seat: problem.seat || '',
     memo: problem.memo || '',
     riichiChoice: problem.riichiChoice || '',
-    paletteTarget: 'hand'
+    paletteTarget: 'hand',
+    questionType: problem.questionType || '',
+    incomingTile: problem.incomingTile || '',
+    incomingFrom: problem.incomingFrom || '',
+    availableActions: [...(problem.availableActions || [])],
+    correctAction: problem.correctAction || '',
+    correctChiPairIndices: problem.correctChiPair
+      ? findHandIndices(problem.hand, problem.correctChiPair) : [],
+    correctDiscardIndex: problem.correctDiscard
+      ? problem.hand.indexOf(problem.correctDiscard) : null
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '', source: '',
     melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
-    riichiChoice: '', paletteTarget: 'hand'
+    riichiChoice: '', paletteTarget: 'hand',
+    questionType: '', incomingTile: '', incomingFrom: '',
+    availableActions: [], correctAction: '',
+    correctChiPairIndices: [], correctDiscardIndex: null
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
@@ -773,6 +878,19 @@ function openEditor(problem) {
   meldDraft = { tiles: [], calledIndex: null };
   document.getElementById('meld-builder').style.display = 'none';
   document.getElementById('add-meld-btn').style.display = '';
+
+  // チー/ポン/カン問題設定の初期化
+  const isMeldQ = !!editState.questionType;
+  document.getElementById('meld-q-toggle').checked = isMeldQ;
+  document.getElementById('meld-q-fields').style.display = isMeldQ ? '' : 'none';
+  document.getElementById('incoming-tile-input').value = editState.incomingTile;
+  document.getElementById('incoming-from-input').value = editState.incomingFrom;
+  ['chi','pon','kan','skip'].forEach(a => {
+    document.getElementById('mq-act-' + a).checked = editState.availableActions.includes(a);
+  });
+  document.getElementById('mq-correct-action').value = editState.correctAction;
+  updateIncomingTilePreview();
+  updateMeldQSubSections();
 
   activeTab = 'hand';
   setActiveTab('hand');
@@ -852,7 +970,7 @@ function tileCount(code) {
 function updatePaletteState() {
   let maxed = false;
   if      (editState.paletteTarget === 'none') maxed = true;
-  else if (editState.paletteTarget === 'hand') maxed = totalTileCount() >= 14;
+  else if (editState.paletteTarget === 'hand') maxed = totalTileCount() >= (editState.questionType === 'meld' ? 13 : 14);
   else if (editState.paletteTarget === 'dora') maxed = editState.dora.length >= 4;
   else if (editState.paletteTarget === 'meld') {
     const meldType = document.querySelector('input[name="meld-type"]:checked')?.value;
@@ -863,8 +981,9 @@ function updatePaletteState() {
   document.querySelectorAll('.palette-tile').forEach(btn => { btn.disabled = maxed; });
 
   // 副露追加ボタン：残り枚数が3未満なら無効化
+  const maxTiles = editState.questionType === 'meld' ? 13 : 14;
   const addMeldBtn = document.getElementById('add-meld-btn');
-  if (addMeldBtn) addMeldBtn.disabled = (14 - totalTileCount()) < 3;
+  if (addMeldBtn) addMeldBtn.disabled = (maxTiles - totalTileCount()) < 3;
 }
 
 function addTile(code) {
@@ -936,10 +1055,23 @@ function renderEditorHand() {
   if (hcBadge) hcBadge.textContent = editState.hand.length;
   const totalEl = document.getElementById('total-count');
   if (totalEl) totalEl.textContent = totalTileCount();
+  const maxEl = document.getElementById('max-total');
+  if (maxEl) maxEl.textContent = editState.questionType === 'meld' ? 13 : 14;
   const hint = document.getElementById('answer-hint');
   hint.innerHTML = editState.correctAnswer
     ? '正解牌: <strong>' + tileLabel(editState.correctAnswer) + '</strong>（クリックで変更）'
     : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください';
+
+  // チー/ポン/カン問題の手牌選択表示を更新
+  if (editState.questionType === 'meld') {
+    // 選択済みインデックスが手牌範囲外になった場合はリセット
+    editState.correctChiPairIndices = editState.correctChiPairIndices.filter(i => i < editState.hand.length);
+    if (editState.correctDiscardIndex !== null && editState.correctDiscardIndex >= editState.hand.length) {
+      editState.correctDiscardIndex = null;
+    }
+    if (editState.correctAction === 'chi') renderMqChiHand();
+    if (editState.correctAction === 'chi' || editState.correctAction === 'pon') renderMqDiscardHand();
+  }
 }
 
 // ===== DORA =====
@@ -1214,22 +1346,174 @@ function renderUkeireruList() {
   el.appendChild(wrap);
 }
 
+// ===== チー/ポン/カン問題設定 =====
+function findHandIndices(hand, codes) {
+  const pool = hand.map((c, i) => ({ c, i, used: false }));
+  return codes.map(code => {
+    const t = pool.find(t => t.c === code && !t.used);
+    if (t) { t.used = true; return t.i; }
+    return -1;
+  }).filter(i => i >= 0);
+}
+
+function toggleMeldQuestion(checked) {
+  document.getElementById('meld-q-fields').style.display = checked ? '' : 'none';
+  editState.questionType = checked ? 'meld' : '';
+  if (!checked) {
+    editState.incomingTile = ''; editState.incomingFrom = '';
+    editState.availableActions = []; editState.correctAction = '';
+    editState.correctChiPairIndices = []; editState.correctDiscardIndex = null;
+    updateMeldQSubSections();
+  }
+  // max枚数表示とパレット上限を切り替え
+  const maxEl = document.getElementById('max-total');
+  if (maxEl) maxEl.textContent = checked ? 13 : 14;
+  updatePaletteState();
+}
+
+function updateIncomingTilePreview() {
+  const code = document.getElementById('incoming-tile-input').value.trim().toLowerCase();
+  const preview = document.getElementById('incoming-tile-preview');
+  preview.innerHTML = '';
+  if (/^[0-9][mpsz]$/.test(code)) {
+    editState.incomingTile = code;
+    const img = document.createElement('img');
+    img.src = 'images_hai/' + code + '.png';
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain';
+    preview.appendChild(img);
+  } else {
+    editState.incomingTile = '';
+  }
+}
+
+function onAvailableActionsChange() {
+  editState.availableActions = ['chi','pon','kan','skip'].filter(a =>
+    document.getElementById('mq-act-' + a).checked
+  );
+}
+
+function onCorrectActionChange() {
+  editState.correctAction = document.getElementById('mq-correct-action').value;
+  editState.correctChiPairIndices = [];
+  editState.correctDiscardIndex = null;
+  updateMeldQSubSections();
+}
+
+function updateMeldQSubSections() {
+  const action = editState.correctAction;
+  const chiSec     = document.getElementById('mq-chi-pair-section');
+  const discardSec = document.getElementById('mq-discard-section');
+  if (!chiSec || !discardSec) return;
+  chiSec.style.display     = action === 'chi' ? '' : 'none';
+  discardSec.style.display = (action === 'chi' || action === 'pon') ? '' : 'none';
+  if (action === 'chi')                          renderMqChiHand();
+  if (action === 'chi' || action === 'pon')      renderMqDiscardHand();
+}
+
+function makeMqTile(code, extraClass, onclick) {
+  const tile = document.createElement('div');
+  tile.className = 'meld-q-tile' + (extraClass ? ' ' + extraClass : '');
+  tile.title = tileLabel(code);
+  const img = document.createElement('img');
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
+  tile.appendChild(img);
+  tile.addEventListener('click', onclick);
+  return tile;
+}
+
+function renderMqChiHand() {
+  const el = document.getElementById('mq-chi-hand');
+  if (!el) return;
+  el.innerHTML = '';
+  editState.hand.forEach((code, i) => {
+    const isSelected = editState.correctChiPairIndices.includes(i);
+    const tile = makeMqTile(code, isSelected ? 'mq-selected-chi' : '', () => {
+      if (isSelected) {
+        editState.correctChiPairIndices = editState.correctChiPairIndices.filter(x => x !== i);
+      } else {
+        if (editState.correctChiPairIndices.length >= 2) return;
+        editState.correctChiPairIndices.push(i);
+      }
+      renderMqChiHand();
+    });
+    el.appendChild(tile);
+  });
+  const hint = document.getElementById('mq-chi-hint');
+  if (hint) {
+    const n = editState.correctChiPairIndices.length;
+    hint.textContent = n >= 2
+      ? '選択済: ' + editState.correctChiPairIndices.map(i => tileLabel(editState.hand[i])).join('・') + '（クリックで解除）'
+      : '手牌をクリックして' + (2 - n) + '枚選んでください';
+  }
+}
+
+function renderMqDiscardHand() {
+  const el = document.getElementById('mq-discard-hand');
+  if (!el) return;
+  el.innerHTML = '';
+  editState.hand.forEach((code, i) => {
+    const isSelected = editState.correctDiscardIndex === i;
+    const tile = makeMqTile(code, isSelected ? 'mq-selected-discard' : '', () => {
+      editState.correctDiscardIndex = isSelected ? null : i;
+      renderMqDiscardHand();
+    });
+    el.appendChild(tile);
+  });
+  const hint = document.getElementById('mq-discard-hint');
+  if (hint) {
+    hint.textContent = editState.correctDiscardIndex !== null
+      ? '選択済: ' + tileLabel(editState.hand[editState.correctDiscardIndex]) + '（クリックで解除）'
+      : '打牌する牌をクリックして選んでください';
+  }
+}
+
 // ===== SAVE =====
 async function saveProblem() {
   if (!editState.hand.length) { alert('手牌を設定してください'); return; }
-  const total = totalTileCount();
-  if (total < 14) {
-    alert('手牌と副露の合計が14枚に達していません（現在 ' + total + ' 枚）\n\nあと ' + (14 - total) + ' 枚追加してください。');
-    return;
+
+  if (editState.questionType === 'meld') {
+    // チー/ポン/カン問題専用バリデーション
+    if (!/^[0-9][mpsz]$/.test(editState.incomingTile)) {
+      alert('来牌を正しく入力してください（例: 3m）'); return;
+    }
+    if (!editState.availableActions.length) {
+      alert('選択可能なアクションを1つ以上チェックしてください'); return;
+    }
+    if (!editState.correctAction) {
+      alert('正解アクションを選択してください'); return;
+    }
+    if (editState.correctAction === 'chi' && editState.correctChiPairIndices.length !== 2) {
+      alert('チーで使う手牌を2枚選択してください'); return;
+    }
+    if ((editState.correctAction === 'chi' || editState.correctAction === 'pon') && editState.correctDiscardIndex === null) {
+      alert('鳴いた後の正解打牌を選択してください'); return;
+    }
+  } else {
+    // 通常問題バリデーション
+    const total = totalTileCount();
+    if (total < 14) {
+      alert('手牌と副露の合計が14枚に達していません（現在 ' + total + ' 枚）\n\nあと ' + (14 - total) + ' 枚追加してください。');
+      return;
+    }
+    if (!editState.correctAnswer) { alert('正解牌を選択してください\n（手牌の牌をクリックして選択）'); return; }
+    if (!editState.hand.includes(editState.correctAnswer)) { alert('正解牌は手牌に含まれている必要があります'); return; }
   }
-  if (!editState.correctAnswer) { alert('正解牌を選択してください\n（手牌の牌をクリックして選択）'); return; }
-  if (!editState.hand.includes(editState.correctAnswer)) { alert('正解牌は手牌に含まれている必要があります'); return; }
 
   const problem = {
     id:            editState.id || Date.now().toString(),
     hand:          [...editState.hand],
-    correctAnswer: editState.correctAnswer,
-    riichiChoice:  document.getElementById('riichi-choice-select').value || null,
+    correctAnswer: editState.questionType === 'meld' ? null : editState.correctAnswer,
+    riichiChoice:  editState.questionType === 'meld' ? null : (document.getElementById('riichi-choice-select').value || null),
+    questionType:  editState.questionType || null,
+    incomingTile:  editState.questionType === 'meld' ? editState.incomingTile : null,
+    incomingFrom:  editState.questionType === 'meld' ? (document.getElementById('incoming-from-input').value.trim() || null) : null,
+    availableActions: editState.questionType === 'meld' ? editState.availableActions : null,
+    correctAction: editState.questionType === 'meld' ? editState.correctAction : null,
+    correctChiPair: (editState.questionType === 'meld' && editState.correctAction === 'chi')
+      ? editState.correctChiPairIndices.map(i => editState.hand[i]) : null,
+    correctDiscard: (editState.questionType === 'meld' && (editState.correctAction === 'chi' || editState.correctAction === 'pon'))
+      ? editState.hand[editState.correctDiscardIndex] : null,
     dora:          [...editState.dora],
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru:      editState.ukeireru.map(e => ({ ...e })),
