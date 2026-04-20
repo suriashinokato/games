@@ -291,6 +291,54 @@
     .meld-q-tile:hover { border-color: var(--accent); }
     .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px rgba(201,168,76,0.5); }
     .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(76,175,80,0.5); }
+
+    /* ===== 出典選択UI ===== */
+    .source-select-row { display: flex; gap: 8px; align-items: center; }
+    .source-select-row select { flex: 1; }
+    .btn-add-source {
+      flex-shrink: 0; width: 38px; height: 38px; border-radius: 8px;
+      background: var(--accent-dim); border: 2px solid var(--accent);
+      color: var(--accent); font-size: 1.2rem; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .btn-add-source:hover { background: var(--accent); color: #1a1a2e; }
+    #new-source-input-area { margin-top: 10px; }
+    .source-action-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .source-action-row button { padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; }
+    #save-new-source-btn { background: var(--accent); color: #1a1a2e; }
+    #cancel-new-source-btn { background: transparent; border: 2px solid var(--text-dim) !important; color: var(--text-dim); }
+
+    /* ===== 出典リスト管理セクション ===== */
+    #source-management-section { margin-top: 32px; background: var(--surface); border-radius: 12px; padding: 18px; }
+    #source-management-section h2 { font-size: 0.95rem; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+    #source-list-ul { list-style: none; margin-bottom: 14px; }
+    #source-list-ul li {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--card); border-radius: 8px; margin-bottom: 6px;
+      font-size: 0.88rem;
+    }
+    #source-list-ul .empty-sources { color: var(--text-dim); font-size: 0.85rem; padding: 8px 0; }
+    .src-action-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .src-edit-row { display: flex; gap: 6px; align-items: center; flex: 1; }
+    .src-edit-row .src-edit-input { flex: 1; padding: 4px 8px; font-size: 0.85rem; }
+    .btn-edit-source, .btn-del-source, .btn-save-source, .btn-cancel-source {
+      flex-shrink: 0; background: transparent; border: none;
+      cursor: pointer; font-size: 1rem; padding: 2px 6px;
+      border-radius: 4px; transition: color 0.2s;
+    }
+    .btn-edit-source { color: var(--text-dim); }
+    .btn-edit-source:hover { color: var(--accent); }
+    .btn-del-source { color: var(--text-dim); }
+    .btn-del-source:hover { color: var(--wrong); }
+    .btn-save-source { color: var(--correct); font-size: 1.1rem; }
+    .btn-save-source:hover { color: #6fcf72; }
+    .btn-cancel-source { color: var(--text-dim); }
+    .btn-cancel-source:hover { color: var(--wrong); }
+    .mgmt-add-row { display: flex; gap: 8px; }
+    .mgmt-add-row input { flex: 1; }
+    .mgmt-add-row button { flex-shrink: 0; padding: 8px 16px; border-radius: 8px; background: var(--accent); color: #1a1a2e; font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; }
+    .mgmt-add-row button:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -316,6 +364,15 @@
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
   </div>
   <div id="problem-list"></div>
+
+  <section id="source-management-section">
+    <h2>出典リスト管理</h2>
+    <ul id="source-list-ul"></ul>
+    <div class="mgmt-add-row">
+      <input type="text" class="num-input" id="mgmt-source-input" placeholder="新しい出典を入力...">
+      <button type="button" id="mgmt-add-source-btn">追加</button>
+    </div>
+  </section>
 </div>
 
 <!-- ===== EDITOR ===== -->
@@ -477,8 +534,23 @@
       </select>
     </div>
     <div style="margin-top:14px">
-      <label class="field-label" for="source-input">出典（任意）</label>
-      <input type="text" class="num-input" id="source-input" placeholder="例: 麻雀本 第3章 / X(Twitter) @username">
+      <label class="field-label" for="source-select">出典（任意）</label>
+      <div class="source-select-row">
+        <select class="num-input" id="source-select">
+          <option value="">(なし)</option>
+        </select>
+        <button type="button" class="btn-add-source" id="add-source-btn" title="新規出典を追加">＋</button>
+      </div>
+      <div id="new-source-input-area" style="display:none">
+        <input type="text" class="num-input" id="new-source-text" placeholder="例: X(Twitter) @username">
+        <div class="source-action-row">
+          <button type="button" id="save-new-source-btn">保存して選択</button>
+          <button type="button" id="cancel-new-source-btn">キャンセル</button>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <input type="text" class="num-input" id="source-memo-input" placeholder="メモ（任意）例: 第3章 p.42 / 2024-01-15の投稿">
+      </div>
     </div>
   </div>
 
@@ -672,10 +744,112 @@ async function loadProblems() {
 
 function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
 
+// ===== SOURCES =====
+const SRC_KEY = 'nankiru_sources';
+function loadSources() { return JSON.parse(localStorage.getItem(SRC_KEY) || '[]'); }
+function saveSources(arr) { localStorage.setItem(SRC_KEY, JSON.stringify(arr)); }
+
+function renderSourceSelect(selectedValue) {
+  const sel = document.getElementById('source-select');
+  if (!sel) return;
+  const sources = loadSources();
+  const current = selectedValue !== undefined ? selectedValue : sel.value;
+  sel.innerHTML = '<option value="">(なし)</option>';
+  sources.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function renderSourceManagement() {
+  const ul = document.getElementById('source-list-ul');
+  if (!ul) return;
+  const sources = loadSources();
+  ul.innerHTML = '';
+  if (sources.length === 0) {
+    ul.innerHTML = '<li class="empty-sources">登録された出典はありません</li>';
+    return;
+  }
+  sources.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.dataset.index = i;
+    li.innerHTML = `
+      <span class="src-label">${s}</span>
+      <div class="src-edit-row" style="display:none">
+        <input type="text" class="num-input src-edit-input" value="${s.replace(/"/g, '&quot;')}">
+        <button class="btn-save-source" title="保存" onclick="saveSourceEdit(${i})">✓</button>
+        <button class="btn-cancel-source" title="キャンセル" onclick="cancelSourceEdit(${i})">✕</button>
+      </div>
+      <div class="src-action-btns">
+        <button class="btn-edit-source" title="編集" onclick="startSourceEdit(${i})">✎</button>
+        <button class="btn-del-source" title="削除" onclick="deleteSource(${i})">✕</button>
+      </div>`;
+    ul.appendChild(li);
+  });
+}
+
+function startSourceEdit(index) {
+  const li = document.querySelector(`#source-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  li.querySelector('.src-label').style.display = 'none';
+  li.querySelector('.src-action-btns').style.display = 'none';
+  li.querySelector('.src-edit-row').style.display = 'flex';
+  const inp = li.querySelector('.src-edit-input');
+  inp.focus();
+  inp.select();
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') saveSourceEdit(index);
+    if (e.key === 'Escape') cancelSourceEdit(index);
+  };
+}
+
+function cancelSourceEdit(index) {
+  const li = document.querySelector(`#source-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  li.querySelector('.src-label').style.display = '';
+  li.querySelector('.src-action-btns').style.display = '';
+  li.querySelector('.src-edit-row').style.display = 'none';
+}
+
+function saveSourceEdit(index) {
+  const li = document.querySelector(`#source-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  const val = li.querySelector('.src-edit-input').value.trim();
+  if (!val) return;
+  const sources = loadSources();
+  const currentSelectVal = document.getElementById('source-select').value;
+  const wasSelected = currentSelectVal === sources[index];
+  sources[index] = val;
+  saveSources(sources);
+  renderSourceSelect(wasSelected ? val : currentSelectVal);
+  renderSourceManagement();
+}
+
+function addSource(text) {
+  const t = text.trim();
+  if (!t) return;
+  const sources = loadSources();
+  if (sources.includes(t)) return;
+  sources.push(t);
+  saveSources(sources);
+  renderSourceSelect(t);
+  renderSourceManagement();
+}
+
+function deleteSource(index) {
+  const sources = loadSources();
+  sources.splice(index, 1);
+  saveSources(sources);
+  renderSourceSelect();
+  renderSourceManagement();
+}
+
 // ===== EDIT STATE =====
 let editState = {
   id: null, hand: [], correctAnswer: null,
-  dora: [], round: '', turn: '', commentary: '', source: '',
+  dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
   melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
   paletteTarget: 'hand',  // 'hand' | 'dora' | 'meld'
   // チー/ポン/カン問題
@@ -719,7 +893,7 @@ function showScreen(id) {
 }
 
 // ===== LIST =====
-async function openList() { showScreen('list'); await renderList(); }
+async function openList() { showScreen('list'); await renderList(); renderSourceManagement(); }
 
 async function renderList() {
   const problems = await loadProblems();
@@ -825,6 +999,7 @@ function openEditor(problem) {
     turn: problem.turn != null ? String(problem.turn) : '',
     commentary: problem.commentary || '',
     source: problem.source || '',
+    sourceMemo: problem.sourceMemo || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
     shanten: problem.shanten != null ? String(problem.shanten) : '',
@@ -843,7 +1018,7 @@ function openEditor(problem) {
       ? problem.hand.indexOf(problem.correctDiscard) : null
   } : {
     id: null, hand: [], correctAnswer: null,
-    dora: [], round: '', turn: '', commentary: '', source: '',
+    dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
     melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
     riichiChoice: '', paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
@@ -853,7 +1028,8 @@ function openEditor(problem) {
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
   document.getElementById('commentary').value = editState.commentary;
-  document.getElementById('source-input').value = editState.source;
+  renderSourceSelect(editState.source || '');
+  document.getElementById('source-memo-input').value = editState.sourceMemo || '';
   document.getElementById('round-select').value = editState.round;
   document.getElementById('turn-input').value = editState.turn;
   document.getElementById('shanten-select').value = editState.shanten;
@@ -1510,7 +1686,8 @@ async function saveProblem() {
     memo:          document.getElementById('memo-input').value.trim() || null,
     shanten:       document.getElementById('shanten-select').value !== '' ? parseInt(document.getElementById('shanten-select').value) : null,
     commentary:    document.getElementById('commentary').value.trim(),
-    source:        document.getElementById('source-input').value.trim() || null,
+    source:        document.getElementById('source-select').value.trim() || null,
+    sourceMemo:    document.getElementById('source-memo-input').value.trim() || null,
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
@@ -1601,6 +1778,36 @@ function insertSamples() {
   ]);
   renderList();
 }
+
+// ===== SOURCE UI イベント =====
+document.getElementById('add-source-btn').addEventListener('click', () => {
+  document.getElementById('new-source-input-area').style.display = '';
+  document.getElementById('new-source-text').focus();
+});
+document.getElementById('cancel-new-source-btn').addEventListener('click', () => {
+  document.getElementById('new-source-input-area').style.display = 'none';
+  document.getElementById('new-source-text').value = '';
+});
+document.getElementById('save-new-source-btn').addEventListener('click', () => {
+  const val = document.getElementById('new-source-text').value;
+  if (!val.trim()) return;
+  addSource(val);
+  document.getElementById('new-source-input-area').style.display = 'none';
+  document.getElementById('new-source-text').value = '';
+});
+document.getElementById('new-source-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('save-new-source-btn').click();
+  if (e.key === 'Escape') document.getElementById('cancel-new-source-btn').click();
+});
+document.getElementById('mgmt-add-source-btn').addEventListener('click', () => {
+  const inp = document.getElementById('mgmt-source-input');
+  if (!inp.value.trim()) return;
+  addSource(inp.value);
+  inp.value = '';
+});
+document.getElementById('mgmt-source-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('mgmt-add-source-btn').click();
+});
 
 // ===== INIT =====
 // onAuthStateChanged が openList() を呼ぶ。CDNブロック時のフォールバック:
