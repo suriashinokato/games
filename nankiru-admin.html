@@ -781,7 +781,7 @@ auth.onAuthStateChanged(async user => {
 
   gateEl.style.display = 'none';
   actionsEl.style.display = '';
-  openList();
+  await openList();
 });
 
 // ===== STORAGE =====
@@ -814,13 +814,34 @@ function saveOrder(ids) { localStorage.setItem(ORDER_KEY, JSON.stringify(ids)); 
 
 // ===== SOURCES =====
 const SRC_KEY = 'nankiru_sources';
-function loadSources() { return JSON.parse(localStorage.getItem(SRC_KEY) || '[]'); }
-function saveSources(arr) { localStorage.setItem(SRC_KEY, JSON.stringify(arr)); }
 
-function renderSourceSelect(selectedValue) {
+async function loadSources() {
+  if (currentUser && isAdmin) {
+    try {
+      const doc = await db.doc('users/' + currentUser.uid + '/meta/sources').get();
+      if (doc.exists) {
+        const list = doc.data().list || [];
+        localStorage.setItem(SRC_KEY, JSON.stringify(list));
+        return list;
+      }
+    } catch(e) { console.warn('Firestore出典読込失敗', e); }
+  }
+  return JSON.parse(localStorage.getItem(SRC_KEY) || '[]');
+}
+
+async function saveSources(arr) {
+  localStorage.setItem(SRC_KEY, JSON.stringify(arr));
+  if (currentUser && isAdmin) {
+    try {
+      await db.doc('users/' + currentUser.uid + '/meta/sources').set({ list: arr });
+    } catch(e) { console.warn('Firestore出典保存失敗', e); }
+  }
+}
+
+async function renderSourceSelect(selectedValue) {
   const sel = document.getElementById('source-select');
   if (!sel) return;
-  const sources = loadSources();
+  const sources = await loadSources();
   const current = selectedValue !== undefined ? selectedValue : sel.value;
   sel.innerHTML = '<option value="">(なし)</option>';
   sources.forEach(s => {
@@ -831,10 +852,10 @@ function renderSourceSelect(selectedValue) {
   sel.value = current;
 }
 
-function renderSourceManagement() {
+async function renderSourceManagement() {
   const ul = document.getElementById('source-list-ul');
   if (!ul) return;
-  const sources = loadSources();
+  const sources = await loadSources();
   ul.innerHTML = '';
   if (sources.length === 0) {
     ul.innerHTML = '<li class="empty-sources">登録された出典はありません</li>';
@@ -881,37 +902,37 @@ function cancelSourceEdit(index) {
   li.querySelector('.src-edit-row').style.display = 'none';
 }
 
-function saveSourceEdit(index) {
+async function saveSourceEdit(index) {
   const li = document.querySelector(`#source-list-ul li[data-index="${index}"]`);
   if (!li) return;
   const val = li.querySelector('.src-edit-input').value.trim();
   if (!val) return;
-  const sources = loadSources();
+  const sources = await loadSources();
   const currentSelectVal = document.getElementById('source-select').value;
   const wasSelected = currentSelectVal === sources[index];
   sources[index] = val;
-  saveSources(sources);
-  renderSourceSelect(wasSelected ? val : currentSelectVal);
-  renderSourceManagement();
+  await saveSources(sources);
+  await renderSourceSelect(wasSelected ? val : currentSelectVal);
+  await renderSourceManagement();
 }
 
-function addSource(text) {
+async function addSource(text) {
   const t = text.trim();
   if (!t) return;
-  const sources = loadSources();
+  const sources = await loadSources();
   if (sources.includes(t)) return;
   sources.push(t);
-  saveSources(sources);
-  renderSourceSelect(t);
-  renderSourceManagement();
+  await saveSources(sources);
+  await renderSourceSelect(t);
+  await renderSourceManagement();
 }
 
-function deleteSource(index) {
-  const sources = loadSources();
+async function deleteSource(index) {
+  const sources = await loadSources();
   sources.splice(index, 1);
-  saveSources(sources);
-  renderSourceSelect();
-  renderSourceManagement();
+  await saveSources(sources);
+  await renderSourceSelect();
+  await renderSourceManagement();
 }
 
 // ===== EDIT STATE =====
@@ -961,7 +982,7 @@ function showScreen(id) {
 }
 
 // ===== LIST =====
-async function openList() { showScreen('list'); await renderList(); renderSourceManagement(); }
+async function openList() { showScreen('list'); await renderList(); await renderSourceManagement(); }
 
 let dragSrcId = null;
 let activeTagFilter = null;
@@ -1154,7 +1175,7 @@ async function deleteProblem(id) {
 }
 
 // ===== EDITOR =====
-function openEditor(problem) {
+async function openEditor(problem) {
   editState = problem ? {
     id: problem.id, hand: [...problem.hand],
     correctAnswer: problem.correctAnswer,
@@ -1194,7 +1215,7 @@ function openEditor(problem) {
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
   document.getElementById('commentary').value = editState.commentary;
-  renderSourceSelect(editState.source || '');
+  await renderSourceSelect(editState.source || '');
   document.getElementById('source-memo-input').value = editState.sourceMemo || '';
   document.getElementById('round-select').value = editState.round;
   document.getElementById('turn-input').value = editState.turn;
