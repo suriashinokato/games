@@ -72,10 +72,15 @@
     .tile-mini.dora-tile    { border-color: transparent; }
     .tile-mini.called-tile  { border-color: var(--accent); background: transparent; }
 
-    .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
     .answer-badge { background: rgba(76,175,80,0.15); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
     .card-btns { display: flex; gap: 8px; }
     .empty-msg { text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 0.95rem; }
+
+    .drag-handle { cursor: grab; color: var(--text-dim); font-size: 1.1rem; padding: 0 8px 0 0; user-select: none; flex-shrink: 0; align-self: center; }
+    .drag-handle:active { cursor: grabbing; }
+    .problem-card.dragging { opacity: 0.4; }
+    .problem-card.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 
     /* ===== EDITOR ===== */
     .section { background: var(--surface); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
@@ -339,6 +344,42 @@
     .mgmt-add-row input { flex: 1; }
     .mgmt-add-row button { flex-shrink: 0; padding: 8px 16px; border-radius: 8px; background: var(--accent); color: #1a1a2e; font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; }
     .mgmt-add-row button:hover { opacity: 0.85; }
+    /* ===== タグシステム ===== */
+    .tag-input-row { display:flex; gap:8px; align-items:center; margin-top:10px; }
+    .tag-input-row input { flex:1; }
+    .tag-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; min-height:24px; }
+    .tag-chip {
+      display:inline-flex; align-items:center; gap:5px;
+      background:var(--accent-dim); border:1px solid var(--accent);
+      color:var(--accent); border-radius:20px;
+      padding:3px 10px 3px 12px; font-size:0.78rem; font-weight:600;
+    }
+    .tag-chip-remove {
+      background:none; border:none; cursor:pointer;
+      color:var(--accent); font-size:0.85rem; line-height:1;
+      padding:0; opacity:0.7; transition:opacity 0.15s;
+    }
+    .tag-chip-remove:hover { opacity:1; }
+    .card-tags { display:flex; flex-wrap:wrap; gap:5px; }
+    .card-tag {
+      display:inline-block;
+      background:var(--accent-dim); border:1px solid var(--accent);
+      color:var(--accent); border-radius:20px;
+      padding:2px 9px; font-size:0.72rem; font-weight:600;
+      cursor:pointer; transition:background 0.15s;
+    }
+    .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:#1a1a2e; }
+    .tag-filter-bar {
+      display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+      margin-bottom:14px; min-height:28px;
+    }
+    .tag-filter-bar-label { font-size:0.75rem; color:var(--text-dim); flex-shrink:0; }
+    .tag-filter-clear {
+      background:none; border:1px solid var(--text-dim); border-radius:20px;
+      color:var(--text-dim); font-size:0.72rem; padding:2px 10px;
+      cursor:pointer; transition:color 0.15s, border-color 0.15s;
+    }
+    .tag-filter-clear:hover { color:var(--wrong); border-color:var(--wrong); }
   </style>
 </head>
 <body>
@@ -362,6 +403,11 @@
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
+  </div>
+  <div class="tag-filter-bar" id="tag-filter-bar" style="display:none">
+    <span class="tag-filter-bar-label">タグ絞り込み:</span>
+    <span id="tag-filter-active-chip" class="card-tag active-filter"></span>
+    <button class="tag-filter-clear" onclick="setTagFilter(null)">× クリア</button>
   </div>
   <div id="problem-list"></div>
 
@@ -551,6 +597,15 @@
       <div style="margin-top:8px">
         <input type="text" class="num-input" id="source-memo-input" placeholder="メモ（任意）例: 第3章 p.42 / 2024-01-15の投稿">
       </div>
+      <div style="margin-top:14px">
+        <label class="field-label">タグ（任意）</label>
+        <div class="tag-chips" id="editor-tag-chips"></div>
+        <div class="tag-input-row">
+          <input type="text" class="num-input" id="tag-input"
+                 placeholder="例: 七対子両天秤、難しい" style="max-width:320px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addTag()">追加</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -733,16 +788,29 @@ auth.onAuthStateChanged(async user => {
 const PROB_KEY = 'nankiru_problems';
 
 async function loadProblems() {
+  let arr;
   if (currentUser && isAdmin) {
     try {
       const snap = await db.collection('users/' + currentUser.uid + '/problems').get();
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch(e) { console.warn('Firestore読込失敗', e); }
   }
-  return JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+  if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+  const order = loadOrder();
+  if (order && order.length) {
+    const map = Object.fromEntries(arr.map(p => [p.id, p]));
+    const sorted = order.filter(id => map[id]).map(id => map[id]);
+    const rest = arr.filter(p => !order.includes(p.id));
+    arr = [...sorted, ...rest];
+  }
+  return arr;
 }
 
 function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
+
+const ORDER_KEY = 'nankiru_problem_order';
+function loadOrder() { return JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'); }
+function saveOrder(ids) { localStorage.setItem(ORDER_KEY, JSON.stringify(ids)); }
 
 // ===== SOURCES =====
 const SRC_KEY = 'nankiru_sources';
@@ -895,23 +963,48 @@ function showScreen(id) {
 // ===== LIST =====
 async function openList() { showScreen('list'); await renderList(); renderSourceManagement(); }
 
+let dragSrcId = null;
+let activeTagFilter = null;
+
 async function renderList() {
   const problems = await loadProblems();
   const el = document.getElementById('problem-list');
   el.innerHTML = '';
 
-  if (!problems.length) {
-    el.innerHTML = '<div class="empty-msg">問題がまだありません。<br>「＋ 新規問題を追加」から登録してください。</div>';
+  // フィルターバー更新
+  const filterBar = document.getElementById('tag-filter-bar');
+  const filterChip = document.getElementById('tag-filter-active-chip');
+  if (filterBar && filterChip) {
+    filterBar.style.display = activeTagFilter ? '' : 'none';
+    filterChip.textContent = activeTagFilter || '';
+  }
+
+  const displayProblems = activeTagFilter
+    ? problems.filter(p => Array.isArray(p.tags) && p.tags.includes(activeTagFilter))
+    : problems;
+
+  if (!displayProblems.length) {
+    el.innerHTML = activeTagFilter
+      ? '<div class="empty-msg">タグ「' + activeTagFilter + '」の問題が見つかりません。</div>'
+      : '<div class="empty-msg">問題がまだありません。<br>「＋ 新規問題を追加」から登録してください。</div>';
     return;
   }
 
-  problems.forEach((p, i) => {
+  displayProblems.forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'problem-card';
+    card.draggable = true;
 
     // 上段: メタ + 編集・削除ボタン
     const top = document.createElement('div');
     top.className = 'problem-card-top';
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = 'ドラッグして並び替え';
+    const leftGroup = document.createElement('div');
+    leftGroup.style.cssText = 'display:flex;align-items:center;gap:8px;flex:1;min-width:0';
+    leftGroup.appendChild(handle);
     const meta = document.createElement('div');
     meta.className = 'problem-meta';
     const num = document.createElement('span');
@@ -933,7 +1026,8 @@ async function renderList() {
       p.dora.forEach(c => doraInline.appendChild(makeMiniTile(doraFromIndicator(c), 'dora-tile')));
       meta.appendChild(doraInline);
     }
-    top.appendChild(meta);
+    leftGroup.appendChild(meta);
+    top.appendChild(leftGroup);
     const topBtns = document.createElement('div');
     topBtns.className = 'card-btns';
     const editBtn = document.createElement('button');
@@ -972,8 +1066,77 @@ async function renderList() {
       card.appendChild(meldRow);
     }
 
+    // 出典・タグ（同一下段コンテナに配置）
+    if (p.source || (p.tags && p.tags.length)) {
+      const bottom = document.createElement('div');
+      bottom.className = 'problem-card-bottom';
+
+      if (p.source) {
+        const srcRow = document.createElement('div');
+        srcRow.style.cssText = 'font-size:0.75rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;flex-wrap:wrap';
+        const srcLabel = document.createElement('span');
+        srcLabel.style.cssText = 'color:var(--accent);font-weight:600;flex-shrink:0';
+        srcLabel.textContent = '出典:';
+        srcRow.appendChild(srcLabel);
+        const srcText = document.createElement('span');
+        srcText.textContent = p.source + (p.sourceMemo ? '　' + p.sourceMemo : '');
+        srcRow.appendChild(srcText);
+        bottom.appendChild(srcRow);
+      }
+
+      if (p.tags && p.tags.length) {
+        const tagsRow = document.createElement('div');
+        tagsRow.className = 'card-tags';
+        p.tags.forEach(tag => {
+          const chip = document.createElement('span');
+          chip.className = 'card-tag' + (activeTagFilter === tag ? ' active-filter' : '');
+          chip.textContent = tag;
+          chip.title = 'このタグでフィルター';
+          chip.addEventListener('click', e => {
+            e.stopPropagation();
+            setTagFilter(activeTagFilter === tag ? null : tag);
+          });
+          tagsRow.appendChild(chip);
+        });
+        bottom.appendChild(tagsRow);
+      }
+
+      card.appendChild(bottom);
+    }
 
     el.appendChild(card);
+
+    card.addEventListener('dragstart', e => {
+      dragSrcId = p.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', async e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (!dragSrcId || dragSrcId === p.id) return;
+      const probs = await loadProblems();
+      const ids = probs.map(q => q.id);
+      const from = ids.indexOf(dragSrcId);
+      const to   = ids.indexOf(p.id);
+      if (from === -1 || to === -1) return;
+      ids.splice(from, 1);
+      ids.splice(to, 0, dragSrcId);
+      saveOrder(ids);
+      if (!(currentUser && isAdmin)) {
+        const map = Object.fromEntries(probs.map(q => [q.id, q]));
+        saveProblems(ids.map(id => map[id]));
+      }
+      dragSrcId = null;
+      await renderList();
+    });
   });
 }
 
@@ -986,6 +1149,7 @@ async function deleteProblem(id) {
   } else {
     saveProblems((await loadProblems()).filter(p => p.id !== id));
   }
+  saveOrder((loadOrder() || []).filter(oid => oid !== id));
   await renderList();
 }
 
@@ -1015,7 +1179,8 @@ function openEditor(problem) {
     correctChiPairIndices: problem.correctChiPair
       ? findHandIndices(problem.hand, problem.correctChiPair) : [],
     correctDiscardIndex: problem.correctDiscard
-      ? problem.hand.indexOf(problem.correctDiscard) : null
+      ? problem.hand.indexOf(problem.correctDiscard) : null,
+    tags: Array.isArray(problem.tags) ? [...problem.tags] : []
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
@@ -1023,7 +1188,8 @@ function openEditor(problem) {
     riichiChoice: '', paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
     availableActions: [], correctAction: '',
-    correctChiPairIndices: [], correctDiscardIndex: null
+    correctChiPairIndices: [], correctDiscardIndex: null,
+    tags: []
   };
 
   document.getElementById('editor-title').textContent = problem ? '問題を編集' : '新規問題';
@@ -1062,6 +1228,7 @@ function openEditor(problem) {
   renderEditorDora();
   renderMelds();
   renderUkeireruList();
+  renderEditorTags();
   showScreen('editor');
 }
 
@@ -1427,6 +1594,12 @@ document.addEventListener('DOMContentLoaded', () => {
       updatePaletteState();
     });
   });
+  const tagInput = document.getElementById('tag-input');
+  if (tagInput) {
+    tagInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+    });
+  }
 });
 
 // ===== 受け入れ牌 =====
@@ -1688,6 +1861,7 @@ async function saveProblem() {
     commentary:    document.getElementById('commentary').value.trim(),
     source:        document.getElementById('source-select').value.trim() || null,
     sourceMemo:    document.getElementById('source-memo-input').value.trim() || null,
+    tags:          [...editState.tags],
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
@@ -1705,7 +1879,51 @@ async function saveProblem() {
     }
     saveProblems(problems);
   }
+  if (!editState.id) {
+    const order = loadOrder() || [];
+    if (!order.includes(problem.id)) { order.push(problem.id); saveOrder(order); }
+  }
   openList();
+}
+
+// ===== TAGS =====
+function addTag() {
+  const input = document.getElementById('tag-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (editState.tags.includes(val)) { input.value = ''; return; }
+  editState.tags.push(val);
+  input.value = '';
+  input.focus();
+  renderEditorTags();
+}
+
+function removeTag(index) {
+  editState.tags.splice(index, 1);
+  renderEditorTags();
+}
+
+function renderEditorTags() {
+  const el = document.getElementById('editor-tag-chips');
+  if (!el) return;
+  el.innerHTML = '';
+  editState.tags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = tag;
+    const btn = document.createElement('button');
+    btn.className = 'tag-chip-remove';
+    btn.textContent = '×';
+    btn.title = '削除';
+    btn.onclick = () => removeTag(i);
+    chip.appendChild(btn);
+    el.appendChild(chip);
+  });
+}
+
+function setTagFilter(tag) {
+  activeTagFilter = tag;
+  renderList();
 }
 
 // ===== JSON IO =====
@@ -1740,6 +1958,7 @@ function importJSON(event) {
       } else {
         saveProblems(imported);
       }
+      saveOrder(imported.map(p => p.id));
       await renderList();
       alert('インポートが完了しました (' + imported.length + ' 件)');
     } catch (err) { alert('JSONの読み込みに失敗しました\n' + err.message); }
