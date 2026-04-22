@@ -986,10 +986,21 @@ async function openList() { showScreen('list'); await renderList(); await render
 
 let sortableInstance = null;
 let activeTagFilter = null;
+let _paletteButtonsCache = null;
+let _listDelegateInit = false;
 
 async function renderList() {
   const problems = await loadProblems();
   const el = document.getElementById('problem-list');
+  if (!_listDelegateInit) {
+    _listDelegateInit = true;
+    el.addEventListener('click', e => {
+      const chip = e.target.closest('.card-tag');
+      if (!chip) return;
+      e.stopPropagation();
+      setTagFilter(activeTagFilter === chip.textContent ? null : chip.textContent);
+    });
+  }
   el.innerHTML = '';
 
   // フィルターバー更新
@@ -1113,10 +1124,6 @@ async function renderList() {
           chip.className = 'card-tag' + (activeTagFilter === tag ? ' active-filter' : '');
           chip.textContent = tag;
           chip.title = 'このタグでフィルター';
-          chip.addEventListener('click', e => {
-            e.stopPropagation();
-            setTagFilter(activeTagFilter === tag ? null : tag);
-          });
           tagsRow.appendChild(chip);
         });
         bottom.appendChild(tagsRow);
@@ -1243,6 +1250,7 @@ async function openEditor(problem) {
   activeTab = 'hand';
   setActiveTab('hand');
   buildPalette();
+  _initEditorHandDelegate();
   renderEditorHand();
   renderEditorDora();
   renderMelds();
@@ -1296,6 +1304,7 @@ function buildPalette() {
       el.appendChild(btn);
     });
   });
+  _paletteButtonsCache = null;
   updatePaletteState();
 }
 
@@ -1327,7 +1336,8 @@ function updatePaletteState() {
       ? meldDraft.tiles.length > 0
       : meldDraft.tiles.length >= 3;
   }
-  document.querySelectorAll('.palette-tile').forEach(btn => { btn.disabled = maxed; });
+  if (!_paletteButtonsCache) _paletteButtonsCache = Array.from(document.querySelectorAll('.palette-tile'));
+  _paletteButtonsCache.forEach(btn => { btn.disabled = maxed; });
 
   // 副露追加ボタン：残り枚数が3未満なら無効化
   const maxTiles = editState.questionType === 'meld' ? 13 : 14;
@@ -1381,24 +1391,50 @@ function removeTile(idx) {
 
 function toggleAnswer(code) {
   editState.correctAnswer = editState.correctAnswer === code ? null : code;
-  renderEditorHand();
+  renderEditorHand(true);
 }
 
-function renderEditorHand() {
+function _initEditorHandDelegate() {
   const el = document.getElementById('editor-hand');
+  if (el.dataset.delegated) return;
+  el.dataset.delegated = '1';
+  el.addEventListener('click', e => {
+    const tile = e.target.closest('.e-tile');
+    if (!tile) return;
+    const code = tile.dataset.code;
+    if (code) toggleAnswer(code);
+  });
+}
+
+function renderEditorHand(quickUpdate = false) {
+  const el = document.getElementById('editor-hand');
+  if (quickUpdate) {
+    el.querySelectorAll('.e-tile').forEach(tile => {
+      const isAnswer = tile.dataset.code === editState.correctAnswer;
+      tile.classList.toggle('is-answer', isAnswer);
+      tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に設定';
+    });
+    const hint = document.getElementById('answer-hint');
+    hint.innerHTML = editState.correctAnswer
+      ? '正解牌: <strong>' + tileLabel(editState.correctAnswer) + '</strong>（クリックで変更）'
+      : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください';
+    return;
+  }
   el.innerHTML = '';
+  const frag = document.createDocumentFragment();
   editState.hand.forEach((code, idx) => {
     const tile = document.createElement('div');
     tile.className = 'e-tile' + (code === editState.correctAnswer ? ' is-answer' : '');
     tile.title = code === editState.correctAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に設定';
+    tile.dataset.code = code;
     const img = document.createElement('img');
     img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
     tile.appendChild(img);
     tile.appendChild(makeRemoveBtn(() => removeTile(idx)));
-    tile.addEventListener('click', () => toggleAnswer(code));
-    el.appendChild(tile);
+    frag.appendChild(tile);
   });
+  el.appendChild(frag);
   document.getElementById('hand-count').textContent = editState.hand.length;
   const hcBadge = document.getElementById('tab-hand-count');
   if (hcBadge) hcBadge.textContent = editState.hand.length;
@@ -1433,6 +1469,7 @@ function removeDoraTile(idx) {
 function renderEditorDora() {
   const el = document.getElementById('editor-dora');
   el.innerHTML = '';
+  const frag = document.createDocumentFragment();
   editState.dora.forEach((code, idx) => {
     const tile = document.createElement('div');
     tile.className = 'd-tile';
@@ -1442,12 +1479,10 @@ function renderEditorDora() {
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
     tile.appendChild(img);
     const xBtn = makeRemoveBtn(() => removeDoraTile(idx));
-    xBtn.style.display = 'none';
     tile.appendChild(xBtn);
-    tile.addEventListener('mouseenter', () => xBtn.style.display = 'block');
-    tile.addEventListener('mouseleave', () => xBtn.style.display = 'none');
-    el.appendChild(tile);
+    frag.appendChild(tile);
   });
+  el.appendChild(frag);
   document.getElementById('dora-count').textContent = editState.dora.length;
   const dcBadge = document.getElementById('tab-dora-count');
   if (dcBadge) dcBadge.textContent = editState.dora.length;
@@ -1493,6 +1528,7 @@ function renderMeldPreview() {
   const isAnkan   = type === 'ankan';
   const isAutoFill = type === 'pon' || type === 'ankan' || type === 'minkan';
 
+  const frag = document.createDocumentFragment();
   meldDraft.tiles.forEach((code, idx) => {
     const isCalled = !isAnkan && idx === meldDraft.calledIndex;
     const tile = document.createElement('div');
@@ -1506,8 +1542,9 @@ function renderMeldPreview() {
     tile.appendChild(img);
     tile.appendChild(makeRemoveBtn(() => removeMeldDraftTile(idx)));
     if (!isAnkan) tile.addEventListener('click', () => toggleMeldCalled(idx));
-    el.appendChild(tile);
+    frag.appendChild(tile);
   });
+  el.appendChild(frag);
 
   document.getElementById('mb-count').textContent = meldDraft.tiles.length;
 
@@ -1564,6 +1601,7 @@ function renderMelds() {
   if (mcBadge) mcBadge.textContent = editState.melds.length;
   const el = document.getElementById('melds-list');
   el.innerHTML = '';
+  const frag = document.createDocumentFragment();
   editState.melds.forEach((meld, idx) => {
     const item = document.createElement('div');
     item.className = 'meld-list-item';
@@ -1598,8 +1636,9 @@ function renderMelds() {
     delBtn.onclick = () => removeMeld(idx);
     item.appendChild(delBtn);
 
-    el.appendChild(item);
+    frag.appendChild(item);
   });
+  el.appendChild(frag);
 }
 
 // 副露種別変更時にプレビューを更新
@@ -1777,50 +1816,94 @@ function makeMqTile(code, extraClass, onclick) {
   return tile;
 }
 
+function _makeMqTileEl(code, idx) {
+  const tile = document.createElement('div');
+  tile.className = 'meld-q-tile';
+  tile.dataset.idx = idx;
+  tile.title = tileLabel(code);
+  const img = document.createElement('img');
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
+  tile.appendChild(img);
+  return tile;
+}
+function _updateMqChiClasses(el) {
+  el.querySelectorAll('.meld-q-tile').forEach(t => {
+    t.classList.toggle('mq-selected-chi', editState.correctChiPairIndices.includes(parseInt(t.dataset.idx)));
+  });
+}
+function _updateMqChiHint() {
+  const hint = document.getElementById('mq-chi-hint');
+  if (!hint) return;
+  const n = editState.correctChiPairIndices.length;
+  hint.textContent = n >= 2
+    ? '選択済: ' + editState.correctChiPairIndices.map(i => tileLabel(editState.hand[i])).join('・') + '（クリックで解除）'
+    : '手牌をクリックして' + (2 - n) + '枚選んでください';
+}
+function _updateMqDiscardClasses(el) {
+  el.querySelectorAll('.meld-q-tile').forEach(t => {
+    t.classList.toggle('mq-selected-discard', editState.correctDiscardIndex === parseInt(t.dataset.idx));
+  });
+}
+function _updateMqDiscardHint() {
+  const hint = document.getElementById('mq-discard-hint');
+  if (!hint) return;
+  hint.textContent = editState.correctDiscardIndex !== null
+    ? '選択済: ' + tileLabel(editState.hand[editState.correctDiscardIndex]) + '（クリックで解除）'
+    : '打牌する牌をクリックして選んでください';
+}
+
 function renderMqChiHand() {
   const el = document.getElementById('mq-chi-hand');
   if (!el) return;
-  el.innerHTML = '';
-  editState.hand.forEach((code, i) => {
-    const isSelected = editState.correctChiPairIndices.includes(i);
-    const tile = makeMqTile(code, isSelected ? 'mq-selected-chi' : '', () => {
-      if (isSelected) {
+  if (!el.dataset.delegated) {
+    el.dataset.delegated = '1';
+    el.addEventListener('click', e => {
+      const t = e.target.closest('.meld-q-tile');
+      if (!t) return;
+      const i = parseInt(t.dataset.idx);
+      if (editState.correctChiPairIndices.includes(i)) {
         editState.correctChiPairIndices = editState.correctChiPairIndices.filter(x => x !== i);
       } else {
         if (editState.correctChiPairIndices.length >= 2) return;
         editState.correctChiPairIndices.push(i);
       }
-      renderMqChiHand();
+      _updateMqChiClasses(el);
+      _updateMqChiHint();
     });
-    el.appendChild(tile);
-  });
-  const hint = document.getElementById('mq-chi-hint');
-  if (hint) {
-    const n = editState.correctChiPairIndices.length;
-    hint.textContent = n >= 2
-      ? '選択済: ' + editState.correctChiPairIndices.map(i => tileLabel(editState.hand[i])).join('・') + '（クリックで解除）'
-      : '手牌をクリックして' + (2 - n) + '枚選んでください';
   }
+  if (el.querySelectorAll('.meld-q-tile').length !== editState.hand.length) {
+    const frag = document.createDocumentFragment();
+    editState.hand.forEach((code, i) => frag.appendChild(_makeMqTileEl(code, i)));
+    el.innerHTML = '';
+    el.appendChild(frag);
+  }
+  _updateMqChiClasses(el);
+  _updateMqChiHint();
 }
 
 function renderMqDiscardHand() {
   const el = document.getElementById('mq-discard-hand');
   if (!el) return;
-  el.innerHTML = '';
-  editState.hand.forEach((code, i) => {
-    const isSelected = editState.correctDiscardIndex === i;
-    const tile = makeMqTile(code, isSelected ? 'mq-selected-discard' : '', () => {
-      editState.correctDiscardIndex = isSelected ? null : i;
-      renderMqDiscardHand();
+  if (!el.dataset.delegated) {
+    el.dataset.delegated = '1';
+    el.addEventListener('click', e => {
+      const t = e.target.closest('.meld-q-tile');
+      if (!t) return;
+      const i = parseInt(t.dataset.idx);
+      editState.correctDiscardIndex = editState.correctDiscardIndex === i ? null : i;
+      _updateMqDiscardClasses(el);
+      _updateMqDiscardHint();
     });
-    el.appendChild(tile);
-  });
-  const hint = document.getElementById('mq-discard-hint');
-  if (hint) {
-    hint.textContent = editState.correctDiscardIndex !== null
-      ? '選択済: ' + tileLabel(editState.hand[editState.correctDiscardIndex]) + '（クリックで解除）'
-      : '打牌する牌をクリックして選んでください';
   }
+  if (el.querySelectorAll('.meld-q-tile').length !== editState.hand.length) {
+    const frag = document.createDocumentFragment();
+    editState.hand.forEach((code, i) => frag.appendChild(_makeMqTileEl(code, i)));
+    el.innerHTML = '';
+    el.appendChild(frag);
+  }
+  _updateMqDiscardClasses(el);
+  _updateMqDiscardHint();
 }
 
 // ===== SAVE =====
