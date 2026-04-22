@@ -59,7 +59,9 @@
     .btn-mode.primary:hover:not(:disabled) { opacity: 0.85; }
 
     /* 問題一覧 */
-    .prob-list-item { background: var(--surface); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; }
+    .prob-list-item { background: var(--surface); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; cursor: pointer; transition: background 0.15s; }
+    .prob-list-item:hover { background: #2a2a3e; }
+    .prob-list-item:active { opacity: 0.8; }
     .prob-list-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .prob-list-num { color: var(--text-dim); font-size: 0.78rem; flex-shrink: 0; min-width: 24px; }
     .prob-list-dora { display: flex; align-items: center; gap: 2px; flex: 1; }
@@ -72,9 +74,7 @@
     .prob-list-tile { width: 22px; height: 31px; background: #f5f0e8; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
     .prob-list-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prob-list-tsumo-gap { width: 6px; flex-shrink: 0; }
-    .btn-challenge { padding: 6px 14px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
-    .btn-challenge:hover { opacity: 0.82; }
-    .card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:rgba(201,168,76,0.15); color:var(--accent); border:1px solid rgba(201,168,76,0.4); transition:background 0.15s, color 0.15s; }
+.card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:rgba(201,168,76,0.15); color:var(--accent); border:1px solid rgba(201,168,76,0.4); transition:background 0.15s, color 0.15s; }
     .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:#1a1a2e; }
     .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-left:6px; }
 
@@ -912,6 +912,7 @@ async function showProblemList() {
     displayProblems.forEach((q, i) => {
       const item = document.createElement('div');
       item.className = 'prob-list-item';
+      item.onclick = () => startSingleQuiz(q);
 
       // ヘッダー行: 番号 / バッジ / 挑戦ボタン
       const header = document.createElement('div');
@@ -953,12 +954,6 @@ async function showProblemList() {
         b.textContent = '鳴き';
         header.appendChild(b);
       }
-
-      const btn = document.createElement('button');
-      btn.className = 'btn-challenge';
-      btn.textContent = '挑戦';
-      btn.onclick = () => startSingleQuiz(q);
-      header.appendChild(btn);
 
       item.appendChild(header);
 
