@@ -638,15 +638,25 @@ const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riic
 
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
+const ORDER_KEY = 'nankiru_problem_order';
 
 async function loadProblems() {
+  let arr;
   if (currentUser) {
     try {
       const snap = await db.collection('users/' + currentUser.uid + '/problems').get();
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch(e) { console.warn('Firestore読込失敗、localStorageにフォールバック', e); }
   }
-  return JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+  if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+  const order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+  if (order && order.length) {
+    const map = Object.fromEntries(arr.map(p => [p.id, p]));
+    const sorted = order.filter(id => map[id]).map(id => map[id]);
+    const rest = arr.filter(p => !order.includes(p.id));
+    arr = [...sorted, ...rest];
+  }
+  return arr;
 }
 
 // ===== UTIL =====

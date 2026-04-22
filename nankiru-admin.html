@@ -7,6 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -79,8 +80,7 @@
 
     .drag-handle { cursor: grab; color: var(--text-dim); font-size: 1.1rem; padding: 0 8px 0 0; user-select: none; flex-shrink: 0; align-self: center; }
     .drag-handle:active { cursor: grabbing; }
-    .problem-card.dragging { opacity: 0.4; }
-    .problem-card.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+
 
     /* ===== EDITOR ===== */
     .section { background: var(--surface); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
@@ -984,7 +984,7 @@ function showScreen(id) {
 // ===== LIST =====
 async function openList() { showScreen('list'); await renderList(); await renderSourceManagement(); }
 
-let dragSrcId = null;
+let sortableInstance = null;
 let activeTagFilter = null;
 
 async function renderList() {
@@ -1014,7 +1014,7 @@ async function renderList() {
   displayProblems.forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'problem-card';
-    card.draggable = true;
+    card.dataset.problemId = p.id;
 
     // 上段: メタ + 編集・削除ボタン
     const top = document.createElement('div');
@@ -1126,38 +1126,36 @@ async function renderList() {
     }
 
     el.appendChild(card);
+  });
 
-    card.addEventListener('dragstart', e => {
-      dragSrcId = p.id;
-      card.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', () => card.classList.remove('dragging'));
-    card.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      card.classList.add('drag-over');
-    });
-    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
-    card.addEventListener('drop', async e => {
-      e.preventDefault();
-      card.classList.remove('drag-over');
-      if (!dragSrcId || dragSrcId === p.id) return;
-      const probs = await loadProblems();
-      const ids = probs.map(q => q.id);
-      const from = ids.indexOf(dragSrcId);
-      const to   = ids.indexOf(p.id);
-      if (from === -1 || to === -1) return;
-      ids.splice(from, 1);
-      ids.splice(to, 0, dragSrcId);
+  if (sortableInstance) sortableInstance.destroy();
+  sortableInstance = Sortable.create(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: async function(evt) {
+      const movedId = evt.item.dataset.problemId;
+      const allProbs = await loadProblems();
+      const ids = allProbs.map(q => q.id);
+      if (activeTagFilter) {
+        const displayIds = allProbs
+          .filter(p => Array.isArray(p.tags) && p.tags.includes(activeTagFilter))
+          .map(p => p.id);
+        const targetId = displayIds[evt.newIndex];
+        const from = ids.indexOf(movedId);
+        const to   = ids.indexOf(targetId);
+        if (from === -1 || to === -1) return;
+        ids.splice(from, 1);
+        ids.splice(to, 0, movedId);
+      } else {
+        ids.splice(evt.oldIndex, 1);
+        ids.splice(evt.newIndex, 0, movedId);
+      }
       saveOrder(ids);
       if (!(currentUser && isAdmin)) {
-        const map = Object.fromEntries(probs.map(q => [q.id, q]));
+        const map = Object.fromEntries(allProbs.map(q => [q.id, q]));
         saveProblems(ids.map(id => map[id]));
       }
-      dragSrcId = null;
-      await renderList();
-    });
+    }
   });
 }
 
