@@ -76,7 +76,7 @@
     .btn-challenge:hover { opacity: 0.82; }
     .card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:rgba(201,168,76,0.15); color:var(--accent); border:1px solid rgba(201,168,76,0.4); transition:background 0.15s, color 0.15s; }
     .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:#1a1a2e; }
-    .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+    .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-left:6px; }
 
     .admin-link { display: block; text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 24px; text-decoration: none; transition: color 0.2s; }
     .admin-link:hover { color: var(--accent); }
@@ -1039,7 +1039,7 @@ async function showProblemList() {
           chip.title = 'このタグでフィルター';
           tagsDiv.appendChild(chip);
         });
-        item.appendChild(tagsDiv);
+        doraWrap.appendChild(tagsDiv);
       }
 
       frag.appendChild(item);
