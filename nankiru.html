@@ -419,6 +419,7 @@
 
   <div class="quiz-actions">
     <button class="btn-ghost" id="btn-retry-again" style="display:none">もう一度解く</button>
+    <button class="btn-ghost" id="btn-go-to-list" style="display:none">問題一覧へ戻る</button>
     <button class="btn-next" id="btn-next" style="display:none">次の問題</button>
   </div>
 </div>
@@ -912,7 +913,7 @@ async function showProblemList() {
     displayProblems.forEach((q, i) => {
       const item = document.createElement('div');
       item.className = 'prob-list-item';
-      item.onclick = () => startSingleQuiz(q);
+      item.onclick = () => startSingleQuiz(q, displayProblems);
 
       // ヘッダー行: 番号 / バッジ / 挑戦ボタン
       const header = document.createElement('div');
@@ -1062,8 +1063,10 @@ async function startRandomQuiz() {
   renderQ();
 }
 
-function startSingleQuiz(problem) {
-  st.problems = [problem];
+function startSingleQuiz(problem, orderedList) {
+  const list = orderedList || [problem];
+  const startIdx = list.findIndex(p => p === problem || p.id === problem.id);
+  st.problems = startIdx >= 0 ? list.slice(startIdx) : [problem];
   st.mode = 'list';
   st.idx = 0; st.correct = 0; st.wrongs = [];
   showScreen('quiz');
@@ -1198,19 +1201,15 @@ function showFeedbackArea(ok, q) {
   document.getElementById('q-score').textContent = st.correct + ' 正解';
   const btn = document.getElementById('btn-next');
   const retryAgainBtn = document.getElementById('btn-retry-again');
+  const goToListBtn = document.getElementById('btn-go-to-list');
+  btn.textContent = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
   btn.style.display = '';
-  if (st.mode === 'list') {
-    btn.textContent = '問題一覧に戻る';
-    btn.className = 'btn-ghost';
-    btn.onclick = () => { btn.classList.add('selected'); showProblemList(); };
-    retryAgainBtn.style.display = '';
-    retryAgainBtn.onclick = () => { retryAgainBtn.classList.add('selected'); retryAgain(); };
-  } else {
-    btn.textContent = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
-    btn.className = 'btn-next';
-    btn.onclick = () => nextQ();
-    retryAgainBtn.style.display = 'none';
-  }
+  btn.className = 'btn-next';
+  btn.onclick = () => nextQ();
+  retryAgainBtn.style.display = '';
+  retryAgainBtn.onclick = () => { retryAgainBtn.classList.add('selected'); retryCurrentQ(); };
+  goToListBtn.style.display = '';
+  goToListBtn.onclick = () => { goToListBtn.classList.add('selected'); showProblemList(); };
 }
 
 function onTileClick(idx, code, q) {
@@ -1552,6 +1551,15 @@ async function nextQ() {
   st.idx++;
   if (st.idx < st.problems.length) renderQ();
   else await showResult();
+}
+
+function retryCurrentQ() {
+  st.answered = false;
+  st.riichiSelected = null;
+  st.meldStep = 0;
+  st.meldActionSelected = null;
+  st.chiSelectedTiles = [];
+  renderQ();
 }
 
 function retryAgain() {
