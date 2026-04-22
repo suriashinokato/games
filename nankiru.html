@@ -1093,7 +1093,7 @@ function showFeedbackArea(ok, q) {
   renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
   renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
   const srcEl = document.getElementById('feedback-source');
-  const srcText = [q.source, q.sourceMemo].filter(Boolean).join('　');
+  const srcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
   if (srcText) { srcEl.textContent = '出典: ' + srcText; srcEl.style.display = ''; }
   else { srcEl.style.display = 'none'; }
   fa.style.display = '';
@@ -1214,7 +1214,9 @@ function onMeldActionClick(action, q) {
     st.meldStep = 1;
     st.chiSelectedTiles = [];
     enableHandForChiSelect(q);
-    document.getElementById('q-instruction').style.display = 'none';
+    const instrElChi0 = document.getElementById('q-instruction');
+    instrElChi0.style.display = '';
+    instrElChi0.textContent = 'どの牌で鳴きますか？';
   }
 }
 
@@ -1433,7 +1435,7 @@ function renderMeldReviewCard(card, q, entry) {
   cmt.className = 'review-commentary';
   renderCommentary(q.commentary || '', cmt);
   info.appendChild(cmt);
-  const reviewSrcText = [q.source, q.sourceMemo].filter(Boolean).join('　');
+  const reviewSrcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
   if (reviewSrcText) {
     const src = document.createElement('p');
     src.className = 'feedback-source'; src.style.marginTop = '8px';
@@ -1548,7 +1550,7 @@ async function showResult() {
         renderUkeireru(q.ukeireru, urow);
         info.appendChild(urow);
       }
-      const summarySrcText = [q.source, q.sourceMemo].filter(Boolean).join('　');
+      const summarySrcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
       if (summarySrcText) {
         const src = document.createElement('p');
         src.className = 'feedback-source';
