@@ -318,8 +318,9 @@
     .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 
     .result-actions { display: flex; gap: 12px; margin-top: 20px; }
-    .btn-ghost { flex: 1; padding: 13px; background: transparent; color: var(--text); border: 2px solid var(--text-dim); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .btn-ghost { flex: 1; padding: 13px; background: transparent; color: var(--text); border: 2px solid var(--text-dim); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; }
     .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost.selected, .btn-ghost:active:not(:disabled) { background: var(--accent); color: #1a1a2e; border-color: var(--accent); }
     .btn-primary { flex: 1; padding: 13px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
     .btn-primary:hover { opacity: 0.85; }
   </style>
@@ -338,7 +339,7 @@
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
     <button class="btn-mode" id="btn-list" onclick="showProblemList()">問題一覧</button>
-    <button class="btn-mode primary" id="btn-random" onclick="startRandomQuiz()">ランダム挑戦</button>
+    <button class="btn-mode" id="btn-random" onclick="startRandomQuiz()">ランダム挑戦</button>
   </div>
   <a href="nankiru-admin.html" class="admin-link">⚙ 問題管理</a>
 </div>
@@ -830,6 +831,8 @@ async function initHome() {
   const noProblems = problems.length === 0;
   document.getElementById('btn-list').disabled   = noProblems;
   document.getElementById('btn-random').disabled = noProblems;
+  document.getElementById('btn-list').classList.remove('primary');
+  document.getElementById('btn-random').classList.remove('primary');
 }
 async function goHome() { await initHome(); showScreen('home'); }
 async function confirmGoHome() {
@@ -838,6 +841,8 @@ async function confirmGoHome() {
 
 // ===== PROBLEM LIST =====
 async function showProblemList() {
+  document.getElementById('btn-list').classList.add('primary');
+  document.getElementById('btn-random').classList.remove('primary');
   const problems = await loadProblems();
   const el = document.getElementById('problem-list');
   el.innerHTML = '';
@@ -971,6 +976,8 @@ async function showProblemList() {
 
 // ===== QUIZ =====
 async function startRandomQuiz() {
+  document.getElementById('btn-list').classList.remove('primary');
+  document.getElementById('btn-random').classList.add('primary');
   const src = await loadProblems();
   if (!src.length) { alert('問題が登録されていません'); return; }
   st.problems = shuffle(src).slice(0, 20);
@@ -1119,11 +1126,13 @@ function showFeedbackArea(ok, q) {
   btn.style.display = '';
   if (st.mode === 'list') {
     btn.textContent = '問題一覧に戻る';
-    btn.onclick = () => showProblemList();
+    btn.className = 'btn-ghost';
+    btn.onclick = () => { btn.classList.add('selected'); showProblemList(); };
     retryAgainBtn.style.display = '';
-    retryAgainBtn.onclick = () => retryAgain();
+    retryAgainBtn.onclick = () => { retryAgainBtn.classList.add('selected'); retryAgain(); };
   } else {
     btn.textContent = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
+    btn.className = 'btn-next';
     btn.onclick = () => nextQ();
     retryAgainBtn.style.display = 'none';
   }
@@ -1488,8 +1497,18 @@ async function showResult() {
   const total = st.problems.length, correct = st.correct;
   document.getElementById('r-score').textContent = correct + ' / ' + total;
   const retryBtn = document.getElementById('btn-retry');
-  retryBtn.textContent = st.mode === 'list' ? '問題一覧に戻る' : 'もう一度';
-  retryBtn.onclick = st.mode === 'list' ? showProblemList : startRandomQuiz;
+  const retryAgainResultBtn = document.getElementById('btn-retry-again-result');
+  retryAgainResultBtn.className = 'btn-ghost';
+  retryAgainResultBtn.onclick = () => { retryAgainResultBtn.classList.add('selected'); retryAgain(); };
+  if (st.mode === 'list') {
+    retryBtn.textContent = '問題一覧に戻る';
+    retryBtn.className = 'btn-ghost';
+    retryBtn.onclick = () => { retryBtn.classList.add('selected'); showProblemList(); };
+  } else {
+    retryBtn.textContent = 'もう一度';
+    retryBtn.className = 'btn-primary';
+    retryBtn.onclick = startRandomQuiz;
+  }
 
   const revEl = document.getElementById('r-review'), revHdr = document.getElementById('r-review-hdr');
   revEl.innerHTML = '';
