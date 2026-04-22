@@ -796,7 +796,7 @@ async function loadProblems() {
     } catch(e) { console.warn('Firestore読込失敗', e); }
   }
   if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
-  const order = loadOrder();
+  const order = await loadOrder();
   if (order && order.length) {
     const map = Object.fromEntries(arr.map(p => [p.id, p]));
     const sorted = order.filter(id => map[id]).map(id => map[id]);
@@ -809,7 +809,18 @@ async function loadProblems() {
 function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
 
 const ORDER_KEY = 'nankiru_problem_order';
-function loadOrder() { return JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'); }
+async function loadOrder() {
+  if (currentUser && isAdmin) {
+    try {
+      const doc = await db.doc('users/' + currentUser.uid + '/meta/problemOrder').get();
+      if (doc.exists) {
+        const ids = doc.data().order || null;
+        if (ids) { localStorage.setItem(ORDER_KEY, JSON.stringify(ids)); return ids; }
+      }
+    } catch(e) { console.warn('Firestore順番読込失敗', e); }
+  }
+  return JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+}
 async function saveOrder(ids) {
   localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
   if (currentUser && isAdmin) {
@@ -1164,7 +1175,7 @@ async function renderList() {
         ids.splice(evt.oldIndex, 1);
         ids.splice(evt.newIndex, 0, movedId);
       }
-      saveOrder(ids);
+      await saveOrder(ids);
       if (!(currentUser && isAdmin)) {
         const map = Object.fromEntries(allProbs.map(q => [q.id, q]));
         saveProblems(ids.map(id => map[id]));
@@ -1182,7 +1193,7 @@ async function deleteProblem(id) {
   } else {
     saveProblems((await loadProblems()).filter(p => p.id !== id));
   }
-  saveOrder((loadOrder() || []).filter(oid => oid !== id));
+  await saveOrder(((await loadOrder()) || []).filter(oid => oid !== id));
   await renderList();
 }
 
@@ -1989,8 +2000,8 @@ async function saveProblem() {
     saveProblems(problems);
   }
   if (!editState.id) {
-    const order = loadOrder() || [];
-    if (!order.includes(problem.id)) { order.push(problem.id); saveOrder(order); }
+    const order = (await loadOrder()) || [];
+    if (!order.includes(problem.id)) { order.push(problem.id); await saveOrder(order); }
   }
   openList();
 }
@@ -2067,7 +2078,7 @@ function importJSON(event) {
       } else {
         saveProblems(imported);
       }
-      saveOrder(imported.map(p => p.id));
+      await saveOrder(imported.map(p => p.id));
       await renderList();
       alert('インポートが完了しました (' + imported.length + ' 件)');
     } catch (err) { alert('JSONの読み込みに失敗しました\n' + err.message); }
