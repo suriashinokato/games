@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>麻雀 何切るメーカー</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -424,6 +421,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 // ===== TILE LABELS =====
 const TILE_LABELS = {
@@ -617,6 +617,9 @@ const db   = firebase.firestore();
 
 let currentUser = null;
 const IS_LOCAL = location.protocol === 'file:';
+let _currentQ = null;
+let _currentDisplayHand = [];
+let _problemsCache = null;
 
 function signIn() {
   if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
@@ -626,6 +629,7 @@ function signIn() {
 function signOut() { auth.signOut(); }
 
 auth.onAuthStateChanged(async user => {
+  _problemsCache = null;
   currentUser = user;
   document.getElementById('auth-user').textContent    = user ? (user.displayName || user.email) : '未ログイン（ローカルモード）';
   document.getElementById('btn-signin').style.display  = (user || IS_LOCAL) ? 'none' : '';
@@ -640,7 +644,8 @@ const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riic
 const PROB_KEY = 'nankiru_problems';
 const ORDER_KEY = 'nankiru_problem_order';
 
-async function loadProblems() {
+async function loadProblems(forceReload = false) {
+  if (!forceReload && _problemsCache) return _problemsCache;
   let arr;
   if (currentUser) {
     try {
@@ -652,10 +657,12 @@ async function loadProblems() {
   const order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
   if (order && order.length) {
     const map = Object.fromEntries(arr.map(p => [p.id, p]));
+    const orderSet = new Set(order);
     const sorted = order.filter(id => map[id]).map(id => map[id]);
-    const rest = arr.filter(p => !order.includes(p.id));
+    const rest = arr.filter(p => !orderSet.has(p.id));
     arr = [...sorted, ...rest];
   }
+  _problemsCache = arr;
   return arr;
 }
 
@@ -823,6 +830,7 @@ async function showProblemList() {
   if (!problems.length) {
     el.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:32px 0">問題が登録されていません</p>';
   } else {
+    const frag = document.createDocumentFragment();
     problems.forEach((q, i) => {
       const item = document.createElement('div');
       item.className = 'prob-list-item';
@@ -940,8 +948,9 @@ async function showProblemList() {
       }
 
       item.appendChild(handWrap);
-      el.appendChild(item);
+      frag.appendChild(item);
     });
+    el.appendChild(frag);
   }
   showScreen('list');
 }
@@ -1019,6 +1028,8 @@ function renderQ() {
   const has14 = q.hand.length === 14;
   const keepTsumo = !isMeldQ && (has14 || hasMelds);
   const displayHand = sortedHand(q.hand, keepTsumo);
+  _currentQ = q;
+  _currentDisplayHand = displayHand;
   displayHand.forEach((code, i) => {
     // ツモ牌の前にスペーサーを挿入
     if (keepTsumo && i === displayHand.length - 1) {
@@ -1034,7 +1045,6 @@ function renderQ() {
       lbl.textContent = 'ツモ';
       slot.appendChild(lbl);
     }
-    if (!isMeldQ) slot.addEventListener('click', () => onTileClick(i, code, q));
     handEl.appendChild(slot);
   });
 
@@ -1555,6 +1565,16 @@ async function showResult() {
 }
 
 // ===== INIT =====
+// タイルクリックのイベント委譲（renderQ呼び出しごとにリスナーを付け直さない）
+document.getElementById('hand-tiles').addEventListener('click', e => {
+  if (!_currentQ || !!_currentQ.questionType) return;
+  const slot = e.target.closest('.tile-slot');
+  if (!slot) return;
+  const idx = parseInt(slot.dataset.index, 10);
+  if (isNaN(idx)) return;
+  onTileClick(idx, _currentDisplayHand[idx], _currentQ);
+});
+
 showScreen('home');
 // onAuthStateChanged が initHome() を呼ぶ。CDNブロック時のフォールバック:
 if (typeof firebase === 'undefined') initHome();
