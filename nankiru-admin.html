@@ -810,7 +810,14 @@ function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr))
 
 const ORDER_KEY = 'nankiru_problem_order';
 function loadOrder() { return JSON.parse(localStorage.getItem(ORDER_KEY) || 'null'); }
-function saveOrder(ids) { localStorage.setItem(ORDER_KEY, JSON.stringify(ids)); }
+async function saveOrder(ids) {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
+  if (currentUser && isAdmin) {
+    try {
+      await db.doc('users/' + currentUser.uid + '/meta/problemOrder').set({ order: ids });
+    } catch(e) { console.warn('Firestore順番保存失敗', e); }
+  }
+}
 
 // ===== SOURCES =====
 const SRC_KEY = 'nankiru_sources';

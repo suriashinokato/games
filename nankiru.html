@@ -661,7 +661,14 @@ async function loadProblems(forceReload = false) {
     } catch(e) { console.warn('Firestore読込失敗、localStorageにフォールバック', e); }
   }
   if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
-  const order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+  let order = null;
+  if (currentUser) {
+    try {
+      const doc = await db.doc('users/' + currentUser.uid + '/meta/problemOrder').get();
+      if (doc.exists) order = doc.data().order || null;
+    } catch(e) { console.warn('Firestore順番読込失敗', e); }
+  }
+  if (!order) order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
   if (order && order.length) {
     const map = Object.fromEntries(arr.map(p => [p.id, p]));
     const orderSet = new Set(order);
