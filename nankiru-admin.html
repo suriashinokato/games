@@ -606,6 +606,8 @@
                  placeholder="例: 七対子両天秤、難しい" style="max-width:320px">
           <button type="button" class="btn btn-ghost btn-sm" onclick="addTag()">追加</button>
         </div>
+        <div id="tag-suggestions" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+        <p id="tag-suggestions-label" style="display:none;font-size:0.72rem;color:var(--text-dim);margin-top:4px">↑ 既存タグをクリックで追加</p>
       </div>
     </div>
   </div>
@@ -789,6 +791,7 @@ auth.onAuthStateChanged(async user => {
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
 
+let _adminProblemsCache = [];
 async function loadProblems() {
   let arr;
   if (currentUser && isAdmin) {
@@ -805,6 +808,7 @@ async function loadProblems() {
     const rest = arr.filter(p => !order.includes(p.id));
     arr = [...sorted, ...rest];
   }
+  _adminProblemsCache = arr;
   return arr;
 }
 
@@ -2069,6 +2073,38 @@ function renderEditorTags() {
     chip.appendChild(btn);
     el.appendChild(chip);
   });
+  renderTagSuggestions();
+}
+
+function renderTagSuggestions() {
+  const el = document.getElementById('tag-suggestions');
+  const label = document.getElementById('tag-suggestions-label');
+  if (!el) return;
+  const allTags = [...new Set(
+    _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
+  )].filter(t => !editState.tags.includes(t));
+  el.innerHTML = '';
+  if (allTags.length) {
+    el.style.display = 'flex';
+    label.style.display = '';
+    allTags.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip';
+      chip.style.cssText += ';cursor:pointer;opacity:0.7';
+      chip.textContent = tag;
+      chip.title = 'クリックで追加';
+      chip.onclick = () => {
+        if (!editState.tags.includes(tag)) {
+          editState.tags.push(tag);
+          renderEditorTags();
+        }
+      };
+      el.appendChild(chip);
+    });
+  } else {
+    el.style.display = 'none';
+    label.style.display = 'none';
+  }
 }
 
 function setTagFilter(tag) {

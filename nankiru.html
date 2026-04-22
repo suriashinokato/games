@@ -74,6 +74,9 @@
     .prob-list-tsumo-gap { width: 6px; flex-shrink: 0; }
     .btn-challenge { padding: 6px 14px; background: var(--accent); color: #1a1a2e; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: opacity 0.2s; }
     .btn-challenge:hover { opacity: 0.82; }
+    .card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:rgba(201,168,76,0.15); color:var(--accent); border:1px solid rgba(201,168,76,0.4); transition:background 0.15s, color 0.15s; }
+    .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:#1a1a2e; }
+    .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
 
     .admin-link { display: block; text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 24px; text-decoration: none; transition: color 0.2s; }
     .admin-link:hover { color: var(--accent); }
@@ -349,6 +352,12 @@
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
     <button class="btn-home-quiz" onclick="goHome()">← ホーム</button>
     <h2 style="font-size:1.2rem;color:var(--accent);font-weight:700">問題一覧</h2>
+  </div>
+  <div id="list-all-tags" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+  <div id="list-tag-filter-bar" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:8px;">
+    <span style="font-size:0.75rem;color:var(--text-dim);flex-shrink:0">絞り込み中:</span>
+    <span id="list-tag-filter-chip" class="card-tag active-filter"></span>
+    <button style="font-size:0.75rem;color:var(--text-dim);cursor:pointer;background:none;border:1px solid var(--text-dim);border-radius:10px;padding:2px 8px;" onclick="setListTagFilter(null)">× クリア</button>
   </div>
   <div id="problem-list"></div>
 </div>
@@ -628,6 +637,8 @@ const IS_LOCAL = location.protocol === 'file:';
 let _currentQ = null;
 let _currentDisplayHand = [];
 let _problemsCache = null;
+let listActiveTagFilter = null;
+let _listTagDelegateInit = false;
 
 function signIn() {
   if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
@@ -844,13 +855,61 @@ async function showProblemList() {
   document.getElementById('btn-list').classList.add('primary');
   document.getElementById('btn-random').classList.remove('primary');
   const problems = await loadProblems();
+
+  // タグデリゲート（初回のみ登録）
+  if (!_listTagDelegateInit) {
+    _listTagDelegateInit = true;
+    document.getElementById('problem-list').addEventListener('click', e => {
+      const chip = e.target.closest('.card-tag');
+      if (!chip) return;
+      e.stopPropagation();
+      setListTagFilter(listActiveTagFilter === chip.dataset.tag ? null : chip.dataset.tag);
+    });
+    document.getElementById('list-all-tags').addEventListener('click', e => {
+      const chip = e.target.closest('.card-tag');
+      if (!chip) return;
+      setListTagFilter(listActiveTagFilter === chip.dataset.tag ? null : chip.dataset.tag);
+    });
+  }
+
+  // 全タグ一覧バー更新
+  const allTagsEl = document.getElementById('list-all-tags');
+  const allTags = [...new Set(problems.flatMap(p => Array.isArray(p.tags) ? p.tags : []))];
+  allTagsEl.innerHTML = '';
+  if (allTags.length) {
+    allTagsEl.style.display = 'flex';
+    allTags.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'card-tag' + (listActiveTagFilter === tag ? ' active-filter' : '');
+      chip.textContent = tag;
+      chip.dataset.tag = tag;
+      chip.title = 'このタグでフィルター';
+      allTagsEl.appendChild(chip);
+    });
+  } else {
+    allTagsEl.style.display = 'none';
+  }
+
+  // フィルターバー更新
+  const filterBar = document.getElementById('list-tag-filter-bar');
+  const filterChip = document.getElementById('list-tag-filter-chip');
+  filterBar.style.display = listActiveTagFilter ? 'flex' : 'none';
+  filterChip.textContent = listActiveTagFilter || '';
+
+  // フィルタ適用
+  const displayProblems = listActiveTagFilter
+    ? problems.filter(p => Array.isArray(p.tags) && p.tags.includes(listActiveTagFilter))
+    : problems;
+
   const el = document.getElementById('problem-list');
   el.innerHTML = '';
-  if (!problems.length) {
-    el.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:32px 0">問題が登録されていません</p>';
+  if (!displayProblems.length) {
+    el.innerHTML = listActiveTagFilter
+      ? '<p style="text-align:center;color:var(--text-dim);padding:32px 0">タグ「' + listActiveTagFilter + '」の問題が見つかりません</p>'
+      : '<p style="text-align:center;color:var(--text-dim);padding:32px 0">問題が登録されていません</p>';
   } else {
     const frag = document.createDocumentFragment();
-    problems.forEach((q, i) => {
+    displayProblems.forEach((q, i) => {
       const item = document.createElement('div');
       item.className = 'prob-list-item';
 
@@ -967,11 +1026,32 @@ async function showProblemList() {
       }
 
       item.appendChild(handWrap);
+
+      // タグチップ
+      if (q.tags && q.tags.length) {
+        const tagsDiv = document.createElement('div');
+        tagsDiv.className = 'prob-list-tags';
+        q.tags.forEach(tag => {
+          const chip = document.createElement('span');
+          chip.className = 'card-tag' + (listActiveTagFilter === tag ? ' active-filter' : '');
+          chip.textContent = tag;
+          chip.dataset.tag = tag;
+          chip.title = 'このタグでフィルター';
+          tagsDiv.appendChild(chip);
+        });
+        item.appendChild(tagsDiv);
+      }
+
       frag.appendChild(item);
     });
     el.appendChild(frag);
   }
   showScreen('list');
+}
+
+function setListTagFilter(tag) {
+  listActiveTagFilter = tag;
+  showProblemList();
 }
 
 // ===== QUIZ =====
