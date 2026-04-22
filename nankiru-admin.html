@@ -324,6 +324,7 @@
       font-size: 0.88rem;
     }
     #source-list-ul .empty-sources { color: var(--text-dim); font-size: 0.85rem; padding: 8px 0; }
+    .src-label { flex: 1; text-align: left; }
     .src-action-btns { display: flex; gap: 4px; flex-shrink: 0; }
     .src-edit-row { display: flex; gap: 6px; align-items: center; flex: 1; }
     .src-edit-row .src-edit-input { flex: 1; padding: 4px 8px; font-size: 0.85rem; }
@@ -757,6 +758,7 @@ auth.onAuthStateChanged(async user => {
 
   if (!user) {
     isAdmin = false;
+    if (sourcesUnsubscribe) { sourcesUnsubscribe(); sourcesUnsubscribe = null; }
     statusEl.textContent = '未ログイン';
     signinBtn.style.display = ''; signoutBtn.style.display = 'none';
     gateEl.style.display = 'none';
@@ -856,6 +858,20 @@ async function saveSources(arr) {
   }
 }
 
+function subscribeToSources() {
+  if (sourcesUnsubscribe) sourcesUnsubscribe();
+  if (!(currentUser && isAdmin)) return;
+  sourcesUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/sources')
+    .onSnapshot(snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      const list = snap.data()?.list || [];
+      localStorage.setItem(SRC_KEY, JSON.stringify(list));
+      renderSourceManagement();
+      const sel = document.getElementById('source-select');
+      if (sel) renderSourceSelect(sel.value);
+    });
+}
+
 async function renderSourceSelect(selectedValue) {
   const sel = document.getElementById('source-select');
   if (!sel) return;
@@ -883,6 +899,7 @@ async function renderSourceManagement() {
     const li = document.createElement('li');
     li.dataset.index = i;
     li.innerHTML = `
+      <span class="drag-handle" title="ドラッグして並び替え">⠿</span>
       <span class="src-label">${s}</span>
       <div class="src-edit-row" style="display:none">
         <input type="text" class="num-input src-edit-input" value="${s.replace(/"/g, '&quot;')}">
@@ -894,6 +911,17 @@ async function renderSourceManagement() {
         <button class="btn-del-source" title="削除" onclick="deleteSource(${i})">✕</button>
       </div>`;
     ul.appendChild(li);
+  });
+  if (sortableSourcesInstance) sortableSourcesInstance.destroy();
+  sortableSourcesInstance = Sortable.create(ul, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: async function(evt) {
+      const sources = JSON.parse(localStorage.getItem(SRC_KEY) || '[]');
+      const [moved] = sources.splice(evt.oldIndex, 1);
+      sources.splice(evt.newIndex, 0, moved);
+      await saveSources(sources);
+    }
   });
 }
 
@@ -1000,9 +1028,11 @@ function showScreen(id) {
 }
 
 // ===== LIST =====
-async function openList() { showScreen('list'); await renderList(); await renderSourceManagement(); }
+async function openList() { showScreen('list'); subscribeToSources(); await renderList(); await renderSourceManagement(); }
 
 let sortableInstance = null;
+let sortableSourcesInstance = null;
+let sourcesUnsubscribe = null;
 let activeTagFilter = null;
 let _paletteButtonsCache = null;
 let _listDelegateInit = false;
