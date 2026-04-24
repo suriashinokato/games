@@ -499,9 +499,15 @@ function applyTileMapping(code, mapping) {
   return code[0] + mapping[suit];
 }
 
+const SUIT_NAME_JA = { m: 'マンズ', p: 'ピンズ', s: 'ソーズ' };
+const JA_TO_SUIT   = { 'マンズ': 'm', 'ピンズ': 'p', 'ソーズ': 's' };
+
 function applyTextMapping(text, mapping) {
   if (!text) return text;
-  return text.replace(/([0-9])([mps])/g, (_, num, suit) => num + mapping[suit]);
+  return text.replace(/([0-9])([mps])|(マンズ|ピンズ|ソーズ)/g, (_, num, suit, name) => {
+    if (name) return SUIT_NAME_JA[mapping[JA_TO_SUIT[name]]];
+    return num + mapping[suit];
+  });
 }
 
 function transformQuestion(q, mapping) {
