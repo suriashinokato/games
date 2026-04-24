@@ -574,7 +574,7 @@ function transformQuestion(q, mapping, doMirror) {
     }) : q.melds,
     ukeireru: q.ukeireru ? (() => {
       const mapped = q.ukeireru.map(u => ({ ...u, tile: mt(applyTileMapping(u.tile, mapping)) }));
-      return doMirror ? [...mapped].sort((a, b) => b.count - a.count) : mapped;
+      return doMirror ? [...mapped].sort((a, b) => (b.count - a.count) || compareTiles(a.tile, b.tile)) : mapped;
     })() : q.ukeireru,
     commentary: mtt(applyTextMapping(q.commentary, mapping)),
     memo: mtt(applyTextMapping(q.memo, mapping)),
