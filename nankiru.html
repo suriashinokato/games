@@ -510,25 +510,70 @@ function applyTextMapping(text, mapping) {
   });
 }
 
-function transformQuestion(q, mapping) {
+// ===== 上下入れ替え（ミラー）変換 =====
+// 1⇔9, 2⇔8, 3⇔7, 4⇔6。5・赤5(0)・字牌は不変。
+const DIGIT_MIRROR = {'0':'0','1':'9','2':'8','3':'7','4':'6','5':'5','6':'4','7':'3','8':'2','9':'1'};
+
+function mirrorTile(code) {
+  if (!code) return code;
+  if (code[1] === 'z') return code;
+  return DIGIT_MIRROR[code[0]] + code[1];
+}
+
+function mirrorText(text) {
+  if (!text) return text;
+  // 「・」区切りグループは反転後に m→p→s、同スーツ内は昇順で並べ直す（単独牌は単純反転）
+  return text.replace(/[0-9][mps](・[0-9][mps])*/g, group => {
+    const tiles = group.split('・');
+    const mirrored = tiles.map(t => DIGIT_MIRROR[t[0]] + t[1]);
+    if (tiles.length > 1) mirrored.sort(compareTiles);
+    return mirrored.join('・');
+  });
+}
+
+// ドラ表示牌: ドラ本体をミラーし、その1つ前の牌（新たな表示牌）を返す
+function mirrorDoraIndicator(indicator) {
+  if (!indicator) return indicator;
+  if (indicator[1] === 'z') return indicator;
+  const dora = doraFromIndicator(indicator);
+  const mirroredDora = mirrorTile(dora);
+  const d = parseInt(mirroredDora[0]);
+  const newIndicatorDigit = (d === 1 ? 9 : d - 1);
+  return newIndicatorDigit + mirroredDora[1];
+}
+
+// ミラー後に副露の並び順と calledIndex を補正する
+function resortMeldAfterMirror(meld) {
+  const calledTile = meld.tiles[meld.calledIndex];
+  const sorted = [...meld.tiles].sort(compareTiles);
+  const newCalledIndex = sorted.indexOf(calledTile);
+  return { ...meld, tiles: sorted, calledIndex: newCalledIndex };
+}
+
+function transformQuestion(q, mapping, doMirror) {
+  const mt = doMirror ? mirrorTile : (c => c);
+  const mtt = doMirror ? mirrorText : (t => t);
   return {
     ...q,
-    hand: q.hand.map(c => applyTileMapping(c, mapping)),
-    correctAnswer: applyTileMapping(q.correctAnswer, mapping),
-    dora: q.dora ? q.dora.map(c => applyTileMapping(c, mapping)) : q.dora,
-    melds: q.melds ? q.melds.map(meld => ({
-      ...meld,
-      tiles: meld.tiles.map(c => applyTileMapping(c, mapping))
-    })) : q.melds,
-    ukeireru: q.ukeireru ? q.ukeireru.map(u => ({
-      ...u,
-      tile: applyTileMapping(u.tile, mapping)
-    })) : q.ukeireru,
-    commentary: applyTextMapping(q.commentary, mapping),
-    memo: applyTextMapping(q.memo, mapping),
-    incomingTile: applyTileMapping(q.incomingTile, mapping),
-    correctChiPair: q.correctChiPair ? q.correctChiPair.map(c => applyTileMapping(c, mapping)) : q.correctChiPair,
-    correctDiscard: applyTileMapping(q.correctDiscard, mapping),
+    hand: q.hand.map(c => mt(applyTileMapping(c, mapping))),
+    correctAnswer: mt(applyTileMapping(q.correctAnswer, mapping)),
+    dora: q.dora ? q.dora.map(c => {
+      const mapped = applyTileMapping(c, mapping);
+      return doMirror ? mirrorDoraIndicator(mapped) : mapped;
+    }) : q.dora,
+    melds: q.melds ? q.melds.map(meld => {
+      const transformed = { ...meld, tiles: meld.tiles.map(c => mt(applyTileMapping(c, mapping))) };
+      return doMirror ? resortMeldAfterMirror(transformed) : transformed;
+    }) : q.melds,
+    ukeireru: q.ukeireru ? (() => {
+      const mapped = q.ukeireru.map(u => ({ ...u, tile: mt(applyTileMapping(u.tile, mapping)) }));
+      return doMirror ? [...mapped].sort((a, b) => compareTiles(a.tile, b.tile)) : mapped;
+    })() : q.ukeireru,
+    commentary: mtt(applyTextMapping(q.commentary, mapping)),
+    memo: mtt(applyTextMapping(q.memo, mapping)),
+    incomingTile: mt(applyTileMapping(q.incomingTile, mapping)),
+    correctChiPair: q.correctChiPair ? q.correctChiPair.map(c => mt(applyTileMapping(c, mapping))) : q.correctChiPair,
+    correctDiscard: mt(applyTileMapping(q.correctDiscard, mapping)),
   };
 }
 
@@ -1081,7 +1126,8 @@ function startSingleQuiz(problem, orderedList) {
 
 function renderQ() {
   const rawQ = st.problems[st.idx];
-  const q = transformQuestion(rawQ, generateSuitMapping());
+  const doMirror = !!rawQ.mirror && Math.random() < 0.5;
+  const q = transformQuestion(rawQ, generateSuitMapping(), doMirror);
   st.answered = false;
   st.riichiSelected = null;
   st.meldStep = 0;

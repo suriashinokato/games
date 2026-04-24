@@ -581,6 +581,12 @@
       </select>
     </div>
     <div style="margin-top:14px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem">
+        <input type="checkbox" id="mirror-toggle">
+        上下入れ替えて出題する（1⇔9, 2⇔8, 3⇔7, 4⇔6 を数牌に対してランダム適用）
+      </label>
+    </div>
+    <div style="margin-top:14px">
       <label class="field-label" for="source-select">出典（任意）</label>
       <div class="source-select-row">
         <select class="num-input" id="source-select">
@@ -1248,6 +1254,7 @@ async function openEditor(problem) {
     seat: problem.seat || '',
     memo: problem.memo || '',
     riichiChoice: problem.riichiChoice || '',
+    mirror: !!problem.mirror,
     paletteTarget: 'hand',
     questionType: problem.questionType || '',
     incomingTile: problem.incomingTile || '',
@@ -1263,7 +1270,7 @@ async function openEditor(problem) {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
     melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
-    riichiChoice: '', paletteTarget: 'hand',
+    riichiChoice: '', mirror: false, paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
     availableActions: [], correctAction: '',
     correctChiPairIndices: [], correctDiscardIndex: null,
@@ -1280,6 +1287,7 @@ async function openEditor(problem) {
   document.getElementById('seat-select').value = editState.seat;
   document.getElementById('riichi-choice-select').value = editState.riichiChoice;
   document.getElementById('memo-input').value = editState.memo;
+  document.getElementById('mirror-toggle').checked = editState.mirror;
 
   // 副露ビルダーを閉じた状態に
   meldDraft = { tiles: [], calledIndex: null };
@@ -1995,6 +2003,7 @@ async function saveProblem() {
     hand:          [...editState.hand],
     correctAnswer: editState.questionType === 'meld' ? null : editState.correctAnswer,
     riichiChoice:  editState.questionType === 'meld' ? null : (document.getElementById('riichi-choice-select').value || null),
+    mirror:        document.getElementById('mirror-toggle').checked,
     questionType:  editState.questionType || null,
     incomingTile:  editState.questionType === 'meld' ? editState.incomingTile : null,
     incomingFrom:  editState.questionType === 'meld' ? (document.getElementById('incoming-from-input').value.trim() || null) : null,
