@@ -522,12 +522,19 @@ function mirrorTile(code) {
 
 function mirrorText(text) {
   if (!text) return text;
-  // 「・」区切りグループは反転後に m→p→s、同スーツ内は昇順で並べ直す（単独牌は単純反転）
-  return text.replace(/[0-9][mps](・[0-9][mps])*/g, group => {
-    const tiles = group.split('・');
+  // 「・」区切りグループ・連続記述グループは反転後に m→p→s、同スーツ内は昇順で並べ直す
+  return text.replace(/[0-9][mps](?:・[0-9][mps])+|(?:[0-9][mps]){2,}|[0-9][mps]/g, group => {
+    let tiles, sep;
+    if (group.includes('・')) {
+      sep = '・'; tiles = group.split('・');
+    } else if (group.length > 2) {
+      sep = ''; tiles = group.match(/[0-9][mps]/g);
+    } else {
+      return DIGIT_MIRROR[group[0]] + group[1];
+    }
     const mirrored = tiles.map(t => DIGIT_MIRROR[t[0]] + t[1]);
-    if (tiles.length > 1) mirrored.sort(compareTiles);
-    return mirrored.join('・');
+    mirrored.sort(compareTiles);
+    return mirrored.join(sep);
   });
 }
 
@@ -567,7 +574,7 @@ function transformQuestion(q, mapping, doMirror) {
     }) : q.melds,
     ukeireru: q.ukeireru ? (() => {
       const mapped = q.ukeireru.map(u => ({ ...u, tile: mt(applyTileMapping(u.tile, mapping)) }));
-      return doMirror ? [...mapped].sort((a, b) => compareTiles(a.tile, b.tile)) : mapped;
+      return doMirror ? [...mapped].sort((a, b) => b.count - a.count) : mapped;
     })() : q.ukeireru,
     commentary: mtt(applyTextMapping(q.commentary, mapping)),
     memo: mtt(applyTextMapping(q.memo, mapping)),
