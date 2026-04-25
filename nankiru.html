@@ -341,8 +341,8 @@
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
-    <button class="btn-mode" id="btn-list" onclick="showProblemList()">問題一覧</button>
-    <button class="btn-mode" id="btn-random" onclick="startRandomQuiz()">ランダム挑戦</button>
+    <button class="btn-mode" id="btn-list" onclick="showProblemList()" disabled>問題一覧</button>
+    <button class="btn-mode" id="btn-random" onclick="startRandomQuiz()" disabled>ランダム挑戦</button>
   </div>
   <a href="nankiru-admin.html" class="admin-link">⚙ 問題管理</a>
   <a href="manual.html" class="admin-link">📖 使い方ガイド</a>
@@ -697,6 +697,10 @@ const IS_LOCAL = location.protocol === 'file:';
 let _currentQ = null;
 let _currentDisplayHand = [];
 let _problemsCache = null;
+// 認証状態が一度でも確定したか。ローカルモードでは認証イベントが来ないので最初から true
+let _authReady = IS_LOCAL;
+// 進行中の loadProblems Promise（多重 fetch を防ぐ）
+let _problemsLoadPromise = null;
 let listActiveTagFilter = null;
 let _listTagDelegateInit = false;
 
@@ -709,12 +713,20 @@ function signOut() { auth.signOut(); }
 
 auth.onAuthStateChanged(async user => {
   _problemsCache = null;
+  // 進行中の loadProblems があれば破棄し、新しい認証状態での再ロードを強制する
+  _problemsLoadPromise = null;
   currentUser = user;
+  _authReady = true;
   document.getElementById('auth-user').textContent    = user ? (user.displayName || user.email) : '未ログイン（ローカルモード）';
   document.getElementById('btn-signin').style.display  = (user || IS_LOCAL) ? 'none' : '';
   document.getElementById('btn-signout').style.display = user ? '' : 'none';
   await initHome();
 });
+
+// ローカルファイルモードでは onAuthStateChanged が発火しないので明示的に初期化
+if (IS_LOCAL) {
+  initHome();
+}
 
 // ===== STATE =====
 const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null, meldStep: 0, meldActionSelected: null, chiSelectedTiles: [], mode: 'random' };
@@ -725,31 +737,53 @@ const ORDER_KEY = 'nankiru_problem_order';
 
 async function loadProblems(forceReload = false) {
   if (!forceReload && _problemsCache) return _problemsCache;
-  let arr;
-  if (currentUser) {
-    try {
-      const snap = await db.collection('users/' + currentUser.uid + '/problems').get();
-      arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch(e) { console.warn('Firestore読込失敗、localStorageにフォールバック', e); }
+  // 同時に複数回呼ばれた場合は最初の Promise を共有して二重 fetch を防ぐ
+  if (!forceReload && _problemsLoadPromise) return _problemsLoadPromise;
+  _problemsLoadPromise = (async () => {
+    // currentUser を関数開始時にスナップショット。await 中に認証状態が変わっても整合性を保つ
+    const userAtStart = currentUser;
+    let arr;
+    let firestoreFailed = false;
+    if (userAtStart) {
+      try {
+        const snap = await db.collection('users/' + userAtStart.uid + '/problems').get();
+        arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch(e) {
+        firestoreFailed = true;
+        console.warn('Firestore読込失敗、localStorageにフォールバック', e);
+      }
+    }
+    if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
+    let order = null;
+    // 問題本体と順番の取得元を必ず一致させる（Firestoreに失敗したら順番もlocalStorageから）
+    if (userAtStart && !firestoreFailed) {
+      try {
+        const doc = await db.doc('users/' + userAtStart.uid + '/meta/problemOrder').get();
+        if (doc.exists) order = doc.data().order || null;
+      } catch(e) { console.warn('Firestore順番読込失敗', e); }
+    }
+    if (!order) order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+    if (order && order.length) {
+      const map = Object.fromEntries(arr.map(p => [p.id, p]));
+      const orderSet = new Set(order);
+      const sorted = order.filter(id => map[id]).map(id => map[id]);
+      const rest = arr.filter(p => !orderSet.has(p.id));
+      arr = [...sorted, ...rest];
+    }
+    // ロード中に認証状態が変わった場合はキャッシュを汚染せず結果のみ返す
+    // 新しい認証状態での再ロードは onAuthStateChanged → initHome() に任せる
+    if (currentUser !== userAtStart) {
+      console.warn('loadProblems中に認証状態が変化したため結果を破棄');
+      return arr;
+    }
+    _problemsCache = arr;
+    return arr;
+  })();
+  try {
+    return await _problemsLoadPromise;
+  } finally {
+    _problemsLoadPromise = null;
   }
-  if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
-  let order = null;
-  if (currentUser) {
-    try {
-      const doc = await db.doc('users/' + currentUser.uid + '/meta/problemOrder').get();
-      if (doc.exists) order = doc.data().order || null;
-    } catch(e) { console.warn('Firestore順番読込失敗', e); }
-  }
-  if (!order) order = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
-  if (order && order.length) {
-    const map = Object.fromEntries(arr.map(p => [p.id, p]));
-    const orderSet = new Set(order);
-    const sorted = order.filter(id => map[id]).map(id => map[id]);
-    const rest = arr.filter(p => !orderSet.has(p.id));
-    arr = [...sorted, ...rest];
-  }
-  _problemsCache = arr;
-  return arr;
 }
 
 // ===== UTIL =====
@@ -912,6 +946,8 @@ async function confirmGoHome() {
 
 // ===== PROBLEM LIST =====
 async function showProblemList() {
+  // 認証初期化前は表示しない（部分的な問題リストが見える事故を防ぐ）
+  if (!_authReady) { console.warn('認証初期化前のため問題一覧表示をスキップ'); return; }
   document.getElementById('btn-list').classList.add('primary');
   document.getElementById('btn-random').classList.remove('primary');
   const problems = await loadProblems();
@@ -1111,6 +1147,7 @@ function setListTagFilter(tag) {
 
 // ===== QUIZ =====
 async function startRandomQuiz() {
+  if (!_authReady) { console.warn('認証初期化前のためランダム挑戦をスキップ'); return; }
   document.getElementById('btn-list').classList.remove('primary');
   document.getElementById('btn-random').classList.add('primary');
   const src = await loadProblems();
