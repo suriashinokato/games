@@ -821,8 +821,9 @@ auth.onAuthStateChanged(async user => {
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
 
-let _adminProblemsCache = [];
-async function loadProblems() {
+let _adminProblemsCache = null;
+async function loadProblems(forceReload = false) {
+  if (!forceReload && _adminProblemsCache) return _adminProblemsCache;
   let arr;
   if (currentUser && isAdmin) {
     try {
@@ -893,7 +894,7 @@ async function saveSources(arr) {
 }
 
 function subscribeToSources() {
-  if (sourcesUnsubscribe) sourcesUnsubscribe();
+  if (sourcesUnsubscribe) return;
   if (!(currentUser && isAdmin)) return;
   sourcesUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/sources')
     .onSnapshot(snap => {
@@ -1042,7 +1043,7 @@ async function saveTags(arr) {
 }
 
 function subscribeToTags() {
-  if (tagsUnsubscribe) tagsUnsubscribe();
+  if (tagsUnsubscribe) return;
   if (!(currentUser && isAdmin)) return;
   tagsUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/tags')
     .onSnapshot(snap => {
@@ -1240,6 +1241,8 @@ function makeMiniTile(code, extraClass) {
   div.className = 'tile-mini' + (extraClass ? ' ' + extraClass : '');
   const img = document.createElement('img');
   img.src = 'images_hai/' + code + '.png';
+  img.loading = 'lazy';
+  img.decoding = 'async';
   img.alt = tileLabel(code);
   img.onerror = function() { this.style.display = 'none'; div.insertAdjacentText('beforeend', tileLabel(code)); };
   div.appendChild(img);
@@ -1465,6 +1468,7 @@ async function renderList() {
         ids.splice(evt.newIndex, 0, movedId);
       }
       await saveOrder(ids);
+      _adminProblemsCache = null;
       if (!(currentUser && isAdmin)) {
         const map = Object.fromEntries(allProbs.map(q => [q.id, q]));
         saveProblems(ids.map(id => map[id]));
@@ -1478,9 +1482,11 @@ async function deleteProblem(id) {
   if (currentUser && isAdmin) {
     try {
       await db.collection('users/' + currentUser.uid + '/problems').doc(id).delete();
+      _adminProblemsCache = null;
     } catch(e) { alert('削除に失敗しました: ' + e.message); return; }
   } else {
     saveProblems((await loadProblems()).filter(p => p.id !== id));
+    _adminProblemsCache = null;
   }
   await saveOrder(((await loadOrder()) || []).filter(oid => oid !== id));
   await renderList();
@@ -2280,6 +2286,7 @@ async function saveProblem() {
   if (currentUser && isAdmin) {
     try {
       await db.collection('users/' + currentUser.uid + '/problems').doc(problem.id).set(problem);
+      _adminProblemsCache = null;
     } catch(e) { alert('Firestoreへの保存に失敗しました: ' + e.message); return; }
   } else {
     const problems = await loadProblems();
@@ -2290,6 +2297,7 @@ async function saveProblem() {
       problems.push(problem);
     }
     saveProblems(problems);
+    _adminProblemsCache = null;
   }
   if (!editState.id) {
     const order = (await loadOrder()) || [];
@@ -2414,6 +2422,7 @@ function importJSON(event) {
       } else {
         saveProblems(imported);
       }
+      _adminProblemsCache = null;
       await saveOrder(imported.map(p => p.id));
       await renderList();
       alert('インポートが完了しました (' + imported.length + ' 件)');
