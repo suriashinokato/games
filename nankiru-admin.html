@@ -2224,6 +2224,7 @@ function renderMqDiscardHand() {
 // ===== SAVE =====
 async function saveProblem() {
   if (!editState.hand.length) { alert('手牌を設定してください'); return; }
+  if (!editState.dora.length) { alert('ドラ表示牌を設定してください'); return; }
 
   if (editState.questionType === 'meld') {
     // チー/ポン/カン問題専用バリデーション
