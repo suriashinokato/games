@@ -401,6 +401,7 @@
   </div>
   <div class="list-actions" id="list-actions">
     <button class="btn btn-accent" onclick="openEditor(null)">＋ 新規問題を追加</button>
+    <button class="btn btn-ghost" onclick="openManage()">出典・タグ管理</button>
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
@@ -411,13 +412,32 @@
     <button class="tag-filter-clear" onclick="setTagFilter(null)">× クリア</button>
   </div>
   <div id="problem-list"></div>
+</div>
 
+<!-- ===== MANAGE (出典・タグ) ===== -->
+<div id="screen-manage" class="screen" style="display:none">
+  <div class="page-header">
+    <span class="page-title">出典・タグ管理</span>
+    <button class="btn btn-ghost btn-sm" onclick="openList()">← 問題一覧に戻る</button>
+  </div>
+
+  <!-- 出典リスト管理（screen-list から移設） -->
   <section id="source-management-section">
     <h2>出典リスト管理</h2>
     <ul id="source-list-ul"></ul>
     <div class="mgmt-add-row">
       <input type="text" class="num-input" id="mgmt-source-input" placeholder="新しい出典を入力...">
       <button type="button" id="mgmt-add-source-btn">追加</button>
+    </div>
+  </section>
+
+  <!-- タグ管理（新規） -->
+  <section id="tag-management-section" style="margin-top:32px">
+    <h2>タグ管理</h2>
+    <ul id="tag-list-ul"></ul>
+    <div class="mgmt-add-row">
+      <input type="text" class="num-input" id="mgmt-tag-input" placeholder="新しいタグを入力...">
+      <button type="button" id="mgmt-add-tag-btn">追加</button>
     </div>
   </section>
 </div>
@@ -767,6 +787,7 @@ auth.onAuthStateChanged(async user => {
   if (!user) {
     isAdmin = false;
     if (sourcesUnsubscribe) { sourcesUnsubscribe(); sourcesUnsubscribe = null; }
+    if (tagsUnsubscribe)    { tagsUnsubscribe();    tagsUnsubscribe    = null; }
     statusEl.textContent = '未ログイン';
     signinBtn.style.display = ''; signoutBtn.style.display = 'none';
     gateEl.style.display = 'none';
@@ -991,6 +1012,206 @@ async function deleteSource(index) {
   await renderSourceManagement();
 }
 
+// ===== TAGS (master list) =====
+const TAGS_KEY = 'nankiru_tags';
+
+async function loadTags() {
+  if (currentUser && isAdmin) {
+    try {
+      const doc = await db.doc('users/' + currentUser.uid + '/meta/tags').get();
+      if (doc.exists) {
+        const list = doc.data().list || [];
+        localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+        return list;
+      }
+    } catch(e) { console.warn('Firestoreタグ読込失敗', e); }
+  }
+  return JSON.parse(localStorage.getItem(TAGS_KEY) || '[]');
+}
+
+async function saveTags(arr) {
+  localStorage.setItem(TAGS_KEY, JSON.stringify(arr));
+  if (currentUser && isAdmin) {
+    try {
+      await db.doc('users/' + currentUser.uid + '/meta/tags').set({ list: arr });
+    } catch(e) { console.warn('Firestoreタグ保存失敗', e); }
+  }
+}
+
+function subscribeToTags() {
+  if (tagsUnsubscribe) tagsUnsubscribe();
+  if (!(currentUser && isAdmin)) return;
+  tagsUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/tags')
+    .onSnapshot(snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      const list = snap.data()?.list || [];
+      localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+      // 管理画面が開いていれば再描画
+      if (document.getElementById('tag-list-ul')) renderTagManagement();
+      // エディタが開いていれば候補を更新
+      if (document.getElementById('tag-suggestions')) renderTagSuggestions();
+    });
+}
+
+// _adminProblemsCache の各問題に変換 fn を適用し、tags が変わった問題のみ
+// Firestore (admin時) または localStorage に書き戻す。返り値: 影響件数。
+async function applyTagCascade(transformFn) {
+  const problems = await loadProblems();
+  const dirty = [];
+  problems.forEach(p => {
+    if (!Array.isArray(p.tags) || !p.tags.length) return;
+    const before = p.tags.slice();
+    const after  = transformFn(before);
+    if (after.length !== before.length || after.some((t, i) => t !== before[i])) {
+      p.tags = after;
+      dirty.push(p);
+    }
+  });
+  if (!dirty.length) return 0;
+
+  if (currentUser && isAdmin) {
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < dirty.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      dirty.slice(i, i + BATCH_SIZE).forEach(p => {
+        batch.set(
+          db.collection('users/' + currentUser.uid + '/problems').doc(p.id),
+          p
+        );
+      });
+      await batch.commit();
+    }
+  } else {
+    saveProblems(problems);
+  }
+  _adminProblemsCache = problems;
+  return dirty.length;
+}
+
+async function renderTagManagement() {
+  const ul = document.getElementById('tag-list-ul');
+  if (!ul) return;
+  const tags = await loadTags();
+  ul.innerHTML = '';
+  if (tags.length === 0) {
+    ul.innerHTML = '<li class="empty-sources">登録されたタグはありません</li>';
+    return;
+  }
+  tags.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.dataset.index = i;
+    li.innerHTML = `
+      <span class="drag-handle" title="ドラッグして並び替え">⠿</span>
+      <span class="src-label">${t}</span>
+      <div class="src-edit-row" style="display:none">
+        <input type="text" class="num-input src-edit-input" value="${t.replace(/"/g, '&quot;')}">
+        <button class="btn-save-source" title="保存" onclick="saveTagEdit(${i})">✓</button>
+        <button class="btn-cancel-source" title="キャンセル" onclick="cancelTagEdit(${i})">✕</button>
+      </div>
+      <div class="src-action-btns">
+        <button class="btn-edit-source" title="編集" onclick="startTagEdit(${i})">✎</button>
+        <button class="btn-del-source" title="削除" onclick="deleteMasterTag(${i})">✕</button>
+      </div>`;
+    ul.appendChild(li);
+  });
+  if (sortableTagsInstance) sortableTagsInstance.destroy();
+  sortableTagsInstance = Sortable.create(ul, {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: async function(evt) {
+      const tags = JSON.parse(localStorage.getItem(TAGS_KEY) || '[]');
+      const [moved] = tags.splice(evt.oldIndex, 1);
+      tags.splice(evt.newIndex, 0, moved);
+      await saveTags(tags);
+    }
+  });
+}
+
+function startTagEdit(index) {
+  const li = document.querySelector(`#tag-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  li.querySelector('.src-label').style.display = 'none';
+  li.querySelector('.src-action-btns').style.display = 'none';
+  li.querySelector('.src-edit-row').style.display = 'flex';
+  const inp = li.querySelector('.src-edit-input');
+  inp.focus();
+  inp.select();
+  inp.onkeydown = e => {
+    if (e.key === 'Enter')  saveTagEdit(index);
+    if (e.key === 'Escape') cancelTagEdit(index);
+  };
+}
+
+function cancelTagEdit(index) {
+  const li = document.querySelector(`#tag-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  li.querySelector('.src-label').style.display = '';
+  li.querySelector('.src-action-btns').style.display = '';
+  li.querySelector('.src-edit-row').style.display = 'none';
+}
+
+async function saveTagEdit(index) {
+  const li = document.querySelector(`#tag-list-ul li[data-index="${index}"]`);
+  if (!li) return;
+  const newVal = li.querySelector('.src-edit-input').value.trim();
+  if (!newVal) return;
+  const tags = await loadTags();
+  const oldVal = tags[index];
+  if (newVal === oldVal) { cancelTagEdit(index); return; }
+  if (tags.includes(newVal)) { alert('同名のタグが既に存在します'); return; }
+
+  // 影響範囲を事前カウントして確認
+  const affected = _adminProblemsCache.filter(
+    p => Array.isArray(p.tags) && p.tags.includes(oldVal)
+  ).length;
+  const msg = affected
+    ? `「${oldVal}」を「${newVal}」にリネームします。\n${affected}件の問題のタグも更新されます。よろしいですか？`
+    : `「${oldVal}」を「${newVal}」にリネームします。よろしいですか？`;
+  if (!confirm(msg)) return;
+
+  tags[index] = newVal;
+  await saveTags(tags);
+  await applyTagCascade(arr => arr.map(t => t === oldVal ? newVal : t));
+
+  // タグフィルタが旧名なら新名に追従
+  if (activeTagFilter === oldVal) activeTagFilter = newVal;
+
+  await renderTagManagement();
+  if (document.getElementById('screen-list').style.display !== 'none') await renderList();
+}
+
+async function addMasterTag(text) {
+  const t = text.trim();
+  if (!t) return;
+  const tags = await loadTags();
+  if (tags.includes(t)) return;
+  tags.push(t);
+  await saveTags(tags);
+  await renderTagManagement();
+}
+
+async function deleteMasterTag(index) {
+  const tags = await loadTags();
+  const target = tags[index];
+  const affected = _adminProblemsCache.filter(
+    p => Array.isArray(p.tags) && p.tags.includes(target)
+  ).length;
+
+  const msg = affected
+    ? `タグ「${target}」を削除します。\n${affected}件の問題からこのタグが取り除かれます。\nこの操作は元に戻せません。よろしいですか？`
+    : `タグ「${target}」を削除します。よろしいですか？`;
+  if (!confirm(msg)) return;
+
+  tags.splice(index, 1);
+  await saveTags(tags);
+  await applyTagCascade(arr => arr.filter(t => t !== target));
+
+  if (activeTagFilter === target) activeTagFilter = null;
+
+  await renderTagManagement();
+  if (document.getElementById('screen-list').style.display !== 'none') await renderList();
+}
+
 // ===== EDIT STATE =====
 let editState = {
   id: null, hand: [], correctAnswer: null,
@@ -1032,17 +1253,42 @@ function makeRemoveBtn(onclick) {
 
 // ===== SCREENS =====
 function showScreen(id) {
-  ['list','editor'].forEach(s =>
+  ['list','editor','manage'].forEach(s =>
     document.getElementById('screen-' + s).style.display = s === id ? '' : 'none'
   );
 }
 
 // ===== LIST =====
-async function openList() { showScreen('list'); subscribeToSources(); await renderList(); await renderSourceManagement(); }
+async function openList() {
+  showScreen('list');
+  subscribeToSources();   // editor の出典 select に必要
+  subscribeToTags();      // editor のタグ候補に必要
+  await renderList();
+}
+
+// ===== MANAGE (出典・タグ管理) =====
+async function openManage() {
+  showScreen('manage');
+  subscribeToSources();
+  subscribeToTags();
+  await loadProblems();   // _adminProblemsCache を温める
+  // 初回バックフィル: マスタが空で既存問題のタグが残っている場合は移行
+  const tags = await loadTags();
+  if (!tags.length) {
+    const derived = [...new Set(
+      _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
+    )];
+    if (derived.length) await saveTags(derived);
+  }
+  await renderSourceManagement();
+  await renderTagManagement();
+}
 
 let sortableInstance = null;
 let sortableSourcesInstance = null;
+let sortableTagsInstance = null;
 let sourcesUnsubscribe = null;
+let tagsUnsubscribe = null;
 let activeTagFilter = null;
 let _paletteButtonsCache = null;
 let _listDelegateInit = false;
@@ -2050,7 +2296,7 @@ async function saveProblem() {
 }
 
 // ===== TAGS =====
-function addTag() {
+async function addTag() {
   const input = document.getElementById('tag-input');
   const val = input.value.trim();
   if (!val) return;
@@ -2059,6 +2305,13 @@ function addTag() {
   input.value = '';
   input.focus();
   renderEditorTags();
+
+  // マスタに無ければ追加（fire-and-forget でも可だが await して候補に即反映）
+  const tags = await loadTags();
+  if (!tags.includes(val)) {
+    tags.push(val);
+    await saveTags(tags);
+  }
 }
 
 function removeTag(index) {
@@ -2085,13 +2338,18 @@ function renderEditorTags() {
   renderTagSuggestions();
 }
 
-function renderTagSuggestions() {
+async function renderTagSuggestions() {
   const el = document.getElementById('tag-suggestions');
   const label = document.getElementById('tag-suggestions-label');
   if (!el) return;
-  const allTags = [...new Set(
-    _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
-  )].filter(t => !editState.tags.includes(t));
+  // マスタリストを優先。未登録なら既存問題から派生（後方互換）。
+  let masterTags = await loadTags();
+  if (!masterTags.length) {
+    masterTags = [...new Set(
+      _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
+    )];
+  }
+  const allTags = masterTags.filter(t => !editState.tags.includes(t));
   el.innerHTML = '';
   if (allTags.length) {
     el.style.display = 'flex';
@@ -2221,6 +2479,15 @@ document.getElementById('mgmt-add-source-btn').addEventListener('click', () => {
 });
 document.getElementById('mgmt-source-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('mgmt-add-source-btn').click();
+});
+document.getElementById('mgmt-add-tag-btn').addEventListener('click', () => {
+  const inp = document.getElementById('mgmt-tag-input');
+  if (!inp.value.trim()) return;
+  addMasterTag(inp.value);
+  inp.value = '';
+});
+document.getElementById('mgmt-tag-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('mgmt-add-tag-btn').click();
 });
 
 // ===== INIT =====
