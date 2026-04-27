@@ -2347,14 +2347,21 @@ async function recalcAllUkeireru() {
   const problems = await loadProblems(true); // forceReload で最新状態を取得
   let success = 0, skipped = 0, failed = 0;
   const failedIds = [];
+  const skippedDetails = []; // {id, reason}
 
   for (const p of problems) {
     try {
-      if (p.questionType === 'meld') { skipped++; continue; }
+      if (p.questionType === 'meld') {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'meld_question' }); continue;
+      }
       const totalForCalc = (p.hand || []).length
         + (p.melds || []).reduce((sum, m) => sum + m.tiles.length, 0);
-      if (totalForCalc !== 14) { skipped++; continue; }
-      if (!p.correctAnswer) { skipped++; continue; }
+      if (totalForCalc !== 14) {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'tile_count=' + totalForCalc }); continue;
+      }
+      if (!p.correctAnswer) {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'no_correctAnswer' }); continue;
+      }
 
       Object.assign(p, NankiruShanten.calcAndAttach(p));
       await db.collection('users/' + currentUser.uid + '/problems').doc(p.id).set(p);
@@ -2367,9 +2374,14 @@ async function recalcAllUkeireru() {
   }
 
   _adminProblemsCache = null;
-  const msg = `完了: 成功 ${success} / スキップ ${skipped} / 失敗 ${failed}`
-    + (failedIds.length ? '\n失敗ID: ' + failedIds.join(', ') : '');
-  alert(msg);
+  if (skippedDetails.length) {
+    console.log('スキップされた問題の詳細:', skippedDetails);
+  }
+  const skipSummary = skippedDetails.length
+    ? '\nスキップ詳細 (DevToolsコンソールにも出力):\n  ' + skippedDetails.map(d => `${d.id}: ${d.reason}`).join('\n  ')
+    : '';
+  const failSummary = failedIds.length ? '\n失敗ID: ' + failedIds.join(', ') : '';
+  alert(`完了: 成功 ${success} / スキップ ${skipped} / 失敗 ${failed}${skipSummary}${failSummary}`);
   openList();
 }
 
