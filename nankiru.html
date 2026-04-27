@@ -266,6 +266,11 @@
       color: var(--correct); font-weight: 700; font-size: 0.92rem;
       margin: 0 4px;
     }
+    .ukeireru-kind {
+      display: inline-block; width: 22px; height: 30px;
+      background: #f5f0e8; border-radius: 3px; overflow: hidden; flex-shrink: 0;
+    }
+    .ukeireru-kind img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .commentary-tile {
       display: inline-block; vertical-align: middle;
       width: 22px; height: 30px; margin: 0 1px 2px;
@@ -685,21 +690,20 @@ function renderUkeireru(entries, container) {
       const row = document.createElement('div');
       row.className = 'ukeireru-row';
 
-      // 捨て牌ラベル「[牌] 切り」
-      const discardLbl = document.createElement('span');
-      discardLbl.className = 'ukeireru-discard';
-      discardLbl.appendChild(buildTileCountChip(opt.discard, '切'));
-      row.appendChild(discardLbl);
+      // 捨て牌チップ「[捨牌]×合計枚数」
+      row.appendChild(buildTileCountChip(opt.discard, opt.totalCount));
 
-      // 合計枚数「→ N枚」
-      const total = document.createElement('span');
-      total.className = 'ukeireru-total';
-      total.textContent = '→ ' + opt.totalCount + '枚';
-      row.appendChild(total);
-
-      // 内訳チップ
+      // 有効牌の種類のみを牌画像で並べる (枚数は表示しない)
       (opt.tiles || []).forEach(t => {
-        row.appendChild(buildTileCountChip(t.tile, t.count));
+        const tileEl = document.createElement('span');
+        tileEl.className = 'ukeireru-kind';
+        tileEl.title = tileLabel(t.tile);
+        const img = document.createElement('img');
+        img.src = 'images_hai/' + t.tile + '.png';
+        img.alt = tileLabel(t.tile);
+        img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(t.tile)); };
+        tileEl.appendChild(img);
+        row.appendChild(tileEl);
       });
 
       container.appendChild(row);
