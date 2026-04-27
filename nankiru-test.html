@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Nankiru Shanten Tests</title>
+<style>
+  body { font-family: ui-monospace, Menlo, Consolas, monospace; padding: 16px; line-height: 1.5; }
+  h1 { font-size: 18px; }
+  pre { background: #f5f5f5; padding: 12px; border-radius: 4px; white-space: pre-wrap; }
+  .pass { color: #0a7a2e; }
+  .fail { color: #c2261b; font-weight: bold; }
+  .summary { font-size: 16px; font-weight: bold; padding: 8px 0; }
+</style>
+</head>
+<body>
+<h1>nankiru-shanten.js テストランナー</h1>
+<div id="summary" class="summary">実行中...</div>
+<pre id="out"></pre>
+
+<script src="./nankiru-shanten.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const NS = window.NankiruShanten;
+  const out = document.getElementById('out');
+  const summary = document.getElementById('summary');
+
+  let pass = 0, fail = 0;
+
+  function log(line, klass) {
+    const span = document.createElement('span');
+    if (klass) span.className = klass;
+    span.textContent = line + '\n';
+    out.appendChild(span);
+  }
+
+  function jsonEq(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function assertEq(name, actual, expected) {
+    if (jsonEq(actual, expected)) {
+      pass++;
+      log('PASS  ' + name, 'pass');
+    } else {
+      fail++;
+      log('FAIL  ' + name, 'fail');
+      log('  期待: ' + JSON.stringify(expected), 'fail');
+      log('  実際: ' + JSON.stringify(actual), 'fail');
+    }
+  }
+
+  // ===== ヘルパー =====
+
+  // "123m 456p 11z" → ['1m','2m','3m','4p','5p','6p','1z','1z']
+  function parseHand(s) {
+    const result = [];
+    let nums = '';
+    for (const ch of s) {
+      if (ch >= '0' && ch <= '9') {
+        nums += ch;
+      } else if ('mpsz'.indexOf(ch) >= 0) {
+        for (const n of nums) result.push(n + ch);
+        nums = '';
+      }
+    }
+    return result;
+  }
+
+  // 受け入れ結果を tile でソート (順序非依存比較用)
+  function sortByTile(arr) {
+    return arr.slice().sort((a, b) => a.tile.localeCompare(b.tile));
+  }
+
+  // 期待値の簡易記法: {'3p':4, '6p':4} → [{tile:'3p',count:4},{tile:'6p',count:4}]
+  function expandUkeire(obj) {
+    const arr = [];
+    for (const k of Object.keys(obj)) arr.push({ tile: k, count: obj[k] });
+    return sortByTile(arr);
+  }
+
+  // ===== 単機能テスト: tileToIndex / sameTile / mirrorTile =====
+
+  log('--- 牌コード/反転 基本テスト ---');
+  assertEq('tileToIndex(1m)', NS.tileToIndex('1m'), 0);
+  assertEq('tileToIndex(9m)', NS.tileToIndex('9m'), 8);
+  assertEq('tileToIndex(1p)', NS.tileToIndex('1p'), 9);
+  assertEq('tileToIndex(7z)', NS.tileToIndex('7z'), 33);
+  assertEq('tileToIndex(0m=赤5)', NS.tileToIndex('0m'), 4);     // 5m と同じ
+  assertEq('sameTile(0m,5m)', NS.sameTile('0m', '5m'), true);
+  assertEq('sameTile(5m,5p)', NS.sameTile('5m', '5p'), false);
+
+  assertEq('mirrorTile(1m)', NS.mirrorTile('1m'), '9m');
+  assertEq('mirrorTile(5p)', NS.mirrorTile('5p'), '5p');
+  assertEq('mirrorTile(0m)', NS.mirrorTile('0m'), '0m');         // 赤5は不変
+  assertEq('mirrorTile(3z)', NS.mirrorTile('3z'), '3z');
+
+  assertEq('doraFromIndicator(1m)', NS.doraFromIndicator('1m'), '2m');
+  assertEq('doraFromIndicator(9m)', NS.doraFromIndicator('9m'), '1m');
+  assertEq('doraFromIndicator(4z)', NS.doraFromIndicator('4z'), '1z');  // 北→東
+  assertEq('doraFromIndicator(7z)', NS.doraFromIndicator('7z'), '5z');  // 中→白
+
+  // mirrorDoraIndicator: ドラ本体反転→1つ前
+  // 表示牌3m → ドラ4m → 反転6m → 1つ前5m
+  assertEq('mirrorDoraIndicator(3m)', NS.mirrorDoraIndicator('3m'), '5m');
+  assertEq('mirrorDoraIndicator(7z)', NS.mirrorDoraIndicator('7z'), '7z');  // 字牌は不変
+
+  // ===== シャンテン値テスト (副露なし) =====
+
+  log('\n--- シャンテン値テスト ---');
+
+  // 1. テンパイ標準形 (両面待ち)
+  // 123m 456m 789m 11p 23p → 1p2 4p4
+  assertEq('1) shanten 両面テンパイ', NS.countShanten(parseHand('123456789m 11p 23p'), []), 0);
+
+  // 2. 単騎テンパイ
+  // 123m 456m 789m 11p 12p → 3p で完成 (12p+3p順子、雀頭は 11p)
+  // 待って 1+1+1=3で雀頭、+順子=完成は4面子1雀頭でない
+  // 正しい解釈: 123m+456m+789m=3面子、11p=雀頭、12p=搭子 → 1シャンテン? いや、3p来たら完成: 123p? 1p2p3pでなく、1p+1p+2p+3p=雀頭+順子? なら順子完成で4面子1雀頭。テンパイ。
+  assertEq('2) shanten 1テンパイ(辺or嵌)', NS.countShanten(parseHand('123456789m 11p 12p'), []), 0);
+
+  // 3. 七対子テンパイ
+  // 1z1z 2z2z 3z3z 4z4z 5z5z 6z6z 7z (13枚)
+  assertEq('3) shanten 七対子テンパイ', NS.countShanten(parseHand('11z 22z 33z 44z 55z 66z 7z'), []), 0);
+
+  // 4. 国士13面待ち
+  // 1m9m 1p9p 1s9s 1z2z3z4z5z6z7z (13枚) → 13面待ち、shanten=0
+  assertEq('4) shanten 国士13面', NS.countShanten(parseHand('19m 19p 19s 1234567z'), []), 0);
+
+  // 5. 1シャンテン
+  // 123m 456m 789m 11p 24p → 3p で順子完成→テンパイ、現状はカンチャン搭子で1シャンテン?
+  // 23p なら両面、24p ならカンチャン搭子で同じく搭子
+  // 11p雀頭+24p搭子 → 3面子+雀頭+搭子 → 8-6-1-1=0 (テンパイ)
+  // やはりテンパイ。1シャンテンの例:
+  // 123m 456m 789m 1p 2p 3p 4p (13枚) → 4面子作れず、雀頭ない
+  // 4面子0、搭子はpの中から
+  // hmm 数えづらい。確実な例:
+  // 123m 456m 78p 11p 22p 1s (13枚) → 2面子+対子(雀頭)+対子(候補)+搭子+孤立
+  // 8-2*(2)-2-1 = 1 ← 1シャンテン (要検証)
+  // 簡単な例: 1mのテンパイから1枚崩したもの
+  // 12345789m 11p 23p (12枚?) ダメ、枚数を正確に
+  // 1シャンテンの例を作るのは面倒、別の確実な例にする:
+  // 11m 22m 33m 44m 55m 66m 7m (13枚) → 7対子1シャンテン? 6対子+1孤立 → shanten = 6-6 = 0 でない
+  // 6対子: 11/22/33/44/55/66 + 7m単騎 → 6+1=7種、6対子。7z欠けてる→ 6-6=0 (テンパイ単騎待ちだが種類は7なのでOK)
+  // 結局これもテンパイ。
+  // 確実な1シャンテン: 123m 456m 78m 11p 23p 1s (13枚) → 順子2+雀頭+搭子+搭子+孤立、shanten=8-4-2-1=1
+  assertEq('5) shanten 1シャンテン例', NS.countShanten(parseHand('123m 456m 78m 11p 23p 1s'), []), 1);
+
+  // 6. 2シャンテン: 順子2+雀頭+搭子1+孤立3 → 8-4-1-1 = 2
+  assertEq('6) shanten 2シャンテン例', NS.countShanten(parseHand('123m 456m 11p 12s 123z'), []), 2);
+
+  // ===== 受け入れ枚数テスト (13枚 + 副露なし + ドラなし) =====
+
+  log('\n--- 受け入れ枚数テスト ---');
+
+  // 1) 両面テンパイ: 受け入れ 1p:2 (11p雀頭で1pもう2枚場に残る? 自手で1pは2枚使用、残り4-2=2)
+  //                                4p:4 (4pは自手0、残り4)
+  // 待って! 23p の両面 → 1p または 4p 待ち
+  // 自手 11p (1p2枚使用) → 1p の残り = 4-2 = 2
+  // 自手 23p (4p0枚) → 4p の残り = 4-0 = 4
+  assertEq('1) ukeire 両面 1p4p',
+    sortByTile(NS.countAcceptance(parseHand('123456789m 11p 23p'), [], [], [])),
+    expandUkeire({'1p': 2, '4p': 4})
+  );
+
+  // 2) 雀頭なしテンパイ: 1p3枚+2p1枚は「2p雀頭化」と「1p1p雀頭+123p順子」の二重待ち
+  //    2p で完成 (1p1p1p刻子 + 2p2p雀頭): 残り 4-1 = 3
+  //    3p で完成 (1p1p雀頭 + 1p2p3p順子):  残り 4-0 = 4
+  assertEq('2) ukeire 雀頭+刻子の二重待ち',
+    sortByTile(NS.countAcceptance(parseHand('123456789m 11p 12p'), [], [], [])),
+    expandUkeire({'2p': 3, '3p': 4})
+  );
+
+  // 3) 七対子テンパイ: 7z単騎 (自手1枚→残り3)
+  assertEq('3) ukeire 七対子テンパイ',
+    sortByTile(NS.countAcceptance(parseHand('11z 22z 33z 44z 55z 66z 7z'), [], [], [])),
+    expandUkeire({'7z': 3})
+  );
+
+  // 4) 国士13面待ち: 全么九13種 (自手1枚→残り3)
+  assertEq('4) ukeire 国士13面',
+    sortByTile(NS.countAcceptance(parseHand('19m 19p 19s 1234567z'), [], [], [])),
+    expandUkeire({
+      '1m': 3, '9m': 3, '1p': 3, '9p': 3, '1s': 3, '9s': 3,
+      '1z': 3, '2z': 3, '3z': 3, '4z': 3, '5z': 3, '6z': 3, '7z': 3
+    })
+  );
+
+  // 5) ドラ表示牌の影響: 上記 ukeire 1) のドラ表示牌が 4p (=ドラ5p)
+  // 自手1p2枚 + 表示牌4p1枚 → 1pの残り = 4-2-0 = 2、4pの残り = 4-0-1 = 3
+  assertEq('5) ukeire ドラ表示牌で残り枚数変動',
+    sortByTile(NS.countAcceptance(parseHand('123456789m 11p 23p'), [], ['4p'], [])),
+    expandUkeire({'1p': 2, '4p': 3})
+  );
+
+  // ===== 副露ありテスト =====
+
+  log('\n--- 副露テスト ---');
+
+  // 6) ポン1個: 1m1m1m を副露、残り 234p 567p 999s 22z (10枚) → テンパイ?
+  // 副露1面子 + 234p順子 + 567p順子 + 999s刻子 + 22z雀頭 → 4面子1雀頭 = 完成
+  // shanten = -1
+  // テストは13枚の手牌が必要 → ポン1個(3枚) + 手牌10枚で14枚相当
+  // でも countShanten に渡すのは「手牌のみ」
+  // 手牌10枚 = 234p 567p 999s 22z で副露1面子
+  // shanten = 8 - 2*(1+3) - 0 - 1 = -1 (上がってる)
+  assertEq('6) shanten ポン+完成形',
+    NS.countShanten(parseHand('234p 567p 999s 22z'), [{ type: 'pon', tiles: ['1m', '1m', '1m'] }]),
+    -1
+  );
+
+  // 7) 暗槓1個 + 残り10枚で1シャンテン
+  // 暗槓 1m1m1m1m + 残り 234p 567p 78s 22z (10枚)
+  // 副露1 + 順子2 + 雀頭 + 搭子 = 8 - 2*3 - 1 - 1 = 0 (テンパイ、6s/9s待ち)
+  assertEq('7) shanten 暗槓+テンパイ',
+    NS.countShanten(parseHand('234p 567p 78s 22z'), [{ type: 'ankan', tiles: ['1m', '1m', '1m', '1m'] }]),
+    0
+  );
+
+  // 8) 暗槓のテンパイで受け入れ計算
+  // 暗槓1m1m1m1m + 234p 567p 78s 22z → 6s,9s待ち
+  // 1m は暗槓4枚使用なので残り0、6s/9sは残り4枚ずつ
+  assertEq('8) ukeire 暗槓+両面',
+    sortByTile(NS.countAcceptance(
+      parseHand('234p 567p 78s 22z'),
+      [{ type: 'ankan', tiles: ['1m', '1m', '1m', '1m'] }],
+      [], []
+    )),
+    expandUkeire({'6s': 4, '9s': 4})
+  );
+
+  // ===== 反転対称性テスト =====
+
+  log('\n--- 反転対称性テスト ---');
+
+  function mirrorUkeireArray(arr) {
+    return sortByTile(arr.map(e => ({ tile: NS.mirrorTile(e.tile), count: e.count })));
+  }
+
+  // 9) ドラ表示牌なし → 機械的反転と独立計算が一致
+  const hand9 = parseHand('123456789m 11p 23p');
+  const u9_normal = NS.countAcceptance(hand9, [], [], []);
+  const hand9_mirror = hand9.map(NS.mirrorTile);
+  const u9_mirror = NS.countAcceptance(hand9_mirror, [], [], []);
+  assertEq('9) 反転対称性 ドラなし', sortByTile(u9_mirror), mirrorUkeireArray(u9_normal));
+
+  // 10) ドラ表示牌が字牌 (7z) → 字牌は不変なので一致
+  const dora10 = ['7z'];
+  const dora10_mirror = dora10.map(NS.mirrorDoraIndicator);
+  const u10_normal = NS.countAcceptance(hand9, [], dora10, []);
+  const u10_mirror = NS.countAcceptance(hand9_mirror, [], dora10_mirror, []);
+  assertEq('10) 反転対称性 ドラ字牌', sortByTile(u10_mirror), mirrorUkeireArray(u10_normal));
+
+  // 11) ドラ表示牌が数牌 → 機械的反転と独立計算で不一致になる例
+  // 手牌: 11m + 234m + 456p + 789p + 22s (13枚)、ドラ表示牌 1m (=ドラ2m)
+  // テンパイ構成: 11m雀頭 + 234m順子 + 456p順子 + 789p順子 + 22s対子(搭子扱い)
+  //   元の受け入れ: 1m (残り 4-2-1=1) , 2s (残り 4-2=2)
+  // 反転後: 99m + 678m + 456p + 123p + 88s, 反転表示牌 7m (=反転ドラ8m)
+  //   反転後の受け入れ独立計算: 9m (残り 4-2-0=2) , 8s (残り 4-2=2)
+  // 機械的反転すると 9m:1 になるが、独立計算は 9m:2 で不一致
+  const hand11_orig   = parseHand('11m 234m 456p 789p 22s');  // 13枚
+  const dora11        = ['1m']; // ドラ本体は2m
+  const u11_normal = NS.countAcceptance(hand11_orig, [], dora11, []);
+  const hand11_mirror = hand11_orig.map(NS.mirrorTile);
+  const dora11_mirror = dora11.map(NS.mirrorDoraIndicator);
+  const u11_mirror = NS.countAcceptance(hand11_mirror, [], dora11_mirror, []);
+  // 不一致になる「期待される性質」: mirrorUkeireArray(u11_normal) !== sortByTile(u11_mirror) の可能性
+  // ただし不一致しないケースもありうるので、不一致テストではなく「両方計算して矛盾ない」検算のみに留める
+  log('11) 参考: 数牌ドラ表示牌での反転計算結果');
+  log('    元の受け入れ:       ' + JSON.stringify(sortByTile(u11_normal)));
+  log('    機械的反転:         ' + JSON.stringify(mirrorUkeireArray(u11_normal)));
+  log('    反転盤面の独立計算: ' + JSON.stringify(sortByTile(u11_mirror)));
+  log('    (機械的反転 ≠ 独立計算 になりうるが、両方合理的な値であることを目視確認)');
+
+  // ===== calcAndAttach 統合テスト =====
+
+  log('\n--- calcAndAttach 統合テスト ---');
+
+  // 12) 14枚の問題を渡して、自動計算結果が入る
+  const problem = {
+    hand: parseHand('123456789m 11p 23p 4p'),  // 14枚
+    correctAnswer: '4p',                         // 4p を捨ててテンパイ
+    melds: [],
+    dora: ['7z'],                                // 字牌ドラ → 反転で不変
+    kanDora: [],
+  };
+  const result = NS.calcAndAttach(problem);
+  log('  ukeireruAuto: ' + JSON.stringify(sortByTile(result.ukeireruAuto)));
+  log('  ukeireruMirror: ' + JSON.stringify(sortByTile(result.ukeireruMirror)));
+  log('  shantenAuto: ' + result.shantenAuto + ' / shantenAutoMirror: ' + result.shantenAutoMirror);
+  assertEq('12a) shantenAuto テンパイ', result.shantenAuto, 0);
+  assertEq('12b) shantenAutoMirror テンパイ', result.shantenAutoMirror, 0);
+  // 字牌ドラなので機械的反転と一致するはず
+  assertEq('12c) 字牌ドラなら反転対称',
+    sortByTile(result.ukeireruMirror),
+    mirrorUkeireArray(result.ukeireruAuto)
+  );
+  assertEq('12d) ukeireruMeta.calcSkipped', result.ukeireruMeta.calcSkipped, false);
+
+  // ===== サマリー =====
+
+  summary.textContent = `合計: ${pass + fail} / 成功: ${pass} / 失敗: ${fail}`;
+  summary.className = 'summary ' + (fail === 0 ? 'pass' : 'fail');
+})();
+</script>
+</body>
+</html>

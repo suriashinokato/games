@@ -573,10 +573,23 @@ function transformQuestion(q, mapping, doMirror) {
       const transformed = { ...meld, tiles: meld.tiles.map(c => mt(applyTileMapping(c, mapping))) };
       return doMirror ? resortMeldAfterMirror(transformed) : transformed;
     }) : q.melds,
-    ukeireru: q.ukeireru ? (() => {
+    ukeireru: (() => {
+      // 自動計算結果が保存されていればそれを優先 (mirror モードでは事前計算された ukeireruMirror を使う)。
+      // 自動計算結果は既に反転後の盤面で算出されているため、再反転は行わず m/p/s マッピングのみ適用する。
+      const autoSource = doMirror ? q.ukeireruMirror : q.ukeireruAuto;
+      if (autoSource) {
+        const mapped = autoSource.map(u => ({ ...u, tile: applyTileMapping(u.tile, mapping) }));
+        return doMirror
+          ? [...mapped].sort((a, b) => (b.count - a.count) || compareTiles(a.tile, b.tile))
+          : mapped;
+      }
+      // フォールバック: 自動計算結果がない旧データは従来どおり手入力 ukeireru を反転＋マッピング
+      if (!q.ukeireru) return q.ukeireru;
       const mapped = q.ukeireru.map(u => ({ ...u, tile: mt(applyTileMapping(u.tile, mapping)) }));
-      return doMirror ? [...mapped].sort((a, b) => (b.count - a.count) || compareTiles(a.tile, b.tile)) : mapped;
-    })() : q.ukeireru,
+      return doMirror
+        ? [...mapped].sort((a, b) => (b.count - a.count) || compareTiles(a.tile, b.tile))
+        : mapped;
+    })(),
     commentary: mtt(applyTextMapping(q.commentary, mapping)),
     memo: mtt(applyTextMapping(q.memo, mapping)),
     incomingTile: mt(applyTileMapping(q.incomingTile, mapping)),

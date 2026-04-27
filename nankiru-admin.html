@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script src="./nankiru-shanten.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -408,6 +409,7 @@
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
+    <button class="btn btn-ghost" onclick="recalcAllUkeireru()">🧮 受け入れ枚数を一括再計算</button>
   </div>
   <div class="tag-filter-bar" id="tag-filter-bar" style="display:none">
     <span class="tag-filter-bar-label">タグ絞り込み:</span>
@@ -2284,6 +2286,28 @@ async function saveProblem() {
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
+  // ===== 受け入れ枚数の自動計算 =====
+  // 鳴き判定問題はスキップ。それ以外は手牌+副露が14枚のときだけ計算する。
+  // 失敗時もアラートだけ出して保存自体は止めない (手入力 ukeireru があれば運用継続できるため)
+  if (problem.questionType === 'meld') {
+    problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_question', calcVersion: '1.0', calculatedAt: null };
+  } else {
+    const totalForCalc = problem.hand.length
+      + problem.melds.reduce((sum, m) => sum + m.tiles.length, 0);
+    if (totalForCalc !== 14) {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'tile_count_not_14', calcVersion: '1.0', calculatedAt: null };
+    } else if (typeof NankiruShanten === 'undefined') {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'shanten_lib_not_loaded', calcVersion: '1.0', calculatedAt: null };
+    } else {
+      try {
+        Object.assign(problem, NankiruShanten.calcAndAttach(problem));
+      } catch (e) {
+        console.error('受け入れ自動計算に失敗', e);
+        problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'calc_error: ' + e.message, calcVersion: '1.0', calculatedAt: null };
+      }
+    }
+  }
+
   if (currentUser && isAdmin) {
     try {
       await db.collection('users/' + currentUser.uid + '/problems').doc(problem.id).set(problem);
@@ -2304,6 +2328,48 @@ async function saveProblem() {
     const order = (await loadOrder()) || [];
     if (!order.includes(problem.id)) { order.push(problem.id); await saveOrder(order); }
   }
+  openList();
+}
+
+// ===== 全問題の受け入れ枚数を一括再計算 =====
+// 既存問題に ukeireruAuto / ukeireruMirror / shantenAuto / shantenAutoMirror をバックフィルする
+async function recalcAllUkeireru() {
+  if (typeof NankiruShanten === 'undefined') {
+    alert('nankiru-shanten.js が読み込まれていません。ページを再読み込みしてください。');
+    return;
+  }
+  if (!currentUser || !isAdmin) {
+    alert('管理者ログインが必要です。');
+    return;
+  }
+  if (!confirm('全問題の受け入れ枚数を自動計算で再保存します。よろしいですか？\n（鳴き判定問題と手牌が14枚に満たない問題はスキップされます）')) return;
+
+  const problems = await loadProblems(true); // forceReload で最新状態を取得
+  let success = 0, skipped = 0, failed = 0;
+  const failedIds = [];
+
+  for (const p of problems) {
+    try {
+      if (p.questionType === 'meld') { skipped++; continue; }
+      const totalForCalc = (p.hand || []).length
+        + (p.melds || []).reduce((sum, m) => sum + m.tiles.length, 0);
+      if (totalForCalc !== 14) { skipped++; continue; }
+      if (!p.correctAnswer) { skipped++; continue; }
+
+      Object.assign(p, NankiruShanten.calcAndAttach(p));
+      await db.collection('users/' + currentUser.uid + '/problems').doc(p.id).set(p);
+      success++;
+    } catch (e) {
+      console.error('再計算失敗', p.id, e);
+      failedIds.push(p.id);
+      failed++;
+    }
+  }
+
+  _adminProblemsCache = null;
+  const msg = `完了: 成功 ${success} / スキップ ${skipped} / 失敗 ${failed}`
+    + (failedIds.length ? '\n失敗ID: ' + failedIds.join(', ') : '');
+  alert(msg);
   openList();
 }
 
