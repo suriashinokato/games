@@ -2288,12 +2288,17 @@ async function saveProblem() {
 
   // ===== 受け入れ枚数の自動計算 =====
   // 鳴き判定問題はスキップ。それ以外は手牌+副露が14枚のときだけ計算する。
+  // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする。
   // 失敗時もアラートだけ出して保存自体は止めない (手入力 ukeireru があれば運用継続できるため)
+  const meldEffectiveCount = m => {
+    const isKan = m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan';
+    return isKan ? 3 : m.tiles.length;
+  };
   if (problem.questionType === 'meld') {
     problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_question', calcVersion: '1.0', calculatedAt: null };
   } else {
     const totalForCalc = problem.hand.length
-      + problem.melds.reduce((sum, m) => sum + m.tiles.length, 0);
+      + problem.melds.reduce((sum, m) => sum + meldEffectiveCount(m), 0);
     if (totalForCalc !== 14) {
       problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'tile_count_not_14', calcVersion: '1.0', calculatedAt: null };
     } else if (typeof NankiruShanten === 'undefined') {
@@ -2349,13 +2354,18 @@ async function recalcAllUkeireru() {
   const failedIds = [];
   const skippedDetails = []; // {id, reason}
 
+  // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする
+  const meldEffectiveCount = m => {
+    const isKan = m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan';
+    return isKan ? 3 : m.tiles.length;
+  };
   for (const p of problems) {
     try {
       if (p.questionType === 'meld') {
         skipped++; skippedDetails.push({ id: p.id, reason: 'meld_question' }); continue;
       }
       const totalForCalc = (p.hand || []).length
-        + (p.melds || []).reduce((sum, m) => sum + m.tiles.length, 0);
+        + (p.melds || []).reduce((sum, m) => sum + meldEffectiveCount(m), 0);
       if (totalForCalc !== 14) {
         skipped++; skippedDetails.push({ id: p.id, reason: 'tile_count=' + totalForCalc }); continue;
       }
