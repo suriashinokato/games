@@ -690,26 +690,18 @@ function renderUkeireru(entries, container) {
       const row = document.createElement('div');
       row.className = 'ukeireru-row';
 
-      // 捨て牌チップ「[捨牌]×合計枚数」
+      // 捨て牌チップ「[捨牌]×合計枚数」 + 受け入れ牌の種類のみを並べる
       row.appendChild(buildTileCountChip(opt.discard, opt.totalCount));
-
-      // テンパイ(shantenAfter===0)なら待ち牌は「種類×枚数」で表示
-      // それ以外(1シャンテン以上)は受け入れ牌の種類のみを表示する
-      const isTenpai = opt.shantenAfter === 0;
       (opt.tiles || []).forEach(t => {
-        if (isTenpai) {
-          row.appendChild(buildTileCountChip(t.tile, t.count));
-        } else {
-          const tileEl = document.createElement('span');
-          tileEl.className = 'ukeireru-kind';
-          tileEl.title = tileLabel(t.tile);
-          const img = document.createElement('img');
-          img.src = 'images_hai/' + t.tile + '.png';
-          img.alt = tileLabel(t.tile);
-          img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(t.tile)); };
-          tileEl.appendChild(img);
-          row.appendChild(tileEl);
-        }
+        const tileEl = document.createElement('span');
+        tileEl.className = 'ukeireru-kind';
+        tileEl.title = tileLabel(t.tile);
+        const img = document.createElement('img');
+        img.src = 'images_hai/' + t.tile + '.png';
+        img.alt = tileLabel(t.tile);
+        img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(t.tile)); };
+        tileEl.appendChild(img);
+        row.appendChild(tileEl);
       });
 
       container.appendChild(row);
