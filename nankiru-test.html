@@ -279,12 +279,13 @@
 
   // 12) 14枚の問題: 各捨て牌候補ごとに合計受け入れ枚数が計算される
   // 手牌: 123456789m 11p 23p 4p (14枚)
-  // テンパイにできる捨て牌:
-  //   2p切り: 順子3+雀頭(11p)+34p搭子 → 2p,5p待ち  totalCount = 3 + 4 = 7
-  //   4p切り: 順子3+雀頭(11p)+23p搭子 → 1p,4p待ち  totalCount = 2 + 3 = 5
-  //   3p切り: 順子3+雀頭(11p)+24p嵌張 → 3p待ち     totalCount = 3
-  //   1p切り: 順子4(123m,456m,789m,234p)+1p単騎 → 1p待ち totalCount = 2
-  // (ドラ7zは字牌で残り枚数に影響しない)
+  // m色8枚 + p色6枚。p色雀頭(11p)+234p順子 を確保した上で、m色をどう分けるかで
+  // 全 13 種の捨て牌すべて shanten=0 のテンパイ形になる。
+  //   1m切り: m色 23456789 → 234+567+89搭子 等で 1m/4m/7m待ち → 9枚
+  //   9m切り: m色 12345678 → 123+456+78搭子 等で 3m/6m/9m待ち → 9枚
+  //   2p切り: 順子3(m)+雀頭(11p)+34p搭子 → 2p/5p待ち → 7枚
+  //   4m切り: m色は 234+5m6m+78m+9m 等の構成、待ち牌は m色2種 → 6枚
+  //   など (実装出力に基づいて期待値を確定)
   const problem = {
     hand: parseHand('123456789m 11p 23p 4p'),
     correctAnswer: '4p',
@@ -299,24 +300,27 @@
 
   assertEq('12a) shantenAuto テンパイ', result.shantenAuto, 0);
   assertEq('12b) shantenAutoMirror テンパイ', result.shantenAutoMirror, 0);
-  assertEq('12c) ukeireruAuto 候補数', result.ukeireruAuto.length, 4);
-  assertEq('12d) 1位の捨て牌は 2p (合計7枚)',
+  assertEq('12c) ukeireruAuto 候補数', result.ukeireruAuto.length, 13);
+  // 同点(9枚)では tileToIndex 昇順なので 1m が先、9m が次
+  assertEq('12d) 1位の捨て牌は 1m (合計9枚)',
     { discard: result.ukeireruAuto[0].discard, total: result.ukeireruAuto[0].totalCount },
+    { discard: '1m', total: 9 }
+  );
+  assertEq('12e) 2位の捨て牌は 9m (合計9枚)',
+    { discard: result.ukeireruAuto[1].discard, total: result.ukeireruAuto[1].totalCount },
+    { discard: '9m', total: 9 }
+  );
+  assertEq('12f) 3位の捨て牌は 2p (合計7枚)',
+    { discard: result.ukeireruAuto[2].discard, total: result.ukeireruAuto[2].totalCount },
     { discard: '2p', total: 7 }
   );
-  assertEq('12e) 2位の捨て牌は 4p (合計5枚)',
-    { discard: result.ukeireruAuto[1].discard, total: result.ukeireruAuto[1].totalCount },
-    { discard: '4p', total: 5 }
-  );
-  assertEq('12f) 3位の捨て牌は 3p (合計3枚)',
-    { discard: result.ukeireruAuto[2].discard, total: result.ukeireruAuto[2].totalCount },
-    { discard: '3p', total: 3 }
-  );
 
-  // 12g) 字牌ドラなので反転後の合計枚数も同じ (順序も同じ、捨て牌だけ反転)
-  assertEq('12g) 反転対称: 1位 8p:7枚',
+  // 12g) 字牌ドラなので反転後の合計枚数も同じ
+  // 元の 1m切り (9枚) ⇔ 反転で 9m切り、ただし反転側でも 1m切りと 9m切りの両方が9枚で同点なので
+  // tileToIndex 昇順により 反転側でも 1位は 1m:9
+  assertEq('12g) 反転側でも 1位は 1m:9枚',
     { discard: result.ukeireruMirror[0].discard, total: result.ukeireruMirror[0].totalCount },
-    { discard: '8p', total: 7 }
+    { discard: '1m', total: 9 }
   );
   assertEq('12h) ukeireruMeta.calcSkipped', result.ukeireruMeta.calcSkipped, false);
   assertEq('12i) ukeireruMeta.calcVersion', result.ukeireruMeta.calcVersion, '2.0');
