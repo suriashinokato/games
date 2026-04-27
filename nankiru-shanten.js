@@ -297,6 +297,61 @@
     return result;
   }
 
+  // 14枚の手牌からすべての「シャンテンが最も進む捨て牌候補」を列挙し、
+  // 各候補について受け入れ枚数(合計＋有効牌の内訳)を計算する。
+  //   handBefore: 14枚の手牌コード配列
+  //   返り値: [{discard, shantenAfter, tiles, totalCount}, ...]
+  //     discard      : 捨て牌コード
+  //     shantenAfter : 捨てた後のシャンテン値
+  //     tiles        : [{tile, count}, ...] (有効牌の内訳)
+  //     totalCount   : tiles の count 合計
+  // 結果は totalCount 降順 (同点なら捨て牌のインデックス昇順) でソートして返す
+  function calcAllDiscardOptions(handBefore, melds, dora, kanDora) {
+    const meldsList = melds || [];
+
+    // ユニークな捨て牌候補を列挙 (赤5は通常5として集約)
+    const seen = new Set();
+    const discardCandidates = [];
+    for (const t of handBefore) {
+      const idx = tileToIndex(t);
+      if (!seen.has(idx)) {
+        seen.add(idx);
+        discardCandidates.push(t);
+      }
+    }
+
+    // まず各候補のシャンテン値を計算し、最良 (最小) シャンテンを見つける
+    let bestShanten = Infinity;
+    const shantenByDiscard = [];
+    for (const d of discardCandidates) {
+      const handAfter = removeOneTile(handBefore, d);
+      const sh = countShanten(handAfter, meldsList);
+      shantenByDiscard.push({ discard: d, shantenAfter: sh });
+      if (sh < bestShanten) bestShanten = sh;
+    }
+
+    // 最良シャンテンを達成する候補だけを対象に受け入れを計算
+    const result = [];
+    for (const cand of shantenByDiscard) {
+      if (cand.shantenAfter !== bestShanten) continue;
+      const tiles = countAcceptanceForDiscard(handBefore, cand.discard, meldsList, dora, kanDora);
+      const totalCount = tiles.reduce((sum, e) => sum + e.count, 0);
+      result.push({
+        discard: cand.discard,
+        shantenAfter: cand.shantenAfter,
+        tiles: tiles,
+        totalCount: totalCount,
+      });
+    }
+
+    // totalCount 降順、同点なら捨て牌コードの昇順
+    result.sort((a, b) => {
+      if (b.totalCount !== a.totalCount) return b.totalCount - a.totalCount;
+      return tileToIndex(a.discard) - tileToIndex(b.discard);
+    });
+    return result;
+  }
+
   // 「打牌前14枚」と「捨てる牌」を渡し、捨て牌後の受け入れ枚数を計算する。
   //   - シャンテン判定は 捨てた後の13枚 + 来た牌 で行う
   //   - 残り枚数の自手分は 打牌前の14枚 を使う (捨て牌も場に見えている扱い)
@@ -343,19 +398,18 @@
     };
   }
 
-  // problem オブジェクト (打牌前14枚 + correctAnswer) から自動計算結果のサブセットを返す
+  // problem オブジェクト (打牌前14枚) から自動計算結果のサブセットを返す
   // saveProblem() 側で Object.assign(problem, result) してDB保存する
   //
-  // シャンテン値は「正解牌を捨てた後の13枚」のシャンテンを保存する。
-  // 受け入れ枚数も同じく「正解牌を捨てた後の盤面」での値。
+  // ukeireruAuto    : 「シャンテンが最も進む捨て牌」の各候補ごとに合計受け入れ枚数を持つ配列
+  //                   [{discard, shantenAfter, tiles, totalCount}, ...]
+  // shantenAuto     : 最良の捨て牌を選んだ後のシャンテン値
+  // ukeireruMirror  : 上記の反転盤面版
   function calcAndAttach(problem) {
     const handBefore = problem.hand;
-    const discard = problem.correctAnswer;
     const meldsList = problem.melds || [];
     const baseDora = problem.dora || [];
     const baseKanDora = problem.kanDora || [];
-
-    const handAfter = removeOneTile(handBefore, discard);
 
     const mirrored = mirrorBoard({
       hand: handBefore,
@@ -363,15 +417,17 @@
       dora: baseDora,
       kanDora: baseKanDora,
     });
-    const mirroredDiscard = mirrorTile(discard);
+
+    const optionsAuto = calcAllDiscardOptions(handBefore, meldsList, baseDora, baseKanDora);
+    const optionsMirror = calcAllDiscardOptions(mirrored.hand, mirrored.melds, mirrored.dora, mirrored.kanDora);
 
     return {
-      ukeireruAuto: countAcceptanceForDiscard(handBefore, discard, meldsList, baseDora, baseKanDora),
-      ukeireruMirror: countAcceptanceForDiscard(mirrored.hand, mirroredDiscard, mirrored.melds, mirrored.dora, mirrored.kanDora),
-      shantenAuto: countShanten(handAfter, meldsList),
-      shantenAutoMirror: countShanten(removeOneTile(mirrored.hand, mirroredDiscard), mirrored.melds),
+      ukeireruAuto: optionsAuto,
+      ukeireruMirror: optionsMirror,
+      shantenAuto: optionsAuto.length ? optionsAuto[0].shantenAfter : null,
+      shantenAutoMirror: optionsMirror.length ? optionsMirror[0].shantenAfter : null,
       ukeireruMeta: {
-        calcVersion: '1.0',
+        calcVersion: '2.0',
         calculatedAt: new Date().toISOString(),
         calcSkipped: false,
         calcSkipReason: null,
@@ -388,6 +444,7 @@
     countShanten: countShanten,
     countAcceptance: countAcceptance,
     countAcceptanceForDiscard: countAcceptanceForDiscard,
+    calcAllDiscardOptions: calcAllDiscardOptions,
     calcAndAttach: calcAndAttach,
 
     // 反転関連

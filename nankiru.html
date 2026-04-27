@@ -256,6 +256,16 @@
     .ukeireru-chip .u-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .ukeireru-chip .u-x { color: var(--text-dim); font-size: 0.78rem; margin: 0 1px; }
     .ukeireru-chip .u-cnt { color: var(--text); font-weight: 700; font-size: 0.88rem; }
+    .ukeireru-row {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 6px; padding: 4px 0; width: 100%;
+    }
+    .ukeireru-row + .ukeireru-row { border-top: 1px dashed var(--text-dim); margin-top: 2px; }
+    .ukeireru-discard { display: inline-flex; align-items: center; }
+    .ukeireru-total {
+      color: var(--correct); font-weight: 700; font-size: 0.92rem;
+      margin: 0 4px;
+    }
     .commentary-tile {
       display: inline-block; vertical-align: middle;
       width: 22px; height: 30px; margin: 0 1px 2px;
@@ -574,16 +584,18 @@ function transformQuestion(q, mapping, doMirror) {
       return doMirror ? resortMeldAfterMirror(transformed) : transformed;
     }) : q.melds,
     ukeireru: (() => {
-      // 自動計算結果が保存されていればそれを優先 (mirror モードでは事前計算された ukeireruMirror を使う)。
-      // 自動計算結果は既に反転後の盤面で算出されているため、再反転は行わず m/p/s マッピングのみ適用する。
+      // 自動計算結果(新形式: 捨て牌候補ごとに totalCount と内訳 tiles を持つ配列)を優先採用する。
+      // mirror=true なら事前計算済みの ukeireruMirror を使うため、再反転はせず m/p/s マッピングのみ適用。
       const autoSource = doMirror ? q.ukeireruMirror : q.ukeireruAuto;
       if (autoSource) {
-        const mapped = autoSource.map(u => ({ ...u, tile: applyTileMapping(u.tile, mapping) }));
-        return doMirror
-          ? [...mapped].sort((a, b) => (b.count - a.count) || compareTiles(a.tile, b.tile))
-          : mapped;
+        return autoSource.map(opt => ({
+          discard: applyTileMapping(opt.discard, mapping),
+          shantenAfter: opt.shantenAfter,
+          totalCount: opt.totalCount,
+          tiles: (opt.tiles || []).map(u => ({ ...u, tile: applyTileMapping(u.tile, mapping) })),
+        }));
       }
-      // フォールバック: 自動計算結果がない旧データは従来どおり手入力 ukeireru を反転＋マッピング
+      // フォールバック: 旧データは従来形式 [{tile, count}] のまま反転＋マッピングを適用
       if (!q.ukeireru) return q.ukeireru;
       const mapped = q.ukeireru.map(u => ({ ...u, tile: mt(applyTileMapping(u.tile, mapping)) }));
       return doMirror
@@ -625,7 +637,39 @@ function renderCommentary(text, container) {
   });
 }
 
+// 牌1枚分のチップ (image + ×N) を生成して返す
+function buildTileCountChip(tile, count) {
+  const chip = document.createElement('span');
+  chip.className = 'ukeireru-chip';
+
+  const tileEl = document.createElement('span');
+  tileEl.className = 'u-tile';
+  tileEl.title = tileLabel(tile);
+  const img = document.createElement('img');
+  img.src = 'images_hai/' + tile + '.png';
+  img.alt = tileLabel(tile);
+  img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(tile)); };
+  tileEl.appendChild(img);
+
+  const x = document.createElement('span');
+  x.className = 'u-x';
+  x.textContent = '×';
+
+  const cnt = document.createElement('span');
+  cnt.className = 'u-cnt';
+  cnt.textContent = count;
+
+  chip.appendChild(tileEl);
+  chip.appendChild(x);
+  chip.appendChild(cnt);
+  return chip;
+}
+
 // 受け入れ牌を描画する
+//   新形式: [{discard, shantenAfter, tiles:[{tile,count},...], totalCount}, ...]
+//     → 捨て牌ごとに「[捨牌] 切り → 受け入れ N枚 (内訳)」を1行ずつ表示
+//   旧形式: [{tile, count}, ...]
+//     → 従来どおり1行に有効牌のチップを並べて表示
 function renderUkeireru(entries, container) {
   container.innerHTML = '';
   if (!entries || !entries.length) {
@@ -634,38 +678,43 @@ function renderUkeireru(entries, container) {
   }
   container.style.display = '';
 
+  const isPerDiscardFormat = entries[0] && Object.prototype.hasOwnProperty.call(entries[0], 'discard');
+
+  if (isPerDiscardFormat) {
+    entries.forEach(opt => {
+      const row = document.createElement('div');
+      row.className = 'ukeireru-row';
+
+      // 捨て牌ラベル「[牌] 切り」
+      const discardLbl = document.createElement('span');
+      discardLbl.className = 'ukeireru-discard';
+      discardLbl.appendChild(buildTileCountChip(opt.discard, '切'));
+      row.appendChild(discardLbl);
+
+      // 合計枚数「→ N枚」
+      const total = document.createElement('span');
+      total.className = 'ukeireru-total';
+      total.textContent = '→ ' + opt.totalCount + '枚';
+      row.appendChild(total);
+
+      // 内訳チップ
+      (opt.tiles || []).forEach(t => {
+        row.appendChild(buildTileCountChip(t.tile, t.count));
+      });
+
+      container.appendChild(row);
+    });
+    return;
+  }
+
+  // 旧形式 (手入力 ukeireru)
   const lbl = document.createElement('span');
   lbl.className = 'ukeireru-label';
   lbl.textContent = '受け入れ';
   container.appendChild(lbl);
-
   entries.forEach(entry => {
-    const chip = document.createElement('span');
-    chip.className = 'ukeireru-chip';
-
-    const tileEl = document.createElement('span');
-    tileEl.className = 'u-tile';
-    tileEl.title = tileLabel(entry.tile);
-    const img = document.createElement('img');
-    img.src = 'images_hai/' + entry.tile + '.png';
-    img.alt = tileLabel(entry.tile);
-    img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(entry.tile)); };
-    tileEl.appendChild(img);
-
-    const x = document.createElement('span');
-    x.className = 'u-x';
-    x.textContent = '×';
-
-    const cnt = document.createElement('span');
-    cnt.className = 'u-cnt';
-    cnt.textContent = entry.count;
-
-    chip.appendChild(tileEl);
-    chip.appendChild(x);
-    chip.appendChild(cnt);
-    container.appendChild(chip);
+    container.appendChild(buildTileCountChip(entry.tile, entry.count));
   });
-
 }
 
 // ===== TILE WIDTH CALCULATOR =====

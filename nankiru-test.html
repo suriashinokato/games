@@ -277,26 +277,49 @@
 
   log('\n--- calcAndAttach 統合テスト ---');
 
-  // 12) 14枚の問題を渡して、自動計算結果が入る
+  // 12) 14枚の問題: 各捨て牌候補ごとに合計受け入れ枚数が計算される
+  // 手牌: 123456789m 11p 23p 4p (14枚)
+  // テンパイにできる捨て牌:
+  //   2p切り: 順子3+雀頭(11p)+34p搭子 → 2p,5p待ち  totalCount = 3 + 4 = 7
+  //   4p切り: 順子3+雀頭(11p)+23p搭子 → 1p,4p待ち  totalCount = 2 + 3 = 5
+  //   3p切り: 順子3+雀頭(11p)+24p嵌張 → 3p待ち     totalCount = 3
+  //   1p切り: 順子4(123m,456m,789m,234p)+1p単騎 → 1p待ち totalCount = 2
+  // (ドラ7zは字牌で残り枚数に影響しない)
   const problem = {
-    hand: parseHand('123456789m 11p 23p 4p'),  // 14枚
-    correctAnswer: '4p',                         // 4p を捨ててテンパイ
+    hand: parseHand('123456789m 11p 23p 4p'),
+    correctAnswer: '4p',
     melds: [],
-    dora: ['7z'],                                // 字牌ドラ → 反転で不変
+    dora: ['7z'],   // 字牌ドラ → 反転で不変、対称性が成立する
     kanDora: [],
   };
   const result = NS.calcAndAttach(problem);
-  log('  ukeireruAuto: ' + JSON.stringify(sortByTile(result.ukeireruAuto)));
-  log('  ukeireruMirror: ' + JSON.stringify(sortByTile(result.ukeireruMirror)));
+  log('  ukeireruAuto: ' + JSON.stringify(result.ukeireruAuto.map(o => ({d: o.discard, n: o.totalCount}))));
+  log('  ukeireruMirror: ' + JSON.stringify(result.ukeireruMirror.map(o => ({d: o.discard, n: o.totalCount}))));
   log('  shantenAuto: ' + result.shantenAuto + ' / shantenAutoMirror: ' + result.shantenAutoMirror);
+
   assertEq('12a) shantenAuto テンパイ', result.shantenAuto, 0);
   assertEq('12b) shantenAutoMirror テンパイ', result.shantenAutoMirror, 0);
-  // 字牌ドラなので機械的反転と一致するはず
-  assertEq('12c) 字牌ドラなら反転対称',
-    sortByTile(result.ukeireruMirror),
-    mirrorUkeireArray(result.ukeireruAuto)
+  assertEq('12c) ukeireruAuto 候補数', result.ukeireruAuto.length, 4);
+  assertEq('12d) 1位の捨て牌は 2p (合計7枚)',
+    { discard: result.ukeireruAuto[0].discard, total: result.ukeireruAuto[0].totalCount },
+    { discard: '2p', total: 7 }
   );
-  assertEq('12d) ukeireruMeta.calcSkipped', result.ukeireruMeta.calcSkipped, false);
+  assertEq('12e) 2位の捨て牌は 4p (合計5枚)',
+    { discard: result.ukeireruAuto[1].discard, total: result.ukeireruAuto[1].totalCount },
+    { discard: '4p', total: 5 }
+  );
+  assertEq('12f) 3位の捨て牌は 3p (合計3枚)',
+    { discard: result.ukeireruAuto[2].discard, total: result.ukeireruAuto[2].totalCount },
+    { discard: '3p', total: 3 }
+  );
+
+  // 12g) 字牌ドラなので反転後の合計枚数も同じ (順序も同じ、捨て牌だけ反転)
+  assertEq('12g) 反転対称: 1位 8p:7枚',
+    { discard: result.ukeireruMirror[0].discard, total: result.ukeireruMirror[0].totalCount },
+    { discard: '8p', total: 7 }
+  );
+  assertEq('12h) ukeireruMeta.calcSkipped', result.ukeireruMeta.calcSkipped, false);
+  assertEq('12i) ukeireruMeta.calcVersion', result.ukeireruMeta.calcVersion, '2.0');
 
   // ===== サマリー =====
 
