@@ -582,19 +582,6 @@
   <!-- 解説 -->
   <div class="section">
     <div class="section-title">解説</div>
-    <div style="margin-bottom:14px">
-      <label class="field-label" for="shanten-select">シャンテン数（任意）</label>
-      <select class="select-input" id="shanten-select" style="max-width:180px">
-        <option value="">（設定なし）</option>
-        <option value="0">テンパイ</option>
-        <option value="1">1シャンテン</option>
-        <option value="2">2シャンテン</option>
-        <option value="3">3シャンテン</option>
-        <option value="4">4シャンテン</option>
-        <option value="5">5シャンテン</option>
-        <option value="6">6シャンテン</option>
-      </select>
-    </div>
     <label class="field-label" for="commentary">解説文（クイズ回答後に表示されます）</label>
     <textarea class="commentary-input" id="commentary" placeholder="例: 孤立字牌を優先して切ります。両面搭子を残すことで受け入れが広がります。"></textarea>
     <div style="margin-top:14px">
@@ -1209,7 +1196,7 @@ async function deleteMasterTag(index) {
 let editState = {
   id: null, hand: [], correctAnswer: null,
   dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
-  melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
+  melds: [], ukeireru: [], seat: '', memo: '',
   paletteTarget: 'hand',  // 'hand' | 'dora' | 'meld'
   // チー/ポン/カン問題
   questionType: '',           // '' | 'meld'
@@ -1494,7 +1481,6 @@ async function openEditor(problem) {
     sourceMemo: problem.sourceMemo || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
-    shanten: problem.shanten != null ? String(problem.shanten) : '',
     seat: problem.seat || '',
     memo: problem.memo || '',
     riichiChoice: problem.riichiChoice || '',
@@ -1513,7 +1499,7 @@ async function openEditor(problem) {
   } : {
     id: null, hand: [], correctAnswer: null,
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
-    melds: [], ukeireru: [], shanten: '', seat: '', memo: '',
+    melds: [], ukeireru: [], seat: '', memo: '',
     riichiChoice: '', mirror: false, paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
     availableActions: [], correctAction: '',
@@ -1527,7 +1513,6 @@ async function openEditor(problem) {
   document.getElementById('source-memo-input').value = editState.sourceMemo || '';
   document.getElementById('round-select').value = editState.round;
   document.getElementById('turn-input').value = editState.turn;
-  document.getElementById('shanten-select').value = editState.shanten;
   document.getElementById('seat-select').value = editState.seat;
   document.getElementById('riichi-choice-select').value = editState.riichiChoice;
   document.getElementById('memo-input').value = editState.memo;
@@ -2184,7 +2169,6 @@ async function saveProblem() {
     seat:          document.getElementById('seat-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
     memo:          document.getElementById('memo-input').value.trim() || null,
-    shanten:       document.getElementById('shanten-select').value !== '' ? parseInt(document.getElementById('shanten-select').value) : null,
     commentary:    document.getElementById('commentary').value.trim(),
     source:        document.getElementById('source-select').value.trim() || null,
     sourceMemo:    document.getElementById('source-memo-input').value.trim() || null,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>麻雀 何切るメーカー</title>
+  <title>麻雀 何切る練習帳</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -686,6 +686,11 @@ function renderUkeireru(entries, container) {
   const isPerDiscardFormat = entries[0] && Object.prototype.hasOwnProperty.call(entries[0], 'discard');
 
   if (isPerDiscardFormat) {
+    const lbl = document.createElement('span');
+    lbl.className = 'ukeireru-label';
+    lbl.textContent = '受け入れ';
+    container.appendChild(lbl);
+
     entries.forEach(opt => {
       const row = document.createElement('div');
       row.className = 'ukeireru-row';
@@ -1344,8 +1349,12 @@ function showFeedbackArea(ok, q) {
   fr.className   = 'feedback-result ' + (ok ? 'correct' : 'wrong');
   fa.className   = 'feedback-area '   + (ok ? 'correct' : 'wrong');
   const shantenEl = document.getElementById('feedback-shanten');
-  if (q.shanten != null && q.shanten !== '') {
-    const label = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン';
+  const autoShanten = (Array.isArray(q.ukeireru) && q.ukeireru[0] && Object.prototype.hasOwnProperty.call(q.ukeireru[0], 'shantenAfter'))
+    ? q.ukeireru[0].shantenAfter
+    : null;
+  const shantenValue = autoShanten != null ? autoShanten : q.shanten;
+  if (shantenValue != null && shantenValue !== '') {
+    const label = shantenValue === 0 ? 'テンパイ' : shantenValue + 'シャンテン';
     shantenEl.innerHTML = '<span class="shanten-badge">' + label + '</span>';
     shantenEl.style.display = '';
   } else {
