@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script src="./nankiru-shanten.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -408,6 +409,7 @@
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
+    <button class="btn btn-ghost" onclick="recalcAllUkeireru()">🧮 受け入れ枚数を一括再計算</button>
   </div>
   <div class="tag-filter-bar" id="tag-filter-bar" style="display:none">
     <span class="tag-filter-bar-label">タグ絞り込み:</span>
@@ -638,19 +640,6 @@
         <div id="tag-suggestions" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
         <p id="tag-suggestions-label" style="display:none;font-size:0.72rem;color:var(--text-dim);margin-top:4px">↑ 既存タグをクリックで追加</p>
       </div>
-    </div>
-  </div>
-
-  <!-- 受け入れ牌 -->
-  <div class="section">
-    <div class="section-title">受け入れ牌（任意）</div>
-    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:12px">切り牌後の受け入れ牌と残り枚数を登録します（牌コード例: 2m / 5p / 7z）</p>
-    <div id="ukeireru-list" style="margin-bottom:12px"></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input type="text" id="ukeireru-tile-input" class="num-input" placeholder="牌コード (例: 2m)" style="min-width:120px;max-width:140px">
-      <span style="color:var(--text-dim);font-size:1rem;font-weight:700">×</span>
-      <input type="number" id="ukeireru-count-input" class="num-input" min="1" max="99" placeholder="枚数 (1〜99)" style="min-width:110px;max-width:130px">
-      <button class="btn btn-ghost btn-sm" onclick="addUkeireruEntry()">追加</button>
     </div>
   </div>
 
@@ -1569,7 +1558,6 @@ async function openEditor(problem) {
   renderEditorHand();
   renderEditorDora();
   renderMelds();
-  renderUkeireruList();
   renderEditorTags();
   showScreen('editor');
 }
@@ -1975,86 +1963,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ===== 受け入れ牌 =====
-function addUkeireruEntry() {
-  const tileInput  = document.getElementById('ukeireru-tile-input');
-  const countInput = document.getElementById('ukeireru-count-input');
-  const tile  = tileInput.value.trim().toLowerCase();
-  const count = parseInt(countInput.value);
-
-  if (!/^[0-9][mpsz]$/.test(tile)) {
-    alert('牌コードを正しく入力してください\n例: 2m / 5p / 7z / 1z〜7z');
-    return;
-  }
-  if (!count || count < 1 || count > 99) {
-    alert('枚数を 1〜99 で入力してください');
-    return;
-  }
-
-  editState.ukeireru.push({ tile, count });
-  tileInput.value  = '';
-  countInput.value = '';
-  tileInput.focus();
-  renderUkeireruList();
-}
-
-function removeUkeireruEntry(idx) {
-  editState.ukeireru.splice(idx, 1);
-  renderUkeireruList();
-}
-
-function renderUkeireruList() {
-  const el = document.getElementById('ukeireru-list');
-  if (!el) return;
-  el.innerHTML = '';
-
-  if (!editState.ukeireru.length) {
-    el.innerHTML = '<p style="font-size:0.82rem;color:var(--text-dim);padding:2px 0">未登録</p>';
-    return;
-  }
-
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px';
-
-  editState.ukeireru.forEach((entry, idx) => {
-    const chip = document.createElement('div');
-    chip.style.cssText = 'display:flex;align-items:center;gap:5px;background:var(--card);padding:5px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.07)';
-
-    // 牌画像
-    const tileWrap = document.createElement('div');
-    tileWrap.style.cssText = 'width:28px;height:38px;background:#f5f0e8;border-radius:3px;overflow:hidden;flex-shrink:0';
-    const img = document.createElement('img');
-    img.src = 'images_hai/' + entry.tile + '.png';
-    img.alt = tileLabel(entry.tile);
-    img.style.cssText = 'width:100%;height:100%;object-fit:contain';
-    img.onerror = function() { this.style.display = 'none'; tileWrap.insertAdjacentText('beforeend', tileLabel(entry.tile)); };
-    tileWrap.appendChild(img);
-
-    const x = document.createElement('span');
-    x.style.cssText = 'color:var(--text-dim);font-size:0.85rem';
-    x.textContent = '×';
-
-    const cnt = document.createElement('span');
-    cnt.style.cssText = 'color:var(--text);font-weight:700;font-size:0.95rem;min-width:12px';
-    cnt.textContent = entry.count;
-
-    const del = document.createElement('button');
-    del.className = 'btn btn-danger btn-sm';
-    del.style.cssText = 'padding:2px 7px;font-size:0.75rem;margin-left:4px';
-    del.textContent = '×';
-    del.onclick = () => removeUkeireruEntry(idx);
-
-    chip.appendChild(tileWrap);
-    chip.appendChild(x);
-    chip.appendChild(cnt);
-    chip.appendChild(del);
-    wrap.appendChild(chip);
-  });
-
-
-  el.appendChild(wrap);
-}
-
 // ===== チー/ポン/カン問題設定 =====
 function findHandIndices(hand, codes) {
   const pool = hand.map((c, i) => ({ c, i, used: false }));
@@ -2284,6 +2192,33 @@ async function saveProblem() {
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
+  // ===== 受け入れ枚数の自動計算 =====
+  // 鳴き判定問題はスキップ。それ以外は手牌+副露が14枚のときだけ計算する。
+  // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする。
+  // 失敗時もアラートだけ出して保存自体は止めない (手入力 ukeireru があれば運用継続できるため)
+  const meldEffectiveCount = m => {
+    const isKan = m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan';
+    return isKan ? 3 : m.tiles.length;
+  };
+  if (problem.questionType === 'meld') {
+    problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_question', calcVersion: '1.0', calculatedAt: null };
+  } else {
+    const totalForCalc = problem.hand.length
+      + problem.melds.reduce((sum, m) => sum + meldEffectiveCount(m), 0);
+    if (totalForCalc !== 14) {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'tile_count_not_14', calcVersion: '1.0', calculatedAt: null };
+    } else if (typeof NankiruShanten === 'undefined') {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'shanten_lib_not_loaded', calcVersion: '1.0', calculatedAt: null };
+    } else {
+      try {
+        Object.assign(problem, NankiruShanten.calcAndAttach(problem));
+      } catch (e) {
+        console.error('受け入れ自動計算に失敗', e);
+        problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'calc_error: ' + e.message, calcVersion: '1.0', calculatedAt: null };
+      }
+    }
+  }
+
   if (currentUser && isAdmin) {
     try {
       await db.collection('users/' + currentUser.uid + '/problems').doc(problem.id).set(problem);
@@ -2304,6 +2239,65 @@ async function saveProblem() {
     const order = (await loadOrder()) || [];
     if (!order.includes(problem.id)) { order.push(problem.id); await saveOrder(order); }
   }
+  openList();
+}
+
+// ===== 全問題の受け入れ枚数を一括再計算 =====
+// 既存問題に ukeireruAuto / ukeireruMirror / shantenAuto / shantenAutoMirror をバックフィルする
+async function recalcAllUkeireru() {
+  if (typeof NankiruShanten === 'undefined') {
+    alert('nankiru-shanten.js が読み込まれていません。ページを再読み込みしてください。');
+    return;
+  }
+  if (!currentUser || !isAdmin) {
+    alert('管理者ログインが必要です。');
+    return;
+  }
+  if (!confirm('全問題の受け入れ枚数を自動計算で再保存します。よろしいですか？\n（鳴き判定問題と手牌が14枚に満たない問題はスキップされます）')) return;
+
+  const problems = await loadProblems(true); // forceReload で最新状態を取得
+  let success = 0, skipped = 0, failed = 0;
+  const failedIds = [];
+  const skippedDetails = []; // {id, reason}
+
+  // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする
+  const meldEffectiveCount = m => {
+    const isKan = m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan';
+    return isKan ? 3 : m.tiles.length;
+  };
+  for (const p of problems) {
+    try {
+      if (p.questionType === 'meld') {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'meld_question' }); continue;
+      }
+      const totalForCalc = (p.hand || []).length
+        + (p.melds || []).reduce((sum, m) => sum + meldEffectiveCount(m), 0);
+      if (totalForCalc !== 14) {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'tile_count=' + totalForCalc }); continue;
+      }
+      if (!p.correctAnswer) {
+        skipped++; skippedDetails.push({ id: p.id, reason: 'no_correctAnswer' }); continue;
+      }
+
+      Object.assign(p, NankiruShanten.calcAndAttach(p));
+      await db.collection('users/' + currentUser.uid + '/problems').doc(p.id).set(p);
+      success++;
+    } catch (e) {
+      console.error('再計算失敗', p.id, e);
+      failedIds.push(p.id);
+      failed++;
+    }
+  }
+
+  _adminProblemsCache = null;
+  if (skippedDetails.length) {
+    console.log('スキップされた問題の詳細:', skippedDetails);
+  }
+  const skipSummary = skippedDetails.length
+    ? '\nスキップ詳細 (DevToolsコンソールにも出力):\n  ' + skippedDetails.map(d => `${d.id}: ${d.reason}`).join('\n  ')
+    : '';
+  const failSummary = failedIds.length ? '\n失敗ID: ' + failedIds.join(', ') : '';
+  alert(`完了: 成功 ${success} / スキップ ${skipped} / 失敗 ${failed}${skipSummary}${failSummary}`);
   openList();
 }
 
