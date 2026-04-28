@@ -306,17 +306,14 @@
   //     tiles        : [{tile, count}, ...] (有効牌の内訳)
   //     totalCount   : tiles の count 合計
   // 結果は totalCount 降順 (同点なら捨て牌のインデックス昇順) でソートして返す
-  function calcAllDiscardOptions(handBefore, melds, dora, kanDora, forbiddenDiscardSet) {
+  function calcAllDiscardOptions(handBefore, melds, dora, kanDora) {
     const meldsList = melds || [];
-    const forbidden = forbiddenDiscardSet || null; // Set<number> (tileToIndex の値)
 
     // ユニークな捨て牌候補を列挙 (赤5は通常5として集約)
-    // forbidden に含まれるインデックスは喰い替え禁止のため候補から除外する
     const seen = new Set();
     const discardCandidates = [];
     for (const t of handBefore) {
       const idx = tileToIndex(t);
-      if (forbidden && forbidden.has(idx)) continue;
       if (!seen.has(idx)) {
         seen.add(idx);
         discardCandidates.push(t);
@@ -401,117 +398,6 @@
     };
   }
 
-  // 鳴き判定問題 (questionType='meld') 用に、正解の鳴き手順を踏んだ後の14枚相当状態を組み立てる。
-  // chi: 手牌(13枚) から correctChiPair の2枚を除き (11枚)、
-  //      新しいチー副露 { type:'chi', tiles:[chiPair[0], chiPair[1], incomingTile] } を melds に追加。
-  // pon: 手牌(13枚) から incomingTile と同種牌を2枚除き (11枚)、
-  //      新しいポン副露 { type:'pon', tiles:[incomingTile, incomingTile, incomingTile] } を melds に追加。
-  // 戻り値: { hand, melds } または、正解アクションが chi/pon でない／必要フィールドが欠ける場合は null。
-  function buildMeldAfterAction(problem) {
-    const action = problem.correctAction;
-    if (action !== 'chi' && action !== 'pon') return null;
-    if (!problem.incomingTile) return null;
-    const handBase = problem.hand || [];
-    const meldsBase = problem.melds || [];
-
-    if (action === 'chi') {
-      const pair = problem.correctChiPair;
-      if (!pair || pair.length !== 2) return null;
-      let handAfter = removeOneTile(handBase, pair[0]);
-      handAfter = removeOneTile(handAfter, pair[1]);
-      const newMeld = { type: 'chi', tiles: [pair[0], pair[1], problem.incomingTile] };
-      return { hand: handAfter, melds: meldsBase.concat([newMeld]) };
-    }
-
-    // pon
-    let handAfter = removeOneTile(handBase, problem.incomingTile);
-    handAfter = removeOneTile(handAfter, problem.incomingTile);
-    const newMeld = { type: 'pon', tiles: [problem.incomingTile, problem.incomingTile, problem.incomingTile] };
-    return { hand: handAfter, melds: meldsBase.concat([newMeld]) };
-  }
-
-  // 鳴き直後に切れない牌 (喰い替え禁止) のインデックス Set を返す。
-  // ポン: 鳴いた牌と同種牌は切れない。
-  // チー: 鳴いた牌は切れない。さらに、鳴いた牌の「スジ」も切れない (両端 / カンチャン共通)。
-  //       例) incoming 7p (5-6 で 7 チー)        → 7p と 4p が禁止
-  //       例) incoming 5p (4-6 カンチャン or 6-7) → 5p, 2p, 8p が禁止
-  //       例) incoming 1p (2-3 で 1 チー)        → 1p と 4p が禁止
-  //       字牌のチーは存在しないが、念のため z はスジ計算スキップ。
-  function buildForbiddenDiscardSet(problem) {
-    const action = problem.correctAction;
-    if (action !== 'chi' && action !== 'pon') return null;
-    if (!problem.incomingTile) return null;
-    const set = new Set();
-
-    // 鳴いた牌 (incomingTile) は両ケースで切り直し禁止
-    set.add(tileToIndex(problem.incomingTile));
-
-    if (action === 'chi') {
-      const code = problem.incomingTile;
-      const suit = code[1];
-      if (suit === 'z') return set;
-      const nRaw = parseInt(code[0], 10);
-      const n = nRaw === 0 ? 5 : nRaw; // 赤5は通常5扱い
-      // 鳴いた牌のスジ (n-3, n+3) を禁止に追加
-      if (n - 3 >= 1) set.add(tileToIndex((n - 3) + suit));
-      if (n + 3 <= 9) set.add(tileToIndex((n + 3) + suit));
-    }
-
-    return set;
-  }
-
-  // 鳴き判定問題用の自動計算。chi/pon の正解手順を反映した状態 (手牌11枚 + 新副露) を起点に、
-  // 既存の calcAllDiscardOptions / mirrorBoard を流用して受け入れを列挙する。
-  // 喰い替えになる牌 (鳴き牌・チー時のスジ) は捨て牌候補から除外する。
-  // skip/kan や必要フィールドが不足する場合は ukeireruMeta.calcSkipped=true で空のまま返す。
-  function calcAndAttachForMeld(problem) {
-    const built = buildMeldAfterAction(problem);
-    if (!built) {
-      return {
-        ukeireruMeta: {
-          calcVersion: '2.0',
-          calculatedAt: new Date().toISOString(),
-          calcSkipped: true,
-          calcSkipReason: 'meld_action_no_discard_or_missing_fields',
-        },
-      };
-    }
-
-    const baseDora = problem.dora || [];
-    const baseKanDora = problem.kanDora || [];
-
-    const mirrored = mirrorBoard({
-      hand: built.hand,
-      melds: built.melds,
-      dora: baseDora,
-      kanDora: baseKanDora,
-    });
-
-    // 喰い替え禁止牌セット (反転盤面用には反転後の牌コードで再構築)
-    const forbidden = buildForbiddenDiscardSet(problem);
-    const forbiddenMirror = buildForbiddenDiscardSet({
-      correctAction: problem.correctAction,
-      incomingTile: problem.incomingTile ? mirrorTile(problem.incomingTile) : null,
-      correctChiPair: problem.correctChiPair ? problem.correctChiPair.map(mirrorTile) : null,
-    });
-
-    const optionsAuto = calcAllDiscardOptions(built.hand, built.melds, baseDora, baseKanDora, forbidden);
-    const optionsMirror = calcAllDiscardOptions(mirrored.hand, mirrored.melds, mirrored.dora, mirrored.kanDora, forbiddenMirror);
-
-    return {
-      ukeireruAuto: optionsAuto,
-      ukeireruMirror: optionsMirror,
-      shantenAuto: optionsAuto.length ? optionsAuto[0].shantenAfter : null,
-      shantenAutoMirror: optionsMirror.length ? optionsMirror[0].shantenAfter : null,
-      ukeireruMeta: {
-        calcVersion: '2.0',
-        calculatedAt: new Date().toISOString(),
-        calcSkipped: false,
-        calcSkipReason: null,
-      },
-    };
-  }
-
   // problem オブジェクト (打牌前14枚) から自動計算結果のサブセットを返す
   // saveProblem() 側で Object.assign(problem, result) してDB保存する
   //
@@ -560,7 +446,6 @@
     countAcceptanceForDiscard: countAcceptanceForDiscard,
     calcAllDiscardOptions: calcAllDiscardOptions,
     calcAndAttach: calcAndAttach,
-    calcAndAttachForMeld: calcAndAttachForMeld,
 
     // 反転関連
     mirrorTile: mirrorTile,
