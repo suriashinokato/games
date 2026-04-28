@@ -2287,7 +2287,8 @@ async function saveProblem() {
   };
 
   // ===== 受け入れ枚数の自動計算 =====
-  // 鳴き判定問題はスキップ。それ以外は手牌+副露が14枚のときだけ計算する。
+  // 鳴き判定問題: chi/pon は正解の鳴き手順を踏んだ後の14枚相当状態を起点に計算。skip/kan はスキップ。
+  // それ以外: 手牌+副露が14枚のときだけ計算する。
   // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする。
   // 失敗時もアラートだけ出して保存自体は止めない (手入力 ukeireru があれば運用継続できるため)
   const meldEffectiveCount = m => {
@@ -2295,7 +2296,24 @@ async function saveProblem() {
     return isKan ? 3 : m.tiles.length;
   };
   if (problem.questionType === 'meld') {
-    problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_question', calcVersion: '1.0', calculatedAt: null };
+    // chi/pon の場合は「正解の鳴き手順 + 切り牌」後の14枚相当状態を起点に受け入れを計算する。
+    // skip/kan は打牌が発生しないためスキップ。必要フィールドが欠けている場合もスキップ。
+    if (typeof NankiruShanten === 'undefined') {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'shanten_lib_not_loaded', calcVersion: '1.0', calculatedAt: null };
+    } else if (problem.correctAction !== 'chi' && problem.correctAction !== 'pon') {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_action_no_discard', calcVersion: '1.0', calculatedAt: null };
+    } else if (!problem.correctDiscard
+               || !problem.incomingTile
+               || (problem.correctAction === 'chi' && (!problem.correctChiPair || problem.correctChiPair.length !== 2))) {
+      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_required_fields_missing', calcVersion: '1.0', calculatedAt: null };
+    } else {
+      try {
+        Object.assign(problem, NankiruShanten.calcAndAttachForMeld(problem));
+      } catch (e) {
+        console.error('鳴き問題の受け入れ自動計算に失敗', e);
+        problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'calc_error: ' + e.message, calcVersion: '1.0', calculatedAt: null };
+      }
+    }
   } else {
     const totalForCalc = problem.hand.length
       + problem.melds.reduce((sum, m) => sum + meldEffectiveCount(m), 0);
@@ -2347,7 +2365,7 @@ async function recalcAllUkeireru() {
     alert('管理者ログインが必要です。');
     return;
   }
-  if (!confirm('全問題の受け入れ枚数を自動計算で再保存します。よろしいですか？\n（鳴き判定問題と手牌が14枚に満たない問題はスキップされます）')) return;
+  if (!confirm('全問題の受け入れ枚数を自動計算で再保存します。よろしいですか？\n（chi/pon 以外の鳴き問題と手牌が14枚に満たない問題はスキップされます）')) return;
 
   const problems = await loadProblems(true); // forceReload で最新状態を取得
   let success = 0, skipped = 0, failed = 0;
@@ -2362,7 +2380,18 @@ async function recalcAllUkeireru() {
   for (const p of problems) {
     try {
       if (p.questionType === 'meld') {
-        skipped++; skippedDetails.push({ id: p.id, reason: 'meld_question' }); continue;
+        // 鳴き問題は chi/pon (= 打牌を伴うアクション) のみ計算対象
+        if (p.correctAction !== 'chi' && p.correctAction !== 'pon') {
+          skipped++; skippedDetails.push({ id: p.id, reason: 'meld_action=' + (p.correctAction || 'null') }); continue;
+        }
+        if (!p.correctDiscard || !p.incomingTile
+            || (p.correctAction === 'chi' && (!p.correctChiPair || p.correctChiPair.length !== 2))) {
+          skipped++; skippedDetails.push({ id: p.id, reason: 'meld_required_fields_missing' }); continue;
+        }
+        Object.assign(p, NankiruShanten.calcAndAttachForMeld(p));
+        await db.collection('users/' + currentUser.uid + '/problems').doc(p.id).set(p);
+        success++;
+        continue;
       }
       const totalForCalc = (p.hand || []).length
         + (p.melds || []).reduce((sum, m) => sum + meldEffectiveCount(m), 0);
