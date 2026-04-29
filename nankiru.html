@@ -1550,9 +1550,12 @@ async function startRandomQuiz() {
 function startSingleQuiz(problem, orderedList) {
   const list = orderedList || [problem];
   const startIdx = list.findIndex(p => p === problem || p.id === problem.id);
-  st.problems = startIdx >= 0 ? list.slice(startIdx) : [problem];
+  // 全件保持して st.idx で開始位置を示す。これにより末尾まで進んだ後に
+  // st.idx=0 へ戻すとリスト先頭の問題から再開できる（ループ動作）
+  st.problems = list.length ? list : [problem];
   st.mode = 'list';
-  st.idx = 0; st.correct = 0; st.wrongs = [];
+  st.idx = startIdx >= 0 ? startIdx : 0;
+  st.correct = 0; st.wrongs = [];
   showScreen('quiz');
   renderQ();
 }
@@ -1705,7 +1708,7 @@ function showFeedbackArea(ok, q) {
   const btn = document.getElementById('btn-next');
   const retryAgainBtn = document.getElementById('btn-retry-again');
   const goToListBtn = document.getElementById('btn-go-to-list');
-  btn.textContent = st.idx + 1 < st.problems.length ? '次の問題' : '結果を見る';
+  btn.textContent = (st.idx + 1 < st.problems.length || st.mode === 'list') ? '次の問題' : '結果を見る';
   btn.style.display = '';
   btn.className = 'btn-next';
   btn.onclick = () => nextQ();
@@ -2052,8 +2055,22 @@ function renderMeldReviewCard(card, q, entry) {
 
 async function nextQ() {
   st.idx++;
-  if (st.idx < st.problems.length) renderQ();
-  else await showResult();
+  if (st.idx < st.problems.length) {
+    renderQ();
+  } else if (st.mode === 'list') {
+    // 問題一覧モードでは最後の問題の次は1問目に戻ってループする
+    st.idx = 0;
+    st.correct = 0;
+    st.wrongs = [];
+    st.answered = false;
+    st.riichiSelected = null;
+    st.meldStep = 0;
+    st.meldActionSelected = null;
+    st.chiSelectedTiles = [];
+    renderQ();
+  } else {
+    await showResult();
+  }
 }
 
 function retryCurrentQ() {
