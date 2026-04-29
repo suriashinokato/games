@@ -563,7 +563,7 @@ function mirrorTile(code) {
 function mirrorText(text) {
   if (!text) return text;
   // 「・」区切りグループ・連続記述グループは反転後に m→p→s、同スーツ内は昇順で並べ直す
-  return text.replace(/[0-9][mps](?:・[0-9][mps])+|(?:[0-9][mps]){2,}|[0-9][mps]/g, group => {
+  let result = text.replace(/[0-9][mps](?:・[0-9][mps])+|(?:[0-9][mps]){2,}|[0-9][mps]/g, group => {
     let tiles, sep;
     if (group.includes('・')) {
       sep = '・'; tiles = group.split('・');
@@ -576,6 +576,12 @@ function mirrorText(text) {
     mirrored.sort(compareTiles);
     return mirrored.join(sep);
   });
+  // 「○○三色」(例: 234三色) の数字部分も反転して昇順に並べ直す
+  result = result.replace(/([0-9]+)(三色)/g, (_, digits, kw) => {
+    const mirrored = digits.split('').map(d => DIGIT_MIRROR[d]).sort().join('');
+    return mirrored + kw;
+  });
+  return result;
 }
 
 // ドラ表示牌: ドラ本体をミラーし、その1つ前の牌（新たな表示牌）を返す
