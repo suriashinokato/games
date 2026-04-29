@@ -87,12 +87,20 @@
     .btn-start:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
     .btn-start:disabled { opacity: 0.35; cursor: default; }
 
-    .home-mode-btns { display: flex; gap: 12px; max-width: 360px; margin: 0 auto 32px; }
-    .btn-mode { flex: 1; padding: 16px 8px; border: 2px solid var(--accent); background: transparent; color: var(--accent); border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s; }
+    .home-mode-btns { display: flex; gap: 12px; max-width: 420px; margin: 0 auto 32px; }
+    .btn-mode {
+      flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+      padding: 18px 16px; border: 2px solid var(--accent); background: transparent; color: var(--accent);
+      border-radius: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; text-align: left;
+      transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-mode .btn-mode-desc { font-size: 0.72rem; font-weight: 500; color: var(--text-dim); letter-spacing: 0; line-height: 1.35; }
     .btn-mode:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.18); }
+    .btn-mode:hover:not(:disabled) .btn-mode-desc { color: rgba(255,255,255,0.85); }
     .btn-mode:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: none; }
     .btn-mode:disabled { opacity: 0.35; cursor: default; }
     .btn-mode.primary { background: var(--accent); color: var(--on-accent); }
+    .btn-mode.primary .btn-mode-desc { color: rgba(255,255,255,0.85); }
     .btn-mode.primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
 
     /* 問題一覧 */
@@ -104,11 +112,11 @@
     .prob-list-dora { display: flex; align-items: center; gap: 2px; flex: 1; }
     .prob-list-dora-label { font-size: 0.62rem; color: var(--label-soft); font-weight: 600; flex-shrink: 0; margin-right: 1px; letter-spacing: 0.03em; }
     .prob-list-dora-tiles { display: flex; gap: 1px; }
-    .prob-list-dora-tile { width: 16px; height: 22px; background: #f5f0e8; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+    .prob-list-dora-tile { width: 16px; height: 22px; background: #ffffff; border: 1px solid #e6e1d6; border-radius: 3px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.04); }
     .prob-list-dora-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prob-list-badge { font-size: 0.62rem; padding: 1px 5px; border-radius: 3px; border: 1px solid var(--line); color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
     .prob-list-hand { display: flex; gap: 1px; overflow-x: auto; align-items: flex-end; padding-bottom: 1px; }
-    .prob-list-tile { width: 22px; height: 31px; background: #f5f0e8; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
+    .prob-list-tile { width: 22px; height: 31px; background: #ffffff; border: 1px solid #e6e1d6; border-radius: 4px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.04); }
     .prob-list-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prob-list-tsumo-gap { width: 6px; flex-shrink: 0; }
 .card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:var(--accent-dim); color:var(--accent); border:1px solid rgba(163,107,24,0.35); transition:background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
@@ -129,8 +137,16 @@
       transition: border-color 0.2s, color 0.2s; white-space: nowrap; flex-shrink: 0;
     }
     .btn-home-quiz:hover { border-color: var(--accent); color: var(--accent); }
-    .progress-bar { height: 6px; background: var(--card); border-radius: 3px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--correct); border-radius: 3px; transition: width 0.4s; }
+    .progress-bar { position: relative; height: 2px; background: var(--line); border-radius: 1px; overflow: visible; }
+    .progress-fill { position: relative; height: 100%; background: var(--accent); border-radius: 1px; transition: width 0.4s; }
+    .progress-fill::after {
+      content: ''; position: absolute; right: -4px; top: 50%;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); transform: translateY(-50%);
+      box-shadow: 0 0 0 3px rgba(163,107,24,0.15);
+    }
+    .progress-fill[style*="width: 0%"]::after,
+    .progress-fill[style*="width:0%"]::after { display: none; }
 
     /* 局情報・ドラ表示牌バー */
     .situation-bar {
@@ -148,9 +164,10 @@
     .dora-tiles-wrap { display: flex; gap: 0; background: var(--card); padding: 4px 6px; border-radius: 5px; }
     .dora-tile {
       width: min(36px, var(--tile-w)); height: calc(min(36px, var(--tile-w)) * 1.4);
-      background: transparent; border-radius: 0; outline: 1px solid var(--line);
+      background: #ffffff; border-radius: 5px; border: 1px solid #e6e1d6;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.58rem; color: #333; font-weight: bold; overflow: hidden; flex-shrink: 0;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.06);
     }
     .dora-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .dora-back-group { display: flex; align-items: center; flex-shrink: 0; }
@@ -231,17 +248,25 @@
     .hand-wrap { padding: 8px 0 16px; margin-bottom: 24px; }
 
     .hand-tiles { display: flex; gap: 0; padding: 4px 8px; justify-content: center; flex-wrap: nowrap; }
-    .tsumo-spacer { width: calc(var(--tile-w) * 0.4); flex-shrink: 0; }
+    .tsumo-spacer {
+      width: calc(var(--tile-w) * 0.4); flex-shrink: 0;
+      align-self: stretch;
+      background-image: repeating-linear-gradient(to bottom, var(--line) 0 4px, transparent 4px 8px);
+      background-size: 1px calc(var(--tile-h) * 0.7);
+      background-position: center;
+      background-repeat: no-repeat;
+    }
 
     .tile-slot {
-      width: var(--tile-w); height: var(--tile-h); border-radius: 4px;
+      width: var(--tile-w); height: var(--tile-h); border-radius: 6px;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
       outline: 3px solid transparent; transition: transform 0.15s, outline-color 0.2s, box-shadow 0.2s;
       flex-shrink: 0; font-size: 0.7rem; color: #333; font-weight: bold;
       position: relative; user-select: none; overflow: visible;
       background: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
     }
-    .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; border-radius: 4px; }
+    .tile-slot img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; border-radius: 6px; }
     .tsumo-label {
       position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
       font-size: 0.7rem; font-weight: 700; color: var(--accent);
@@ -259,10 +284,17 @@
     }
     .tile-slot.correct::after { border: 3px solid var(--correct); }
     .tile-slot.wrong::after   { border: 3px solid var(--wrong); }
+    .tile-slot.correct::before {
+      content: ''; position: absolute; inset: -2px;
+      border-radius: 6px; border: 2px solid var(--correct);
+      pointer-events: none; z-index: 1;
+      animation: ring-pulse 0.6s ease-out forwards;
+    }
 
     @keyframes pulse-correct { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.1) translateY(-8px); } 100% { transform: scale(1) translateY(0); } }
     @keyframes shake-wrong   { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 60% { transform: translateX(6px); } }
     @keyframes slide-up-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ring-pulse    { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.45); opacity: 0; } }
 
     .feedback-area { background: var(--surface); border-radius: 12px; padding: 16px 18px; margin-bottom: 24px; border-left: 4px solid transparent; box-shadow: 0 2px 8px rgba(20,20,20,0.04); animation: slide-up-fade 0.25s ease both; }
     .feedback-area.correct { border-left-color: var(--correct); }
@@ -306,8 +338,10 @@
     .ukeireru-chip:nth-child(13) { animation-delay: 360ms; }
     .ukeireru-chip:nth-child(n+14) { animation-delay: 390ms; }
     .ukeireru-chip .u-tile {
-      width: 22px; height: 30px; background: #f5f0e8;
-      border-radius: 3px; overflow: hidden; flex-shrink: 0;
+      width: 22px; height: 30px; background: #ffffff;
+      border: 1px solid #e6e1d6;
+      border-radius: 4px; overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
     }
     .ukeireru-chip .u-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .ukeireru-chip .u-x { color: var(--text-dim); font-size: 0.78rem; margin: 0 1px; }
@@ -324,7 +358,9 @@
     }
     .ukeireru-kind {
       display: inline-block; width: 22px; height: 30px;
-      background: #f5f0e8; border-radius: 3px; overflow: hidden; flex-shrink: 0;
+      background: #ffffff; border: 1px solid #e6e1d6;
+      border-radius: 4px; overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
     }
     .ukeireru-kind img { width: 100%; height: 100%; object-fit: contain; display: block; }
     .feedback-info-row {
@@ -349,8 +385,9 @@
     .commentary-tile {
       display: inline-block; vertical-align: middle;
       width: 22px; height: 30px; margin: 0 1px 2px;
-      border-radius: 3px; overflow: hidden; flex-shrink: 0;
-      background: #f5f0e8;
+      border-radius: 4px; overflow: hidden; flex-shrink: 0;
+      background: #ffffff; border: 1px solid #e6e1d6;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
     }
     .commentary-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
@@ -361,15 +398,25 @@
     .quiz-actions .btn-next { flex: 1; width: auto; max-width: none; margin: 0; }
     .quiz-actions .btn-ghost { font-size: 1.05rem; font-weight: 700; padding: 14px; }
 
-    /* リーチ/ダマ選択ボタン */
-    .riichi-choice-row { display: none; gap: 20px; justify-content: center; margin: 8px 0 24px; }
+    /* リーチ/ダマ選択ボタン（セグメントコントロール風） */
+    .riichi-choice-row {
+      display: none; gap: 4px; justify-content: center; margin: 8px auto 24px;
+      background: var(--card); padding: 4px; border-radius: 14px;
+      width: fit-content;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
     .riichi-choice-row.visible { display: flex; }
-    .riichi-btn { padding: 14px 40px; border-radius: 12px; font-size: 1.15rem; font-weight: 700; border: 2px solid var(--text-dim); background: transparent; color: var(--text); cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.1s; }
-    .riichi-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
-    .riichi-btn:disabled { cursor: default; transform: none; }
-    .riichi-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-    .riichi-btn.correct { border-color: var(--correct); background: rgba(49,183,122,0.12); color: var(--correct); }
-    .riichi-btn.wrong   { border-color: var(--wrong);   background: rgba(201,75,75,0.12); color: var(--wrong); }
+    .riichi-btn {
+      min-width: 120px; padding: 12px 32px; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 700;
+      border: none; background: transparent; color: var(--text-dim); cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: rgba(163,107,24,0.06); }
+    .riichi-btn:disabled { cursor: default; }
+    .riichi-btn.selected { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .riichi-btn.correct { background: rgba(49,183,122,0.18); color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
+    .riichi-btn.wrong   { background: rgba(201,75,75,0.18); color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
 
     /* ===== 来牌エリア ===== */
     .incoming-tile-row { display: none; align-items: center; gap: 12px; justify-content: center; margin-bottom: 16px; }
@@ -433,8 +480,14 @@
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
-    <button class="btn-mode" id="btn-list" onclick="showProblemList()" disabled>問題一覧</button>
-    <button class="btn-mode" id="btn-random" onclick="startRandomQuiz()" disabled>ランダム挑戦</button>
+    <button class="btn-mode" id="btn-list" onclick="showProblemList()" disabled>
+      問題一覧
+      <span class="btn-mode-desc">タグで絞り込んで挑戦</span>
+    </button>
+    <button class="btn-mode" id="btn-random" onclick="startRandomQuiz()" disabled>
+      ランダム挑戦
+      <span class="btn-mode-desc">全問からランダム出題</span>
+    </button>
   </div>
   <a href="nankiru-admin.html" class="admin-link">⚙ 問題管理</a>
   <a href="manual.html" class="admin-link">📖 使い方ガイド</a>
