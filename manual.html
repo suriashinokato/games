@@ -8,17 +8,36 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f8fafb;
+    --bg: #fafaf7;
     --surface: #ffffff;
-    --card: #eef2f5;
+    --card: #f1ede4;
     --accent: #a36b18;
     --accent-dim: rgba(163,107,24,0.12);
+    --label-soft: #8c7556;
     --correct: #31b77a;
     --wrong: #c94b4b;
     --text: #111418;
-    --text-dim: #6f7782;
-    --line: #dce2e8;
+    --text-dim: #5f6772;
+    --line: #e6e1d6;
     --on-accent: #ffffff;
+  }
+
+  /* ダークモード（OS設定追従） */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15161a;
+      --surface: #1f2025;
+      --card: #2a2a30;
+      --accent: #d09660;
+      --accent-dim: rgba(208,150,96,0.14);
+      --label-soft: #a89274;
+      --correct: #4ad690;
+      --wrong: #e07070;
+      --text: #e8e6e0;
+      --text-dim: #9aa0aa;
+      --line: #3a3530;
+      --on-accent: #1a1614;
+    }
   }
 
   body {
@@ -30,6 +49,26 @@
     display: flex; flex-direction: column; align-items: center;
   }
 
+  /* ボタン等のフォントを body に揃える */
+  button, input, select, textarea { font-family: inherit; }
+
+  /* キーボード操作時の統一フォーカスリング */
+  *:focus { outline: none; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  /* モーション低減設定の尊重 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* 見出しの統一トラッキング */
+  h1, h2, h3, .page-title { letter-spacing: 0.02em; }
+
   .screen { width: 100%; max-width: 800px; padding: 24px 16px 64px; }
 
   /* ===== ヘッダー ===== */
@@ -37,9 +76,10 @@
   .nav-link {
     background: none; border: 1px solid var(--text-dim); color: var(--text-dim);
     border-radius: 6px; padding: 6px 12px; font-size: 0.82rem; cursor: pointer;
-    text-decoration: none; transition: border-color 0.2s, color 0.2s;
+    text-decoration: none; transition: border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
   }
-  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-link:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(20,20,20,0.06); }
+  .nav-link:active { transform: translateY(0) scale(0.98); box-shadow: none; }
 
   .page-title { text-align: center; font-size: 1.7rem; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 4px; }
   .page-subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 32px; }
@@ -94,9 +134,11 @@
     flex: 1 1 280px; background: var(--surface); border-radius: 12px;
     padding: 18px; border: 1px solid rgba(163,107,24,0.22);
     text-decoration: none; color: var(--text);
-    transition: border-color 0.2s, transform 0.1s;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(20,20,20,0.04);
   }
-  .role-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .role-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(163,107,24,0.14); }
+  .role-card:active { transform: translateY(0) scale(0.99); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
   .role-card-title { color: var(--accent); font-weight: 700; font-size: 1.1rem; margin-bottom: 6px; }
   .role-card-desc { color: var(--text-dim); font-size: 0.88rem; }
   .role-card-file { display: inline-block; margin-top: 10px; font-size: 0.75rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; padding: 1px 8px; }
@@ -131,9 +173,11 @@
     align-items: flex-end;
   }
   .demo-tile {
-    width: 32px; height: 45px; background: #f5f0e8;
-    border-radius: 3px; overflow: hidden; flex-shrink: 0;
+    width: 32px; height: 45px; background: #ffffff;
+    border: 1px solid #e6e1d6;
+    border-radius: 5px; overflow: hidden; flex-shrink: 0;
     transition: outline 0.15s;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
   }
   .demo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .demo-tile.highlight { outline: 3px solid var(--accent); outline-offset: 1px; }
