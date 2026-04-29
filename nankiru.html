@@ -1576,7 +1576,13 @@ function renderQ() {
 
   const total = st.problems.length, cur = st.idx + 1;
   document.getElementById('q-progress').textContent = '問題 ' + cur + ' / ' + total;
-  document.getElementById('q-score').textContent    = st.correct + ' 正解';
+  const scoreEl = document.getElementById('q-score');
+  if (st.mode === 'list') {
+    scoreEl.style.display = 'none';
+  } else {
+    scoreEl.style.display = '';
+    scoreEl.textContent = st.correct + ' 正解';
+  }
   document.getElementById('q-fill').style.width     = ((cur - 1) / total * 100) + '%';
 
   // 局情報・ドラ・メモ
@@ -1704,7 +1710,9 @@ function showFeedbackArea(ok, q) {
   else { srcEl.style.display = 'none'; }
   fa.style.display = '';
   document.getElementById('q-instruction').style.display = 'none';
-  document.getElementById('q-score').textContent = st.correct + ' 正解';
+  if (st.mode !== 'list') {
+    document.getElementById('q-score').textContent = st.correct + ' 正解';
+  }
   const btn = document.getElementById('btn-next');
   const retryAgainBtn = document.getElementById('btn-retry-again');
   const goToListBtn = document.getElementById('btn-go-to-list');
