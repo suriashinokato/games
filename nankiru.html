@@ -271,6 +271,25 @@
       background: #f5f0e8; border-radius: 3px; overflow: hidden; flex-shrink: 0;
     }
     .ukeireru-kind img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .feedback-info-row {
+      display: flex; align-items: center; flex-wrap: wrap;
+      gap: 8px; margin-top: 10px;
+    }
+    .feedback-info-row > #feedback-shanten .shanten-badge { margin-top: 0; }
+    .ukeireru-details { margin-top: 0; }
+    .ukeireru-details > summary {
+      list-style: none; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(76,175,80,0.15); color: var(--correct);
+      font-size: 0.82rem; font-weight: 700; padding: 3px 12px; border-radius: 20px;
+      border: 1px solid var(--correct);
+    }
+    .ukeireru-details > summary::-webkit-details-marker { display: none; }
+    .ukeireru-details > summary::before {
+      content: '▶'; font-size: 0.7rem; transition: transform 0.15s;
+    }
+    .ukeireru-details[open] > summary::before { transform: rotate(90deg); }
+    .ukeireru-details > .ukeireru-row { margin-top: 6px; }
     .commentary-tile {
       display: inline-block; vertical-align: middle;
       width: 22px; height: 30px; margin: 0 1px 2px;
@@ -347,7 +366,7 @@
 
 <!-- ===== HOME ===== -->
 <div id="screen-home" class="screen">
-  <h1 class="home-title">麻雀 何切るメーカー</h1>
+  <h1 class="home-title">麻雀 何切る練習帳</h1>
   <p class="home-subtitle">最善の一手を選ぶために</p>
   <div id="auth-bar" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;min-height:36px">
     <span id="auth-user" style="font-size:0.82rem;color:var(--text-dim)">未ログイン（ローカルモード）</span>
@@ -428,7 +447,12 @@
   <div class="feedback-area" id="feedback-area" style="display:none">
     <div class="feedback-result" id="feedback-result"></div>
     <div class="feedback-commentary" id="feedback-commentary"></div>
-    <div id="feedback-shanten" style="display:none"></div>
+    <div class="feedback-info-row">
+      <details class="ukeireru-details" id="feedback-ukeireru-details" style="display:none">
+        <summary class="ukeireru-summary">受け入れ牌を表示</summary>
+      </details>
+      <div id="feedback-shanten" style="display:none"></div>
+    </div>
     <div class="ukeireru-row" id="feedback-ukeireru" style="display:none"></div>
     <div class="feedback-source" id="feedback-source" style="display:none"></div>
   </div>
@@ -686,11 +710,6 @@ function renderUkeireru(entries, container) {
   const isPerDiscardFormat = entries[0] && Object.prototype.hasOwnProperty.call(entries[0], 'discard');
 
   if (isPerDiscardFormat) {
-    const lbl = document.createElement('span');
-    lbl.className = 'ukeireru-label';
-    lbl.textContent = '受け入れ';
-    container.appendChild(lbl);
-
     entries.forEach(opt => {
       const row = document.createElement('div');
       row.className = 'ukeireru-row';
@@ -715,10 +734,6 @@ function renderUkeireru(entries, container) {
   }
 
   // 旧形式 (手入力 ukeireru)
-  const lbl = document.createElement('span');
-  lbl.className = 'ukeireru-label';
-  lbl.textContent = '受け入れ';
-  container.appendChild(lbl);
   entries.forEach(entry => {
     container.appendChild(buildTileCountChip(entry.tile, entry.count));
   });
@@ -1361,7 +1376,21 @@ function showFeedbackArea(ok, q) {
     shantenEl.style.display = 'none';
   }
   renderCommentary(q.commentary || '', document.getElementById('feedback-commentary'));
-  renderUkeireru(q.ukeireru || [], document.getElementById('feedback-ukeireru'));
+  const ukRow = document.getElementById('feedback-ukeireru');
+  renderUkeireru(q.ukeireru || [], ukRow);
+  const ukDetails = document.getElementById('feedback-ukeireru-details');
+  const hasUkeireru = !!(q.ukeireru && q.ukeireru.length);
+  if (ukDetails) {
+    ukDetails.open = false;
+    ukDetails.style.display = hasUkeireru ? '' : 'none';
+    if (!ukDetails.dataset.bound) {
+      ukDetails.addEventListener('toggle', () => {
+        ukRow.style.display = ukDetails.open ? '' : 'none';
+      });
+      ukDetails.dataset.bound = '1';
+    }
+  }
+  ukRow.style.display = 'none';
   const srcEl = document.getElementById('feedback-source');
   const srcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
   if (srcText) { srcEl.textContent = '出典: ' + srcText; srcEl.style.display = ''; }
@@ -1843,17 +1872,32 @@ async function showResult() {
       const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
       const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
       info.appendChild(ans); info.appendChild(cmt);
+      const infoRow = document.createElement('div');
+      infoRow.className = 'feedback-info-row';
+      let urow = null;
+      if (q.ukeireru && q.ukeireru.length) {
+        const udet = document.createElement('details');
+        udet.className = 'ukeireru-details';
+        const usum = document.createElement('summary');
+        usum.className = 'ukeireru-summary';
+        usum.textContent = '受け入れ牌を表示';
+        udet.appendChild(usum);
+        urow = document.createElement('div');
+        urow.className = 'ukeireru-row';
+        urow.style.display = 'none';
+        renderUkeireru(q.ukeireru, urow);
+        udet.addEventListener('toggle', () => {
+          urow.style.display = udet.open ? '' : 'none';
+        });
+        infoRow.appendChild(udet);
+      }
       if (q.shanten != null && q.shanten !== '') {
         const sb = document.createElement('span'); sb.className = 'shanten-badge';
-        sb.textContent = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン'; info.appendChild(sb);
+        sb.textContent = q.shanten === 0 ? 'テンパイ' : q.shanten + 'シャンテン';
+        infoRow.appendChild(sb);
       }
-      if (q.ukeireru && q.ukeireru.length) {
-        const urow = document.createElement('div');
-        urow.className = 'ukeireru-row';
-        urow.style.marginTop = '8px';
-        renderUkeireru(q.ukeireru, urow);
-        info.appendChild(urow);
-      }
+      if (infoRow.childNodes.length) info.appendChild(infoRow);
+      if (urow) info.appendChild(urow);
       const summarySrcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
       if (summarySrcText) {
         const src = document.createElement('p');
