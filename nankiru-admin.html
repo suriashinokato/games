@@ -13,15 +13,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #1a1a2e;
-      --surface: #16213e;
-      --card: #0f3460;
-      --accent: #c9a84c;
-      --accent-dim: rgba(201,168,76,0.15);
-      --correct: #4caf50;
-      --wrong: #e53935;
-      --text: #e0e0e0;
-      --text-dim: #888;
+      --bg: #f8fafb;
+      --surface: #ffffff;
+      --card: #eef2f5;
+      --accent: #a36b18;
+      --accent-dim: rgba(163,107,24,0.12);
+      --correct: #31b77a;
+      --wrong: #c94b4b;
+      --text: #111418;
+      --text-dim: #6f7782;
+      --line: #dce2e8;
+      --on-accent: #ffffff;
       --tile-w: 52px;
       --tile-h: 72px;
     }
@@ -48,7 +50,7 @@
 
     .btn { padding: 9px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
     .btn:hover { opacity: 0.85; }
-    .btn-accent { background: var(--accent); color: #1a1a2e; }
+    .btn-accent { background: var(--accent); color: var(--on-accent); }
     .btn-ghost  { background: transparent; color: var(--text); border: 2px solid var(--text-dim); }
     .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
     .btn-danger { background: var(--wrong); color: #fff; }
@@ -75,7 +77,7 @@
     .tile-mini.called-tile  { border-color: var(--accent); background: transparent; }
 
     .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-    .answer-badge { background: rgba(76,175,80,0.15); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge { background: rgba(49,183,122,0.14); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
     .card-btns { display: flex; gap: 8px; }
     .empty-msg { text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 0.95rem; }
 
@@ -90,7 +92,7 @@
     /* パレット追加先トグル */
     .target-toggle { display: inline-flex; border: 2px solid var(--text-dim); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
     .target-btn { padding: 7px 16px; font-size: 0.82rem; font-weight: 600; background: transparent; color: var(--text-dim); border: none; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-    .target-btn.active { background: var(--accent); color: #1a1a2e; }
+    .target-btn.active { background: var(--accent); color: var(--on-accent); }
     .target-btn:not(.active):hover { color: var(--text); }
 
     /* 副露牌モード表示 */
@@ -131,7 +133,7 @@
       align-items: center;
       gap: 6px;
     }
-    .section-tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .section-tab:hover { color: var(--text); background: var(--card); }
     .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .tab-count {
       display: inline-flex;
@@ -139,12 +141,12 @@
       justify-content: center;
       min-width: 20px;
       height: 18px;
-      background: rgba(255,255,255,0.1);
+      background: var(--card);
       border-radius: 9px;
       font-size: 0.72rem;
       padding: 0 5px;
     }
-    .section-tab.active .tab-count { background: var(--accent); color: #1a1a2e; }
+    .section-tab.active .tab-count { background: var(--accent); color: var(--on-accent); }
     .tab-panel { display: none; padding-top: 12px; }
     .tab-panel.active { display: block; }
 
@@ -183,11 +185,11 @@
     .mb-preview .mb-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .editor-hand .e-tile:hover,
     .mb-preview .mb-tile:hover { border-color: var(--accent); }
-    .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(76,175,80,0.5); }
-    .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px rgba(201,168,76,0.5); }
+    .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(49,183,122,0.36); }
+    .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px rgba(163,107,24,0.22); }
     .remove-btn {
       position: absolute; top: 1px; right: 1px; width: 16px; height: 16px;
-      background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%;
+      background: rgba(17,20,24,0.72); color: #fff; border: none; border-radius: 50%;
       font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; display: none; padding: 0;
     }
     .editor-hand .e-tile:hover .remove-btn,
@@ -260,14 +262,14 @@
     /* フォーム */
     label.field-label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
     textarea.commentary-input {
-      width: 100%; background: var(--card); border: 2px solid rgba(255,255,255,0.1);
+      width: 100%; background: var(--card); border: 2px solid var(--line);
       border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 10px 12px;
       resize: vertical; min-height: 90px; font-family: inherit; line-height: 1.6; transition: border-color 0.2s;
     }
     textarea.commentary-input:focus { outline: none; border-color: var(--accent); }
 
     select.select-input, input.num-input, input.text-input {
-      background: var(--card); border: 2px solid rgba(255,255,255,0.1);
+      background: var(--card); border: 2px solid var(--line);
       border-radius: 8px; color: var(--text); font-size: 0.9rem; padding: 8px 12px;
       transition: border-color 0.2s; min-width: 140px; width: 100%;
     }
@@ -282,8 +284,8 @@
     .editor-actions { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
 
-    .answer-badge-riichi { background: rgba(201,168,76,0.15); color: var(--accent); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-    .answer-badge-meld { background: rgba(76,175,80,0.12); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge-riichi { background: var(--accent-dim); color: var(--accent); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge-meld { background: rgba(49,183,122,0.12); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
 
     /* チー/ポン/カン問題用タイル選択 */
     .meld-q-tile {
@@ -295,8 +297,8 @@
     }
     .meld-q-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .meld-q-tile:hover { border-color: var(--accent); }
-    .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px rgba(201,168,76,0.5); }
-    .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(76,175,80,0.5); }
+    .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px rgba(163,107,24,0.24); }
+    .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(49,183,122,0.36); }
 
     /* ===== 出典選択UI ===== */
     .source-select-row { display: flex; gap: 8px; align-items: center; }
@@ -308,11 +310,11 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background 0.2s;
     }
-    .btn-add-source:hover { background: var(--accent); color: #1a1a2e; }
+    .btn-add-source:hover { background: var(--accent); color: var(--on-accent); }
     #new-source-input-area { margin-top: 10px; }
     .source-action-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
     .source-action-row button { padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; }
-    #save-new-source-btn { background: var(--accent); color: #1a1a2e; }
+    #save-new-source-btn { background: var(--accent); color: var(--on-accent); }
     #cancel-new-source-btn { background: transparent; border: 2px solid var(--text-dim) !important; color: var(--text-dim); }
 
     /* ===== 出典リスト管理セクション ===== */
@@ -339,12 +341,12 @@
     .btn-del-source { color: var(--text-dim); }
     .btn-del-source:hover { color: var(--wrong); }
     .btn-save-source { color: var(--correct); font-size: 1.1rem; }
-    .btn-save-source:hover { color: #6fcf72; }
+    .btn-save-source:hover { color: #228c5f; }
     .btn-cancel-source { color: var(--text-dim); }
     .btn-cancel-source:hover { color: var(--wrong); }
     .mgmt-add-row { display: flex; gap: 8px; }
     .mgmt-add-row input { flex: 1; }
-    .mgmt-add-row button { flex-shrink: 0; padding: 8px 16px; border-radius: 8px; background: var(--accent); color: #1a1a2e; font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; }
+    .mgmt-add-row button { flex-shrink: 0; padding: 8px 16px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer; white-space: nowrap; }
     .mgmt-add-row button:hover { opacity: 0.85; }
     /* ===== タグシステム ===== */
     .tag-input-row { display:flex; gap:8px; align-items:center; margin-top:10px; }
@@ -370,7 +372,7 @@
       padding:2px 9px; font-size:0.72rem; font-weight:600;
       cursor:pointer; transition:background 0.15s;
     }
-    .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:#1a1a2e; }
+    .card-tag:hover, .card-tag.active-filter { background:var(--accent); color:var(--on-accent); }
     .tag-filter-bar {
       display:flex; flex-wrap:wrap; gap:6px; align-items:center;
       margin-bottom:14px; min-height:28px;
@@ -640,7 +642,7 @@
         <label class="field-label">来牌（必須）</label>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <input type="text" id="incoming-tile-input" class="num-input" placeholder="牌コード (例: 3m)" style="min-width:140px;max-width:160px" oninput="updateIncomingTilePreview()">
-          <div id="incoming-tile-preview" style="width:40px;height:56px;background:var(--card);border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,0.1);flex-shrink:0"></div>
+          <div id="incoming-tile-preview" style="width:40px;height:56px;background:var(--card);border-radius:6px;overflow:hidden;border:2px solid var(--line);flex-shrink:0"></div>
           <div>
             <label class="field-label" style="margin-bottom:4px">来牌元ラベル（任意）</label>
             <input type="text" id="incoming-from-input" class="text-input" placeholder="例: 上家から" style="max-width:240px">
@@ -1366,7 +1368,7 @@ async function renderList() {
       meldRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap';
       p.melds.forEach(meld => {
         const grp = document.createElement('div');
-        grp.style.cssText = 'display:flex;align-items:center;gap:2px;background:rgba(0,0,0,0.2);padding:3px 5px;border-radius:5px';
+        grp.style.cssText = 'display:flex;align-items:center;gap:2px;background:var(--card);padding:3px 5px;border-radius:5px';
         const lbl = document.createElement('span');
         lbl.style.cssText = 'font-size:0.65rem;color:var(--accent);font-weight:700;margin-right:2px';
         lbl.textContent = MELD_TYPE_NAMES[meld.type] || '';
