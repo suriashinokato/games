@@ -719,6 +719,7 @@
 
       <div class="result-actions">
         <button class="btn-secondary" id="btn-home">モード選択へ</button>
+        <button class="btn-secondary" id="btn-ranking">優先順位一覧</button>
         <button class="btn-primary" id="btn-retry">もう一度</button>
       </div>
 
@@ -1410,6 +1411,9 @@
     });
     document.getElementById('btn-retry').addEventListener('click', function() {
       startQuiz(state.mode);
+    });
+    document.getElementById('btn-ranking').addEventListener('click', function() {
+      window.location.href = 'ranking.html';
     });
 
     // ホームのスコアを初期表示
