@@ -176,11 +176,11 @@
     .quiz-header { margin-bottom: 24px; }
     .progress-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 6px; gap: 8px; }
     .btn-home-quiz {
-      background: none; border: 1px solid var(--text-dim); color: var(--text-dim);
+      background: var(--surface); border: 1px solid var(--line); color: var(--text-dim);
       border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer;
-      transition: border-color 0.2s, color 0.2s; white-space: nowrap; flex-shrink: 0;
+      transition: background 0.15s, border-color 0.2s, color 0.2s; white-space: nowrap; flex-shrink: 0;
     }
-    .btn-home-quiz:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-home-quiz:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
     .progress-bar { position: relative; height: 2px; background: var(--line); border-radius: 1px; overflow: visible; }
     .progress-fill { position: relative; height: 100%; background: var(--accent); border-radius: 1px; transition: width 0.4s; }
     .progress-fill::after {
@@ -287,7 +287,15 @@
     }
     .meld-slot.back .m-tile img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
 
-    .instruction { text-align: center; color: var(--text-dim); font-size: 0.95rem; margin-bottom: 24px; min-height: 1.4em; }
+    .instruction {
+      text-align: center;
+      color: var(--text);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      min-height: 1.4em;
+    }
 
     .hand-wrap { padding: 8px 0 16px; margin-bottom: 24px; }
 
@@ -435,9 +443,9 @@
     }
     .commentary-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
-    .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent-strong); color: var(--on-accent); border: 1px solid var(--accent-strong); border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
-    .btn-next:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
-    .btn-next:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
+    .btn-next:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+    .btn-next:active:not(:disabled) { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); transform: translateY(0) scale(0.98); box-shadow: none; }
     .quiz-actions { display: flex; gap: 12px; max-width: 560px; margin: 0 auto; }
     .quiz-actions .btn-next { flex: 1; width: auto; max-width: none; margin: 0; }
     .quiz-actions .btn-ghost { font-size: 1.05rem; font-weight: 700; padding: 14px; }
@@ -453,14 +461,14 @@
     .riichi-btn {
       min-width: 120px; padding: 12px 32px; border-radius: 10px;
       font-size: 1.1rem; font-weight: 700;
-      border: none; background: transparent; color: var(--text-dim); cursor: pointer;
-      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: var(--accent-dim); }
+    .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: var(--accent-dim); border-color: var(--accent); }
     .riichi-btn:disabled { cursor: default; }
-    .riichi-btn.selected { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .riichi-btn.correct { background: rgba(49,183,122,0.18); color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
-    .riichi-btn.wrong   { background: rgba(201,75,75,0.18); color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
+    .riichi-btn.selected { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .riichi-btn.correct { background: rgba(49,183,122,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
+    .riichi-btn.wrong   { background: rgba(201,75,75,0.12); color: var(--wrong);   border-color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
 
     /* ===== 来牌エリア ===== */
     .incoming-tile-row { display: none; align-items: center; gap: 12px; justify-content: center; margin-bottom: 16px; }
@@ -472,10 +480,10 @@
     /* ===== チー/ポン/カン アクション選択ボタン行 ===== */
     .meld-choice-row { display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 8px 0 24px; }
     .meld-choice-row.visible { display: flex; }
-    .meld-btn { padding: 14px 32px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; border: 2px solid var(--text-dim); background: transparent; color: var(--text); cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.1s; }
-    .meld-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+    .meld-btn { padding: 14px 32px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s; }
+    .meld-btn:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
     .meld-btn:disabled { cursor: default; transform: none; }
-    .meld-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+    .meld-btn.selected { border-color: var(--accent-strong); background: var(--accent-strong); color: var(--on-accent); }
     .meld-btn.correct  { border-color: var(--correct); background: rgba(49,183,122,0.12); color: var(--correct); }
     .meld-btn.wrong    { border-color: var(--wrong);   background: rgba(201,75,75,0.12); color: var(--wrong); }
 
@@ -505,7 +513,7 @@
     .result-actions { display: flex; gap: 12px; margin-top: 24px; }
     .btn-ghost { flex: 1; padding: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
     .btn-ghost:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-2px); }
-    .btn-ghost.selected, .btn-ghost:active:not(:disabled) { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); transform: translateY(0) scale(0.98); box-shadow: none; }
+    .btn-ghost:active:not(:disabled) { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); transform: translateY(0) scale(0.98); box-shadow: none; }
     .btn-primary { flex: 1; padding: 13px; background: var(--accent-strong); color: var(--on-accent); border: 1px solid var(--accent-strong); border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
     .btn-primary:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
     .btn-primary:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
@@ -519,8 +527,8 @@
   <p class="home-subtitle">最善の一手を選ぶために</p>
   <div id="auth-bar" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;min-height:36px">
     <span id="auth-user" style="font-size:0.82rem;color:var(--text-dim)">未ログイン（ローカルモード）</span>
-    <button id="btn-signin"  onclick="signIn()"  class="btn-start" style="width:auto;padding:8px 18px;font-size:0.88rem;margin:0">Googleでログイン</button>
-    <button id="btn-signout" onclick="signOut()" class="btn-start" style="width:auto;padding:8px 18px;font-size:0.88rem;margin:0;background:var(--surface);color:var(--text);border:1px solid var(--text-dim);display:none">ログアウト</button>
+    <button id="btn-signin"  onclick="signIn()"  class="btn-primary" style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;">Googleでログイン</button>
+    <button id="btn-signout" onclick="signOut()" class="btn-ghost"   style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;display:none">ログアウト</button>
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
@@ -547,7 +555,7 @@
   <div id="list-tag-filter-bar" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:8px;">
     <span style="font-size:0.75rem;color:var(--text-dim);flex-shrink:0">絞り込み中:</span>
     <span id="list-tag-filter-chip" class="card-tag active-filter"></span>
-    <button style="font-size:0.75rem;color:var(--text-dim);cursor:pointer;background:none;border:1px solid var(--text-dim);border-radius:10px;padding:2px 8px;" onclick="setListTagFilter(null)">× クリア</button>
+    <button class="btn-home-quiz" style="font-size:0.75rem;border-radius:10px;padding:2px 8px;" onclick="setListTagFilter(null)">× クリア</button>
   </div>
   <div id="problem-list"></div>
 </div>
@@ -1578,9 +1586,9 @@ function showFeedbackArea(ok, q) {
   btn.className = 'btn-next';
   btn.onclick = () => nextQ();
   retryAgainBtn.style.display = '';
-  retryAgainBtn.onclick = () => { retryAgainBtn.classList.add('selected'); retryCurrentQ(); };
+  retryAgainBtn.onclick = () => { retryCurrentQ(); };
   goToListBtn.style.display = '';
-  goToListBtn.onclick = () => { goToListBtn.classList.add('selected'); showProblemList(); };
+  goToListBtn.onclick = () => { showProblemList(); };
 }
 
 function onTileClick(idx, code, q) {
@@ -1967,11 +1975,11 @@ async function showResult() {
   const retryBtn = document.getElementById('btn-retry');
   const retryAgainResultBtn = document.getElementById('btn-retry-again-result');
   retryAgainResultBtn.className = 'btn-ghost';
-  retryAgainResultBtn.onclick = () => { retryAgainResultBtn.classList.add('selected'); retryAgain(); };
+  retryAgainResultBtn.onclick = () => { retryAgain(); };
   if (st.mode === 'list') {
     retryBtn.textContent = '問題一覧に戻る';
     retryBtn.className = 'btn-ghost';
-    retryBtn.onclick = () => { retryBtn.classList.add('selected'); showProblemList(); };
+    retryBtn.onclick = () => { showProblemList(); };
   } else {
     retryBtn.textContent = 'もう一度';
     retryBtn.className = 'btn-primary';
