@@ -568,7 +568,7 @@
       <span id="q-progress">問題 1 / 0</span>
       <span id="q-score">0 正解</span>
     </div>
-    <div class="progress-bar">
+    <div class="progress-bar" id="q-progress-bar">
       <div class="progress-fill" id="q-fill" style="width:0%"></div>
     </div>
   </div>
@@ -1442,11 +1442,14 @@ function renderQ() {
   const total = st.problems.length, cur = st.idx + 1;
   document.getElementById('q-progress').textContent = '問題 ' + cur + ' / ' + total;
   const scoreEl = document.getElementById('q-score');
+  const progressBarEl = document.getElementById('q-progress-bar');
   if (st.mode === 'list') {
     scoreEl.style.display = 'none';
+    progressBarEl.style.display = 'none';
   } else {
     scoreEl.style.display = '';
     scoreEl.textContent = st.correct + ' 正解';
+    progressBarEl.style.display = '';
   }
   document.getElementById('q-fill').style.width     = ((cur - 1) / total * 100) + '%';
 
