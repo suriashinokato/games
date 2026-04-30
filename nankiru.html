@@ -11,10 +11,12 @@
       --bg: #fafaf7;
       --surface: #ffffff;
       --card: #f1ede4;
-      --accent: #a36b18;
-      --accent-dim: rgba(163,107,24,0.12);
-      --label-soft: #8c7556;
-      --correct: #31b77a;
+      --accent: #2e7d54;
+      --accent-strong: #1f5a3c;
+      --accent-dim: rgba(46,125,84,0.12);
+      --accent-shadow: rgba(46,125,84,0.22);
+      --label-soft: #5a7a6a;
+      --correct: #3fc88a;
       --wrong: #c94b4b;
       --text: #111418;
       --text-dim: #5f6772;
@@ -60,15 +62,17 @@
         --bg: #15161a;
         --surface: #1f2025;
         --card: #2a2a30;
-        --accent: #d09660;
-        --accent-dim: rgba(208,150,96,0.14);
-        --label-soft: #a89274;
+        --accent: #5cb88a;
+        --accent-strong: #3a8e62;
+        --accent-dim: rgba(92,184,138,0.16);
+        --accent-shadow: rgba(92,184,138,0.30);
+        --label-soft: #8caea0;
         --correct: #4ad690;
         --wrong: #e07070;
         --text: #e8e6e0;
         --text-dim: #9aa0aa;
         --line: #3a3530;
-        --on-accent: #1a1614;
+        --on-accent: #0e1a14;
       }
       /* 牌セル背景は白を維持（牌画像が白前提） */
       .prob-list-tile, .prob-list-dora-tile,
@@ -80,24 +84,11 @@
       .feedback-area { box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
       .prob-list-item { box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
       .prob-list-item:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
-      /* card-tag の枠は accent 由来の rgba をハードコードしているので上書き */
-      .card-tag { border-color: rgba(208,150,96,0.4); }
-      /* hover シャドウを暗背景でも視認可能に */
-      .btn-start:hover:not(:disabled),
-      .btn-next:hover,
-      .btn-primary:hover,
-      .btn-mode:hover:not(:disabled),
-      .btn-mode.primary:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(208,150,96,0.35); }
+      /* hover シャドウを暗背景でも視認可能に（accent-shadow がダーク用に切替済） */
       .btn-ghost:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
-      .card-tag:hover { box-shadow: 0 4px 12px rgba(208,150,96,0.3); }
-      /* tile-slot の hover シャドウ */
-      .hand-tiles:not(.answered) .tile-slot:hover { box-shadow: 0 8px 22px rgba(208,150,96,0.35); }
       /* 正解／不正解時の発光 */
       .tile-slot.correct { box-shadow: 0 0 16px rgba(74,214,144,0.55); }
       .tile-slot.wrong   { box-shadow: 0 0 16px rgba(224,112,112,0.55); }
-      /* シャンテン／受け入れバッジの背景は accent-dim 由来で OK */
-      /* progress-fill のドット光輪を accent に合わせる */
-      .progress-fill::after { box-shadow: 0 0 0 3px rgba(208,150,96,0.22); }
     }
 
     /* 見出しの統一トラッキング */
@@ -124,30 +115,30 @@
 
     .btn-start {
       display: block; width: 100%; max-width: 280px; margin: 0 auto 32px;
-      padding: 16px; background: var(--accent); color: var(--on-accent); border: none;
+      padding: 16px; background: var(--accent-strong); color: var(--on-accent); border: 1px solid var(--accent-strong);
       border-radius: 12px; font-size: 1.2rem; font-weight: 700; cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-      box-shadow: 0 1px 2px rgba(20,20,20,0.04);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
     }
-    .btn-start:hover:not(:disabled) { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
-    .btn-start:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
+    .btn-start:hover:not(:disabled) { background: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
+    .btn-start:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
     .btn-start:disabled { opacity: 0.35; cursor: default; }
 
     .home-mode-btns { display: flex; gap: 12px; max-width: 420px; margin: 0 auto 32px; }
+    /* Secondary（白地+細枠+黒文字）が既定。Primary 化したい時のみ .primary を付与。 */
     .btn-mode {
       flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
-      padding: 18px 16px; border: 2px solid var(--accent); background: transparent; color: var(--accent);
+      padding: 18px 16px; border: 1px solid var(--line); background: var(--surface); color: var(--text);
       border-radius: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; text-align: left;
-      transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
     }
     .btn-mode .btn-mode-desc { font-size: 0.72rem; font-weight: 500; color: var(--text-dim); letter-spacing: 0; line-height: 1.35; }
-    .btn-mode:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.18); }
-    .btn-mode:hover:not(:disabled) .btn-mode-desc { color: rgba(255,255,255,0.85); }
+    .btn-mode:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-2px); }
     .btn-mode:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: none; }
     .btn-mode:disabled { opacity: 0.35; cursor: default; }
-    .btn-mode.primary { background: var(--accent); color: var(--on-accent); }
-    .btn-mode.primary .btn-mode-desc { color: rgba(255,255,255,0.85); }
-    .btn-mode.primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
+    .btn-mode.primary { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-mode.primary .btn-mode-desc { color: var(--on-accent); opacity: 0.78; }
+    .btn-mode.primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
 
     /* 問題一覧 */
     .prob-list-item { background: var(--surface); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px; cursor: pointer; transition: background 0.15s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(20,20,20,0.03); }
@@ -165,151 +156,17 @@
     .prob-list-tile { width: 22px; height: 31px; background: #ffffff; border: 1px solid #e6e1d6; border-radius: 4px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.04); }
     .prob-list-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prob-list-tsumo-gap { width: 6px; flex-shrink: 0; }
-.card-tag { display:inline-block; padding:3px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; cursor:pointer; background:var(--accent-dim); color:var(--accent); border:1px solid rgba(163,107,24,0.35); transition:background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
-    .card-tag:hover { background:var(--accent); color:var(--on-accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(163,107,24,0.18); }
-    .card-tag.active-filter { background:var(--accent); color:var(--on-accent); }
+    /* タグフィルター: 完全フラット統一。カテゴリ別の塗り分けは廃止。 */
+    .card-tag {
+      display: inline-block; padding: 3px 8px; border-radius: 12px;
+      font-size: 0.72rem; font-weight: 600; cursor: pointer;
+      background: var(--surface); color: var(--text); border: 1px solid var(--line);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.2s;
+    }
+    .card-tag:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px var(--accent-shadow); }
+    .card-tag.active-filter { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); }
     .card-tag:active { transform: translateY(0) scale(0.96); box-shadow: none; }
 
-    /* ===== タグカテゴリカラー（data-tag のキーワード部分一致で自動分類） ===== */
-    /* 🟦 戦術系 */
-    .card-tag[data-tag*="押し"], .card-tag[data-tag*="引き"], .card-tag[data-tag*="オリ"],
-    .card-tag[data-tag*="攻め"], .card-tag[data-tag*="守備"], .card-tag[data-tag*="攻撃"],
-    .card-tag[data-tag*="ベタオリ"], .card-tag[data-tag*="回し"],
-    .card-tag[data-tag*="安全"], .card-tag[data-tag*="危険"] {
-      background: rgba(82,135,200,0.12); color: #3d6da8; border-color: rgba(82,135,200,0.35);
-    }
-    .card-tag[data-tag*="押し"]:hover, .card-tag[data-tag*="引き"]:hover, .card-tag[data-tag*="オリ"]:hover,
-    .card-tag[data-tag*="攻め"]:hover, .card-tag[data-tag*="守備"]:hover, .card-tag[data-tag*="攻撃"]:hover,
-    .card-tag[data-tag*="ベタオリ"]:hover, .card-tag[data-tag*="回し"]:hover,
-    .card-tag[data-tag*="安全"]:hover, .card-tag[data-tag*="危険"]:hover,
-    .card-tag.active-filter[data-tag*="押し"], .card-tag.active-filter[data-tag*="引き"],
-    .card-tag.active-filter[data-tag*="オリ"], .card-tag.active-filter[data-tag*="攻め"],
-    .card-tag.active-filter[data-tag*="守備"], .card-tag.active-filter[data-tag*="攻撃"],
-    .card-tag.active-filter[data-tag*="ベタオリ"], .card-tag.active-filter[data-tag*="回し"],
-    .card-tag.active-filter[data-tag*="安全"], .card-tag.active-filter[data-tag*="危険"] {
-      background: #3d6da8; color: #ffffff; border-color: #3d6da8; box-shadow: 0 4px 10px rgba(82,135,200,0.22);
-    }
-
-    /* 🟢 形系 */
-    .card-tag[data-tag*="形"], .card-tag[data-tag*="手筋"],
-    .card-tag[data-tag*="シャンテン"], .card-tag[data-tag*="向聴"],
-    .card-tag[data-tag*="テンパイ"], .card-tag[data-tag*="聴牌"],
-    .card-tag[data-tag*="面子"], .card-tag[data-tag*="搭子"],
-    .card-tag[data-tag*="スジ"], .card-tag[data-tag*="愚形"], .card-tag[data-tag*="好形"] {
-      background: rgba(60,150,110,0.12); color: #2d8767; border-color: rgba(60,150,110,0.35);
-    }
-    .card-tag[data-tag*="形"]:hover, .card-tag[data-tag*="手筋"]:hover,
-    .card-tag[data-tag*="シャンテン"]:hover, .card-tag[data-tag*="向聴"]:hover,
-    .card-tag[data-tag*="テンパイ"]:hover, .card-tag[data-tag*="聴牌"]:hover,
-    .card-tag[data-tag*="面子"]:hover, .card-tag[data-tag*="搭子"]:hover,
-    .card-tag[data-tag*="スジ"]:hover, .card-tag[data-tag*="愚形"]:hover, .card-tag[data-tag*="好形"]:hover,
-    .card-tag.active-filter[data-tag*="形"], .card-tag.active-filter[data-tag*="手筋"],
-    .card-tag.active-filter[data-tag*="シャンテン"], .card-tag.active-filter[data-tag*="向聴"],
-    .card-tag.active-filter[data-tag*="テンパイ"], .card-tag.active-filter[data-tag*="聴牌"],
-    .card-tag.active-filter[data-tag*="面子"], .card-tag.active-filter[data-tag*="搭子"],
-    .card-tag.active-filter[data-tag*="スジ"], .card-tag.active-filter[data-tag*="愚形"],
-    .card-tag.active-filter[data-tag*="好形"] {
-      background: #2d8767; color: #ffffff; border-color: #2d8767; box-shadow: 0 4px 10px rgba(60,150,110,0.22);
-    }
-
-    /* 🟣 期待値・速度系 */
-    .card-tag[data-tag*="打点"], .card-tag[data-tag*="速度"], .card-tag[data-tag*="期待値"],
-    .card-tag[data-tag*="点数"], .card-tag[data-tag*="満貫"], .card-tag[data-tag*="跳満"],
-    .card-tag[data-tag*="役"], .card-tag[data-tag*="リーチ"], .card-tag[data-tag*="ドラ"],
-    .card-tag[data-tag*="タンヤオ"], .card-tag[data-tag*="ピンフ"] {
-      background: rgba(140,90,160,0.12); color: #7a4d8d; border-color: rgba(140,90,160,0.35);
-    }
-    .card-tag[data-tag*="打点"]:hover, .card-tag[data-tag*="速度"]:hover, .card-tag[data-tag*="期待値"]:hover,
-    .card-tag[data-tag*="点数"]:hover, .card-tag[data-tag*="満貫"]:hover, .card-tag[data-tag*="跳満"]:hover,
-    .card-tag[data-tag*="役"]:hover, .card-tag[data-tag*="リーチ"]:hover, .card-tag[data-tag*="ドラ"]:hover,
-    .card-tag[data-tag*="タンヤオ"]:hover, .card-tag[data-tag*="ピンフ"]:hover,
-    .card-tag.active-filter[data-tag*="打点"], .card-tag.active-filter[data-tag*="速度"],
-    .card-tag.active-filter[data-tag*="期待値"], .card-tag.active-filter[data-tag*="点数"],
-    .card-tag.active-filter[data-tag*="満貫"], .card-tag.active-filter[data-tag*="跳満"],
-    .card-tag.active-filter[data-tag*="役"], .card-tag.active-filter[data-tag*="リーチ"],
-    .card-tag.active-filter[data-tag*="ドラ"], .card-tag.active-filter[data-tag*="タンヤオ"],
-    .card-tag.active-filter[data-tag*="ピンフ"] {
-      background: #7a4d8d; color: #ffffff; border-color: #7a4d8d; box-shadow: 0 4px 10px rgba(140,90,160,0.22);
-    }
-
-    /* 🟡 局面系 */
-    .card-tag[data-tag*="序盤"], .card-tag[data-tag*="中盤"], .card-tag[data-tag*="終盤"],
-    .card-tag[data-tag*="親"], .card-tag[data-tag*="子"],
-    .card-tag[data-tag*="東"], .card-tag[data-tag*="南"], .card-tag[data-tag*="西"], .card-tag[data-tag*="北"],
-    .card-tag[data-tag*="局"], .card-tag[data-tag*="オーラス"],
-    .card-tag[data-tag*="ラス目"], .card-tag[data-tag*="トップ"] {
-      background: rgba(180,140,40,0.12); color: #8c6f1f; border-color: rgba(180,140,40,0.35);
-    }
-    .card-tag[data-tag*="序盤"]:hover, .card-tag[data-tag*="中盤"]:hover, .card-tag[data-tag*="終盤"]:hover,
-    .card-tag[data-tag*="親"]:hover, .card-tag[data-tag*="子"]:hover,
-    .card-tag[data-tag*="東"]:hover, .card-tag[data-tag*="南"]:hover, .card-tag[data-tag*="西"]:hover,
-    .card-tag[data-tag*="北"]:hover, .card-tag[data-tag*="局"]:hover,
-    .card-tag[data-tag*="オーラス"]:hover, .card-tag[data-tag*="ラス目"]:hover,
-    .card-tag[data-tag*="トップ"]:hover,
-    .card-tag.active-filter[data-tag*="序盤"], .card-tag.active-filter[data-tag*="中盤"],
-    .card-tag.active-filter[data-tag*="終盤"], .card-tag.active-filter[data-tag*="親"],
-    .card-tag.active-filter[data-tag*="子"], .card-tag.active-filter[data-tag*="東"],
-    .card-tag.active-filter[data-tag*="南"], .card-tag.active-filter[data-tag*="西"],
-    .card-tag.active-filter[data-tag*="北"], .card-tag.active-filter[data-tag*="局"],
-    .card-tag.active-filter[data-tag*="オーラス"], .card-tag.active-filter[data-tag*="ラス目"],
-    .card-tag.active-filter[data-tag*="トップ"] {
-      background: #8c6f1f; color: #ffffff; border-color: #8c6f1f; box-shadow: 0 4px 10px rgba(180,140,40,0.22);
-    }
-
-    /* ⚪ 出典系 */
-    .card-tag[data-tag*="本"], .card-tag[data-tag*="著"], .card-tag[data-tag*="編"],
-    .card-tag[data-tag*="初級"], .card-tag[data-tag*="中級"], .card-tag[data-tag*="上級"],
-    .card-tag[data-tag*="入門"], .card-tag[data-tag*="練習"],
-    .card-tag[data-tag*="Vol"], .card-tag[data-tag*="vol"] {
-      background: rgba(110,110,120,0.10); color: #6a6a72; border-color: rgba(110,110,120,0.30);
-    }
-    .card-tag[data-tag*="本"]:hover, .card-tag[data-tag*="著"]:hover, .card-tag[data-tag*="編"]:hover,
-    .card-tag[data-tag*="初級"]:hover, .card-tag[data-tag*="中級"]:hover, .card-tag[data-tag*="上級"]:hover,
-    .card-tag[data-tag*="入門"]:hover, .card-tag[data-tag*="練習"]:hover,
-    .card-tag[data-tag*="Vol"]:hover, .card-tag[data-tag*="vol"]:hover,
-    .card-tag.active-filter[data-tag*="本"], .card-tag.active-filter[data-tag*="著"],
-    .card-tag.active-filter[data-tag*="編"], .card-tag.active-filter[data-tag*="初級"],
-    .card-tag.active-filter[data-tag*="中級"], .card-tag.active-filter[data-tag*="上級"],
-    .card-tag.active-filter[data-tag*="入門"], .card-tag.active-filter[data-tag*="練習"],
-    .card-tag.active-filter[data-tag*="Vol"], .card-tag.active-filter[data-tag*="vol"] {
-      background: #6a6a72; color: #ffffff; border-color: #6a6a72; box-shadow: 0 4px 10px rgba(110,110,120,0.22);
-    }
-
-    /* ダーク時はカテゴリ別タグの背景・文字を明度UPして可視性確保 */
-    @media (prefers-color-scheme: dark) {
-      .card-tag[data-tag*="押し"], .card-tag[data-tag*="引き"], .card-tag[data-tag*="オリ"],
-      .card-tag[data-tag*="攻め"], .card-tag[data-tag*="守備"], .card-tag[data-tag*="攻撃"],
-      .card-tag[data-tag*="ベタオリ"], .card-tag[data-tag*="回し"],
-      .card-tag[data-tag*="安全"], .card-tag[data-tag*="危険"] {
-        background: rgba(120,170,230,0.15); color: #8fb6df; border-color: rgba(120,170,230,0.4);
-      }
-      .card-tag[data-tag*="形"], .card-tag[data-tag*="手筋"],
-      .card-tag[data-tag*="シャンテン"], .card-tag[data-tag*="向聴"],
-      .card-tag[data-tag*="テンパイ"], .card-tag[data-tag*="聴牌"],
-      .card-tag[data-tag*="面子"], .card-tag[data-tag*="搭子"],
-      .card-tag[data-tag*="スジ"], .card-tag[data-tag*="愚形"], .card-tag[data-tag*="好形"] {
-        background: rgba(90,200,150,0.16); color: #6fceA0; border-color: rgba(90,200,150,0.4);
-      }
-      .card-tag[data-tag*="打点"], .card-tag[data-tag*="速度"], .card-tag[data-tag*="期待値"],
-      .card-tag[data-tag*="点数"], .card-tag[data-tag*="満貫"], .card-tag[data-tag*="跳満"],
-      .card-tag[data-tag*="役"], .card-tag[data-tag*="リーチ"], .card-tag[data-tag*="ドラ"],
-      .card-tag[data-tag*="タンヤオ"], .card-tag[data-tag*="ピンフ"] {
-        background: rgba(190,140,210,0.16); color: #c79bd9; border-color: rgba(190,140,210,0.4);
-      }
-      .card-tag[data-tag*="序盤"], .card-tag[data-tag*="中盤"], .card-tag[data-tag*="終盤"],
-      .card-tag[data-tag*="親"], .card-tag[data-tag*="子"],
-      .card-tag[data-tag*="東"], .card-tag[data-tag*="南"], .card-tag[data-tag*="西"], .card-tag[data-tag*="北"],
-      .card-tag[data-tag*="局"], .card-tag[data-tag*="オーラス"],
-      .card-tag[data-tag*="ラス目"], .card-tag[data-tag*="トップ"] {
-        background: rgba(220,180,80,0.15); color: #d8b664; border-color: rgba(220,180,80,0.4);
-      }
-      .card-tag[data-tag*="本"], .card-tag[data-tag*="著"], .card-tag[data-tag*="編"],
-      .card-tag[data-tag*="初級"], .card-tag[data-tag*="中級"], .card-tag[data-tag*="上級"],
-      .card-tag[data-tag*="入門"], .card-tag[data-tag*="練習"],
-      .card-tag[data-tag*="Vol"], .card-tag[data-tag*="vol"] {
-        background: rgba(160,160,170,0.13); color: #b0b0b8; border-color: rgba(160,160,170,0.35);
-      }
-    }
     .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-left:6px; }
 
     .admin-link { display: block; text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 24px; text-decoration: none; transition: color 0.2s; }
@@ -330,7 +187,7 @@
       content: ''; position: absolute; right: -4px; top: 50%;
       width: 8px; height: 8px; border-radius: 50%;
       background: var(--accent); transform: translateY(-50%);
-      box-shadow: 0 0 0 3px rgba(163,107,24,0.15);
+      box-shadow: 0 0 0 3px var(--accent-dim);
     }
     .progress-fill[style*="width: 0%"]::after,
     .progress-fill[style*="width:0%"]::after { display: none; }
@@ -459,7 +316,7 @@
       font-size: 0.7rem; font-weight: 700; color: var(--accent);
       white-space: nowrap; pointer-events: none;
     }
-    .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); outline-color: var(--accent); box-shadow: 0 8px 20px rgba(163,107,24,0.22); z-index: 1; }
+    .hand-tiles:not(.answered) .tile-slot:hover { transform: translateY(-8px); outline-color: var(--accent); box-shadow: 0 8px 20px var(--accent-shadow); z-index: 1; }
     .hand-tiles:not(.answered) .tile-slot:active { transform: translateY(-4px) scale(0.96); transition-duration: 0.08s; }
     .hand-tiles.answered .tile-slot { cursor: default; }
 
@@ -578,9 +435,9 @@
     }
     .commentary-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
-    .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
-    .btn-next:hover { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
-    .btn-next:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
+    .btn-next { display: block; width: 100%; max-width: 280px; margin: 0 auto; padding: 14px; background: var(--accent-strong); color: var(--on-accent); border: 1px solid var(--accent-strong); border-radius: 10px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-next:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
+    .btn-next:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
     .quiz-actions { display: flex; gap: 12px; max-width: 560px; margin: 0 auto; }
     .quiz-actions .btn-next { flex: 1; width: auto; max-width: none; margin: 0; }
     .quiz-actions .btn-ghost { font-size: 1.05rem; font-weight: 700; padding: 14px; }
@@ -599,7 +456,7 @@
       border: none; background: transparent; color: var(--text-dim); cursor: pointer;
       transition: background 0.2s, color 0.2s, box-shadow 0.2s;
     }
-    .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: rgba(163,107,24,0.06); }
+    .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: var(--accent-dim); }
     .riichi-btn:disabled { cursor: default; }
     .riichi-btn.selected { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .riichi-btn.correct { background: rgba(49,183,122,0.18); color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
@@ -646,12 +503,12 @@
     .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 
     .result-actions { display: flex; gap: 12px; margin-top: 24px; }
-    .btn-ghost { flex: 1; padding: 13px; background: transparent; color: var(--text); border: 2px solid var(--text-dim); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(20,20,20,0.06); }
-    .btn-ghost.selected, .btn-ghost:active:not(:disabled) { background: var(--accent); color: var(--on-accent); border-color: var(--accent); transform: translateY(0) scale(0.98); box-shadow: none; }
-    .btn-primary { flex: 1; padding: 13px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
-    .btn-primary:hover { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
-    .btn-primary:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
+    .btn-ghost { flex: 1; padding: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s; }
+    .btn-ghost:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-2px); }
+    .btn-ghost.selected, .btn-ghost:active:not(:disabled) { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); transform: translateY(0) scale(0.98); box-shadow: none; }
+    .btn-primary { flex: 1; padding: 13px; background: var(--accent-strong); color: var(--on-accent); border: 1px solid var(--accent-strong); border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-primary:hover { background: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-shadow); }
+    .btn-primary:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
@@ -667,7 +524,7 @@
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
-    <button class="btn-mode" id="btn-list" onclick="showProblemList()" disabled>
+    <button class="btn-mode primary" id="btn-list" onclick="showProblemList()" disabled>
       問題一覧
       <span class="btn-mode-desc">タグで絞り込んで挑戦</span>
     </button>

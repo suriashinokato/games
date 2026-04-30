@@ -16,17 +16,19 @@
       --bg: #fafaf7;
       --surface: #ffffff;
       --card: #f1ede4;
-      --accent: #a36b18;
-      --accent-dim: rgba(163,107,24,0.12);
-      --label-soft: #8c7556;
-      --correct: #31b77a;
+      --accent: #2e7d54;
+      --accent-strong: #1f5a3c;
+      --accent-dim: rgba(46,125,84,0.12);
+      --accent-shadow: rgba(46,125,84,0.22);
+      --label-soft: #5a7a6a;
+      --correct: #3fc88a;
       --wrong: #c94b4b;
       --text: #111418;
       --text-dim: #5f6772;
       --line: #e6e1d6;
       --on-accent: #ffffff;
       --overlay-dark: rgba(17,20,24,0.72);
-      --meld-called-bg: rgba(163,107,24,0.06);
+      --meld-called-bg: rgba(46,125,84,0.06);
       --tile-w: 52px;
       --tile-h: 72px;
     }
@@ -40,17 +42,19 @@
         --bg: #15161a;
         --surface: #1f2025;
         --card: #2a2a30;
-        --accent: #d09660;
-        --accent-dim: rgba(208,150,96,0.14);
-        --label-soft: #a89274;
+        --accent: #5cb88a;
+        --accent-strong: #3a8e62;
+        --accent-dim: rgba(92,184,138,0.16);
+        --accent-shadow: rgba(92,184,138,0.30);
+        --label-soft: #8caea0;
         --correct: #4ad690;
         --wrong: #e07070;
         --text: #e8e6e0;
         --text-dim: #9aa0aa;
         --line: #3a3530;
-        --on-accent: #1a1614;
+        --on-accent: #0e1a14;
         --overlay-dark: rgba(0,0,0,0.78);
-        --meld-called-bg: rgba(208,150,96,0.1);
+        --meld-called-bg: rgba(92,184,138,0.12);
       }
     }
 
@@ -97,15 +101,15 @@
     .page-back { color: var(--text-dim); font-size: 0.85rem; text-decoration: none; transition: color 0.2s; }
     .page-back:hover { color: var(--accent); }
 
-    .btn { padding: 9px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
-    .btn:hover { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(20,20,20,0.08); }
-    .btn:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(20,20,20,0.04); }
-    .btn-accent { background: var(--accent); color: var(--on-accent); }
-    .btn-accent:hover { box-shadow: 0 6px 16px rgba(163,107,24,0.22); }
-    .btn-ghost  { background: transparent; color: var(--text); border: 2px solid var(--text-dim); transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s, border-color 0.2s, color 0.2s; }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(20,20,20,0.06); }
-    .btn-danger { background: var(--wrong); color: #fff; }
-    .btn-danger:hover { box-shadow: 0 6px 16px rgba(201,75,75,0.25); }
+    .btn { padding: 9px 18px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--text); transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0) scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-accent { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-accent:hover { background: var(--accent); border-color: var(--accent); box-shadow: 0 6px 16px var(--accent-shadow); }
+    .btn-ghost  { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+    .btn-ghost:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--text); transform: translateY(-2px); }
+    .btn-danger { background: var(--wrong); color: #fff; border-color: var(--wrong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .btn-danger:hover { box-shadow: 0 6px 16px rgba(201,75,75,0.28); }
     .btn-sm     { padding: 5px 12px; font-size: 0.8rem; border-radius: 6px; }
 
     /* ===== LIST ===== */
@@ -214,7 +218,7 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     .palette-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-    .palette-tile:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 6px 14px rgba(163,107,24,0.2); }
+    .palette-tile:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 6px 14px var(--accent-shadow); }
     .palette-tile:active:not(:disabled) { transform: translateY(-1px) scale(0.98); }
     .palette-tile:disabled { opacity: 0.3; cursor: default; transform: none; }
 
@@ -240,7 +244,7 @@
     .editor-hand .e-tile:hover,
     .mb-preview .mb-tile:hover { border-color: var(--accent); }
     .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(49,183,122,0.36); }
-    .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px rgba(163,107,24,0.22); }
+    .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px var(--accent-shadow); }
     .remove-btn {
       position: absolute; top: 1px; right: 1px; width: 16px; height: 16px;
       background: var(--overlay-dark); color: #fff; border: none; border-radius: 50%;
@@ -354,7 +358,7 @@
     }
     .meld-q-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .meld-q-tile:hover { border-color: var(--accent); }
-    .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px rgba(163,107,24,0.24); }
+    .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-shadow); }
     .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(49,183,122,0.36); }
 
     /* ===== 出典選択UI ===== */
@@ -422,146 +426,17 @@
     }
     .tag-chip-remove:hover { opacity:1; }
     .card-tags { display:flex; flex-wrap:wrap; gap:5px; }
+    /* タグフィルター: 完全フラット統一（カテゴリ別塗り分けは廃止） */
     .card-tag {
       display:inline-block;
-      background:var(--accent-dim); border:1px solid rgba(163,107,24,0.35);
-      color:var(--accent); border-radius:20px;
+      background: var(--surface); border: 1px solid var(--line);
+      color: var(--text); border-radius:20px;
       padding:2px 9px; font-size:0.72rem; font-weight:600;
-      cursor:pointer; transition:background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.2s;
+      cursor:pointer; transition:background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.2s;
     }
-    .card-tag:hover { background:var(--accent); color:var(--on-accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(163,107,24,0.18); }
-    .card-tag.active-filter { background:var(--accent); color:var(--on-accent); }
+    .card-tag:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px var(--accent-shadow); }
+    .card-tag.active-filter { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); }
     .card-tag:active { transform: translateY(0) scale(0.96); box-shadow: none; }
-
-    /* ===== タグカテゴリカラー（data-tag のキーワード部分一致） ===== */
-    .card-tag[data-tag*="押し"], .card-tag[data-tag*="引き"], .card-tag[data-tag*="オリ"],
-    .card-tag[data-tag*="攻め"], .card-tag[data-tag*="守備"], .card-tag[data-tag*="攻撃"],
-    .card-tag[data-tag*="ベタオリ"], .card-tag[data-tag*="回し"],
-    .card-tag[data-tag*="安全"], .card-tag[data-tag*="危険"] {
-      background: rgba(82,135,200,0.12); color: #3d6da8; border-color: rgba(82,135,200,0.35);
-    }
-    .card-tag[data-tag*="押し"]:hover, .card-tag[data-tag*="引き"]:hover, .card-tag[data-tag*="オリ"]:hover,
-    .card-tag[data-tag*="攻め"]:hover, .card-tag[data-tag*="守備"]:hover, .card-tag[data-tag*="攻撃"]:hover,
-    .card-tag[data-tag*="ベタオリ"]:hover, .card-tag[data-tag*="回し"]:hover,
-    .card-tag[data-tag*="安全"]:hover, .card-tag[data-tag*="危険"]:hover,
-    .card-tag.active-filter[data-tag*="押し"], .card-tag.active-filter[data-tag*="引き"],
-    .card-tag.active-filter[data-tag*="オリ"], .card-tag.active-filter[data-tag*="攻め"],
-    .card-tag.active-filter[data-tag*="守備"], .card-tag.active-filter[data-tag*="攻撃"],
-    .card-tag.active-filter[data-tag*="ベタオリ"], .card-tag.active-filter[data-tag*="回し"],
-    .card-tag.active-filter[data-tag*="安全"], .card-tag.active-filter[data-tag*="危険"] {
-      background: #3d6da8; color: #ffffff; border-color: #3d6da8; box-shadow: 0 4px 10px rgba(82,135,200,0.22);
-    }
-    .card-tag[data-tag*="形"], .card-tag[data-tag*="手筋"],
-    .card-tag[data-tag*="シャンテン"], .card-tag[data-tag*="向聴"],
-    .card-tag[data-tag*="テンパイ"], .card-tag[data-tag*="聴牌"],
-    .card-tag[data-tag*="面子"], .card-tag[data-tag*="搭子"],
-    .card-tag[data-tag*="スジ"], .card-tag[data-tag*="愚形"], .card-tag[data-tag*="好形"] {
-      background: rgba(60,150,110,0.12); color: #2d8767; border-color: rgba(60,150,110,0.35);
-    }
-    .card-tag[data-tag*="形"]:hover, .card-tag[data-tag*="手筋"]:hover,
-    .card-tag[data-tag*="シャンテン"]:hover, .card-tag[data-tag*="向聴"]:hover,
-    .card-tag[data-tag*="テンパイ"]:hover, .card-tag[data-tag*="聴牌"]:hover,
-    .card-tag[data-tag*="面子"]:hover, .card-tag[data-tag*="搭子"]:hover,
-    .card-tag[data-tag*="スジ"]:hover, .card-tag[data-tag*="愚形"]:hover, .card-tag[data-tag*="好形"]:hover,
-    .card-tag.active-filter[data-tag*="形"], .card-tag.active-filter[data-tag*="手筋"],
-    .card-tag.active-filter[data-tag*="シャンテン"], .card-tag.active-filter[data-tag*="向聴"],
-    .card-tag.active-filter[data-tag*="テンパイ"], .card-tag.active-filter[data-tag*="聴牌"],
-    .card-tag.active-filter[data-tag*="面子"], .card-tag.active-filter[data-tag*="搭子"],
-    .card-tag.active-filter[data-tag*="スジ"], .card-tag.active-filter[data-tag*="愚形"],
-    .card-tag.active-filter[data-tag*="好形"] {
-      background: #2d8767; color: #ffffff; border-color: #2d8767; box-shadow: 0 4px 10px rgba(60,150,110,0.22);
-    }
-    .card-tag[data-tag*="打点"], .card-tag[data-tag*="速度"], .card-tag[data-tag*="期待値"],
-    .card-tag[data-tag*="点数"], .card-tag[data-tag*="満貫"], .card-tag[data-tag*="跳満"],
-    .card-tag[data-tag*="役"], .card-tag[data-tag*="リーチ"], .card-tag[data-tag*="ドラ"],
-    .card-tag[data-tag*="タンヤオ"], .card-tag[data-tag*="ピンフ"] {
-      background: rgba(140,90,160,0.12); color: #7a4d8d; border-color: rgba(140,90,160,0.35);
-    }
-    .card-tag[data-tag*="打点"]:hover, .card-tag[data-tag*="速度"]:hover, .card-tag[data-tag*="期待値"]:hover,
-    .card-tag[data-tag*="点数"]:hover, .card-tag[data-tag*="満貫"]:hover, .card-tag[data-tag*="跳満"]:hover,
-    .card-tag[data-tag*="役"]:hover, .card-tag[data-tag*="リーチ"]:hover, .card-tag[data-tag*="ドラ"]:hover,
-    .card-tag[data-tag*="タンヤオ"]:hover, .card-tag[data-tag*="ピンフ"]:hover,
-    .card-tag.active-filter[data-tag*="打点"], .card-tag.active-filter[data-tag*="速度"],
-    .card-tag.active-filter[data-tag*="期待値"], .card-tag.active-filter[data-tag*="点数"],
-    .card-tag.active-filter[data-tag*="満貫"], .card-tag.active-filter[data-tag*="跳満"],
-    .card-tag.active-filter[data-tag*="役"], .card-tag.active-filter[data-tag*="リーチ"],
-    .card-tag.active-filter[data-tag*="ドラ"], .card-tag.active-filter[data-tag*="タンヤオ"],
-    .card-tag.active-filter[data-tag*="ピンフ"] {
-      background: #7a4d8d; color: #ffffff; border-color: #7a4d8d; box-shadow: 0 4px 10px rgba(140,90,160,0.22);
-    }
-    .card-tag[data-tag*="序盤"], .card-tag[data-tag*="中盤"], .card-tag[data-tag*="終盤"],
-    .card-tag[data-tag*="親"], .card-tag[data-tag*="子"],
-    .card-tag[data-tag*="東"], .card-tag[data-tag*="南"], .card-tag[data-tag*="西"], .card-tag[data-tag*="北"],
-    .card-tag[data-tag*="局"], .card-tag[data-tag*="オーラス"],
-    .card-tag[data-tag*="ラス目"], .card-tag[data-tag*="トップ"] {
-      background: rgba(180,140,40,0.12); color: #8c6f1f; border-color: rgba(180,140,40,0.35);
-    }
-    .card-tag[data-tag*="序盤"]:hover, .card-tag[data-tag*="中盤"]:hover, .card-tag[data-tag*="終盤"]:hover,
-    .card-tag[data-tag*="親"]:hover, .card-tag[data-tag*="子"]:hover,
-    .card-tag[data-tag*="東"]:hover, .card-tag[data-tag*="南"]:hover, .card-tag[data-tag*="西"]:hover,
-    .card-tag[data-tag*="北"]:hover, .card-tag[data-tag*="局"]:hover,
-    .card-tag[data-tag*="オーラス"]:hover, .card-tag[data-tag*="ラス目"]:hover,
-    .card-tag[data-tag*="トップ"]:hover,
-    .card-tag.active-filter[data-tag*="序盤"], .card-tag.active-filter[data-tag*="中盤"],
-    .card-tag.active-filter[data-tag*="終盤"], .card-tag.active-filter[data-tag*="親"],
-    .card-tag.active-filter[data-tag*="子"], .card-tag.active-filter[data-tag*="東"],
-    .card-tag.active-filter[data-tag*="南"], .card-tag.active-filter[data-tag*="西"],
-    .card-tag.active-filter[data-tag*="北"], .card-tag.active-filter[data-tag*="局"],
-    .card-tag.active-filter[data-tag*="オーラス"], .card-tag.active-filter[data-tag*="ラス目"],
-    .card-tag.active-filter[data-tag*="トップ"] {
-      background: #8c6f1f; color: #ffffff; border-color: #8c6f1f; box-shadow: 0 4px 10px rgba(180,140,40,0.22);
-    }
-    .card-tag[data-tag*="本"], .card-tag[data-tag*="著"], .card-tag[data-tag*="編"],
-    .card-tag[data-tag*="初級"], .card-tag[data-tag*="中級"], .card-tag[data-tag*="上級"],
-    .card-tag[data-tag*="入門"], .card-tag[data-tag*="練習"],
-    .card-tag[data-tag*="Vol"], .card-tag[data-tag*="vol"] {
-      background: rgba(110,110,120,0.10); color: #6a6a72; border-color: rgba(110,110,120,0.30);
-    }
-    .card-tag[data-tag*="本"]:hover, .card-tag[data-tag*="著"]:hover, .card-tag[data-tag*="編"]:hover,
-    .card-tag[data-tag*="初級"]:hover, .card-tag[data-tag*="中級"]:hover, .card-tag[data-tag*="上級"]:hover,
-    .card-tag[data-tag*="入門"]:hover, .card-tag[data-tag*="練習"]:hover,
-    .card-tag[data-tag*="Vol"]:hover, .card-tag[data-tag*="vol"]:hover,
-    .card-tag.active-filter[data-tag*="本"], .card-tag.active-filter[data-tag*="著"],
-    .card-tag.active-filter[data-tag*="編"], .card-tag.active-filter[data-tag*="初級"],
-    .card-tag.active-filter[data-tag*="中級"], .card-tag.active-filter[data-tag*="上級"],
-    .card-tag.active-filter[data-tag*="入門"], .card-tag.active-filter[data-tag*="練習"],
-    .card-tag.active-filter[data-tag*="Vol"], .card-tag.active-filter[data-tag*="vol"] {
-      background: #6a6a72; color: #ffffff; border-color: #6a6a72; box-shadow: 0 4px 10px rgba(110,110,120,0.22);
-    }
-    @media (prefers-color-scheme: dark) {
-      .card-tag[data-tag*="押し"], .card-tag[data-tag*="引き"], .card-tag[data-tag*="オリ"],
-      .card-tag[data-tag*="攻め"], .card-tag[data-tag*="守備"], .card-tag[data-tag*="攻撃"],
-      .card-tag[data-tag*="ベタオリ"], .card-tag[data-tag*="回し"],
-      .card-tag[data-tag*="安全"], .card-tag[data-tag*="危険"] {
-        background: rgba(120,170,230,0.15); color: #8fb6df; border-color: rgba(120,170,230,0.4);
-      }
-      .card-tag[data-tag*="形"], .card-tag[data-tag*="手筋"],
-      .card-tag[data-tag*="シャンテン"], .card-tag[data-tag*="向聴"],
-      .card-tag[data-tag*="テンパイ"], .card-tag[data-tag*="聴牌"],
-      .card-tag[data-tag*="面子"], .card-tag[data-tag*="搭子"],
-      .card-tag[data-tag*="スジ"], .card-tag[data-tag*="愚形"], .card-tag[data-tag*="好形"] {
-        background: rgba(90,200,150,0.16); color: #6fceA0; border-color: rgba(90,200,150,0.4);
-      }
-      .card-tag[data-tag*="打点"], .card-tag[data-tag*="速度"], .card-tag[data-tag*="期待値"],
-      .card-tag[data-tag*="点数"], .card-tag[data-tag*="満貫"], .card-tag[data-tag*="跳満"],
-      .card-tag[data-tag*="役"], .card-tag[data-tag*="リーチ"], .card-tag[data-tag*="ドラ"],
-      .card-tag[data-tag*="タンヤオ"], .card-tag[data-tag*="ピンフ"] {
-        background: rgba(190,140,210,0.16); color: #c79bd9; border-color: rgba(190,140,210,0.4);
-      }
-      .card-tag[data-tag*="序盤"], .card-tag[data-tag*="中盤"], .card-tag[data-tag*="終盤"],
-      .card-tag[data-tag*="親"], .card-tag[data-tag*="子"],
-      .card-tag[data-tag*="東"], .card-tag[data-tag*="南"], .card-tag[data-tag*="西"], .card-tag[data-tag*="北"],
-      .card-tag[data-tag*="局"], .card-tag[data-tag*="オーラス"],
-      .card-tag[data-tag*="ラス目"], .card-tag[data-tag*="トップ"] {
-        background: rgba(220,180,80,0.15); color: #d8b664; border-color: rgba(220,180,80,0.4);
-      }
-      .card-tag[data-tag*="本"], .card-tag[data-tag*="著"], .card-tag[data-tag*="編"],
-      .card-tag[data-tag*="初級"], .card-tag[data-tag*="中級"], .card-tag[data-tag*="上級"],
-      .card-tag[data-tag*="入門"], .card-tag[data-tag*="練習"],
-      .card-tag[data-tag*="Vol"], .card-tag[data-tag*="vol"] {
-        background: rgba(160,160,170,0.13); color: #b0b0b8; border-color: rgba(160,160,170,0.35);
-      }
-    }
     .tag-filter-bar {
       display:flex; flex-wrap:wrap; gap:6px; align-items:center;
       margin-bottom:14px; min-height:28px;
