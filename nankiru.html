@@ -1480,7 +1480,7 @@ function renderListPagination(totalPages, totalCount) {
     prev.className = 'btn-home-quiz';
     prev.textContent = '← 前へ';
     prev.disabled = listCurrentPage <= 1;
-    prev.onclick = () => goToListPage(listCurrentPage - 1);
+    prev.onclick = () => goToListPage(listCurrentPage - 1, id);
 
     const info = document.createElement('span');
     info.className = 'list-pagination-info';
@@ -1491,7 +1491,7 @@ function renderListPagination(totalPages, totalCount) {
     next.className = 'btn-home-quiz';
     next.textContent = '次へ →';
     next.disabled = listCurrentPage >= totalPages;
-    next.onclick = () => goToListPage(listCurrentPage + 1);
+    next.onclick = () => goToListPage(listCurrentPage + 1, id);
 
     wrap.appendChild(prev);
     wrap.appendChild(info);
@@ -1499,10 +1499,14 @@ function renderListPagination(totalPages, totalCount) {
   });
 }
 
-function goToListPage(p) {
+function goToListPage(p, sourceId) {
   listCurrentPage = p;
   showProblemList().then(() => {
-    document.getElementById('problem-list').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    if (sourceId === 'problem-list-pagination') {
+      // 下ページャー操作時は上ページャーへスクロールし、新ページの先頭から閲覧できるようにする
+      const top = document.getElementById('problem-list-pagination-top');
+      if (top) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
   });
 }
 
