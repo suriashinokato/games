@@ -739,6 +739,19 @@ function mirrorText(text) {
     mirrored.sort(compareTiles);
     return mirrored.join(sep);
   });
+  // 「+」「＋」で連結された牌グループが全て同色なら、グループ間も先頭牌で昇順に並べ替える
+  result = result.replace(/(?:[0-9][mps])+(?:[＋+](?:[0-9][mps])+)+/g, chain => {
+    const parts = chain.split(/([＋+])/);
+    const groups = [], seps = [];
+    parts.forEach((p, i) => { if (i % 2 === 0) groups.push(p); else seps.push(p); });
+    const allTiles = groups.flatMap(g => g.match(/[0-9][mps]/g) || []);
+    const suit = allTiles[0] && allTiles[0][1];
+    if (!suit || !allTiles.every(t => t[1] === suit)) return chain;
+    const sorted = [...groups].sort((a, b) => compareTiles(a.match(/[0-9][mps]/)[0], b.match(/[0-9][mps]/)[0]));
+    let out = sorted[0];
+    for (let i = 0; i < seps.length; i++) out += seps[i] + sorted[i + 1];
+    return out;
+  });
   // 「○○三色」(例: 234三色) の数字部分も反転して昇順に並べ直す
   result = result.replace(/([0-9]+)(三色)/g, (_, digits, kw) => {
     const mirrored = digits.split('').map(d => DIGIT_MIRROR[d]).sort().join('');
