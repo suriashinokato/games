@@ -819,7 +819,8 @@ auth.onAuthStateChanged(async user => {
     signinBtn.style.display = 'none'; signoutBtn.style.display = 'none';
     gateEl.style.display = 'none';
     actionsEl.style.display = '';
-    openList();
+    await openList();
+    await maybeOpenEditorFromUrl();
     return;
   }
 
@@ -854,7 +855,24 @@ auth.onAuthStateChanged(async user => {
   gateEl.style.display = 'none';
   actionsEl.style.display = '';
   await openList();
+  await maybeOpenEditorFromUrl();
 });
+
+// URL パラメータ ?edit=<id> で指定された問題の編集フォームを自動展開（一度のみ）
+let _editorOpenedFromUrl = false;
+async function maybeOpenEditorFromUrl() {
+  if (_editorOpenedFromUrl) return;
+  const editId = new URLSearchParams(location.search).get('edit');
+  if (!editId) return;
+  _editorOpenedFromUrl = true;
+  const problems = await loadProblems();
+  const target = problems.find(p => p.id === editId);
+  if (target) {
+    openEditor(target);
+  } else {
+    alert('指定された問題が見つかりませんでした (id=' + editId + ')');
+  }
+}
 
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
