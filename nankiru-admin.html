@@ -767,6 +767,15 @@ const TILE_LABELS = {
 const MELD_TYPE_NAMES = { chi:'チー', pon:'ポン', minkan:'明槓', ankan:'暗槓' };
 function tileLabel(code) { return TILE_LABELS[code] || code; }
 
+// 正解牌は文字列・配列どちらの形式でも保存され得るため、必ず配列で取り出す
+function getCorrectAnswers(q) {
+  const a = q && q.correctAnswer;
+  if (Array.isArray(a)) return a.filter(Boolean);
+  if (typeof a === 'string' && a) return [a];
+  return [];
+}
+function isCorrectAnswer(q, code) { return getCorrectAnswers(q).includes(code); }
+
 // ドラ表示牌 → 実際のドラ牌に変換
 function doraFromIndicator(code) {
   if (code === '0m') return '6m';
@@ -1274,7 +1283,7 @@ async function deleteMasterTag(index) {
 
 // ===== EDIT STATE =====
 let editState = {
-  id: null, hand: [], correctAnswer: null,
+  id: null, hand: [], correctAnswer: [],
   dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
   melds: [], ukeireru: [], seat: '', memo: '',
   paletteTarget: 'hand',  // 'hand' | 'dora' | 'meld'
@@ -1442,7 +1451,8 @@ async function renderList() {
     // 手牌プレビュー
     const handDiv = document.createElement('div');
     handDiv.className = 'problem-hand-preview';
-    p.hand.forEach(c => handDiv.appendChild(makeMiniTile(c, c === p.correctAnswer ? 'correct-tile' : '')));
+    const previewAnswers = getCorrectAnswers(p);
+    p.hand.forEach(c => handDiv.appendChild(makeMiniTile(c, previewAnswers.includes(c) ? 'correct-tile' : '')));
     card.appendChild(handDiv);
 
     // 副露プレビュー
@@ -1554,7 +1564,7 @@ async function deleteProblem(id) {
 async function openEditor(problem) {
   editState = problem ? {
     id: problem.id, hand: [...problem.hand],
-    correctAnswer: problem.correctAnswer,
+    correctAnswer: getCorrectAnswers(problem),
     dora: [...(problem.dora || [])],
     round: problem.round || '',
     turn: problem.turn != null ? String(problem.turn) : '',
@@ -1579,7 +1589,7 @@ async function openEditor(problem) {
       ? problem.hand.indexOf(problem.correctDiscard) : null,
     tags: Array.isArray(problem.tags) ? [...problem.tags] : []
   } : {
-    id: null, hand: [], correctAnswer: null,
+    id: null, hand: [], correctAnswer: [],
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
     melds: [], ukeireru: [], seat: '', memo: '',
     riichiChoice: '', mirror: false, paletteTarget: 'hand',
@@ -1754,13 +1764,17 @@ function addTile(code) {
 function removeTile(idx) {
   const removed = editState.hand[idx];
   editState.hand.splice(idx, 1);
-  if (editState.correctAnswer === removed && !editState.hand.includes(removed)) editState.correctAnswer = null;
+  if (!editState.hand.includes(removed)) {
+    editState.correctAnswer = editState.correctAnswer.filter(c => c !== removed);
+  }
   renderEditorHand();
   updatePaletteState();
 }
 
 function toggleAnswer(code) {
-  editState.correctAnswer = editState.correctAnswer === code ? null : code;
+  const arr = editState.correctAnswer;
+  const i = arr.indexOf(code);
+  if (i >= 0) arr.splice(i, 1); else arr.push(code);
   renderEditorHand(true);
 }
 
@@ -1778,24 +1792,26 @@ function _initEditorHandDelegate() {
 
 function renderEditorHand(quickUpdate = false) {
   const el = document.getElementById('editor-hand');
+  const answers = editState.correctAnswer;
+  const answerHintHtml = answers.length
+    ? '正解牌: <strong>' + answers.map(tileLabel).join(' / ') + '</strong>（クリックで追加/解除）'
+    : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください（複数可）';
   if (quickUpdate) {
     el.querySelectorAll('.e-tile').forEach(tile => {
-      const isAnswer = tile.dataset.code === editState.correctAnswer;
+      const isAnswer = answers.includes(tile.dataset.code);
       tile.classList.toggle('is-answer', isAnswer);
-      tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に設定';
+      tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に追加';
     });
-    const hint = document.getElementById('answer-hint');
-    hint.innerHTML = editState.correctAnswer
-      ? '正解牌: <strong>' + tileLabel(editState.correctAnswer) + '</strong>（クリックで変更）'
-      : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください';
+    document.getElementById('answer-hint').innerHTML = answerHintHtml;
     return;
   }
   el.innerHTML = '';
   const frag = document.createDocumentFragment();
   editState.hand.forEach((code, idx) => {
+    const isAnswer = answers.includes(code);
     const tile = document.createElement('div');
-    tile.className = 'e-tile' + (code === editState.correctAnswer ? ' is-answer' : '');
-    tile.title = code === editState.correctAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に設定';
+    tile.className = 'e-tile' + (isAnswer ? ' is-answer' : '');
+    tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に追加';
     tile.dataset.code = code;
     const img = document.createElement('img');
     img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
@@ -1812,10 +1828,7 @@ function renderEditorHand(quickUpdate = false) {
   if (totalEl) totalEl.textContent = totalTileCount();
   const maxEl = document.getElementById('max-total');
   if (maxEl) maxEl.textContent = editState.questionType === 'meld' ? 13 : 14;
-  const hint = document.getElementById('answer-hint');
-  hint.innerHTML = editState.correctAnswer
-    ? '正解牌: <strong>' + tileLabel(editState.correctAnswer) + '</strong>（クリックで変更）'
-    : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください';
+  document.getElementById('answer-hint').innerHTML = answerHintHtml;
 
   // チー/ポン/カン問題の手牌選択表示を更新
   if (editState.questionType === 'meld') {
@@ -2225,14 +2238,14 @@ async function saveProblem() {
       alert('手牌と副露の合計が14枚に達していません（現在 ' + total + ' 枚）\n\nあと ' + (14 - total) + ' 枚追加してください。');
       return;
     }
-    if (!editState.correctAnswer) { alert('正解牌を選択してください\n（手牌の牌をクリックして選択）'); return; }
-    if (!editState.hand.includes(editState.correctAnswer)) { alert('正解牌は手牌に含まれている必要があります'); return; }
+    if (editState.correctAnswer.length === 0) { alert('正解牌を1枚以上選択してください\n（手牌の牌をクリックして選択。複数選択可）'); return; }
+    if (editState.correctAnswer.some(c => !editState.hand.includes(c))) { alert('正解牌は手牌に含まれている必要があります'); return; }
   }
 
   const problem = {
     id:            editState.id || Date.now().toString(),
     hand:          [...editState.hand],
-    correctAnswer: editState.questionType === 'meld' ? null : editState.correctAnswer,
+    correctAnswer: editState.questionType === 'meld' ? null : [...editState.correctAnswer],
     riichiChoice:  editState.questionType === 'meld' ? null : (document.getElementById('riichi-choice-select').value || null),
     mirror:        document.getElementById('mirror-toggle').checked,
     questionType:  editState.questionType || null,
@@ -2341,7 +2354,7 @@ async function recalcAllUkeireru() {
       if (totalForCalc !== 14) {
         skipped++; skippedDetails.push({ id: p.id, reason: 'tile_count=' + totalForCalc }); continue;
       }
-      if (!p.correctAnswer) {
+      if (getCorrectAnswers(p).length === 0) {
         skipped++; skippedDetails.push({ id: p.id, reason: 'no_correctAnswer' }); continue;
       }
 

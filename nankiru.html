@@ -782,13 +782,22 @@ function resortMeldAfterMirror(meld) {
   return { ...meld, tiles: sorted, calledIndex: newCalledIndex };
 }
 
+// 正解牌は文字列・配列どちらの形式でも保存され得るため、必ず配列で取り出す
+function getCorrectAnswers(q) {
+  const a = q && q.correctAnswer;
+  if (Array.isArray(a)) return a.filter(Boolean);
+  if (typeof a === 'string' && a) return [a];
+  return [];
+}
+function isCorrectAnswer(q, code) { return getCorrectAnswers(q).includes(code); }
+
 function transformQuestion(q, mapping, doMirror) {
   const mt = doMirror ? mirrorTile : (c => c);
   const mtt = doMirror ? mirrorText : (t => t);
   return {
     ...q,
     hand: q.hand.map(c => mt(applyTileMapping(c, mapping))),
-    correctAnswer: mt(applyTileMapping(q.correctAnswer, mapping)),
+    correctAnswer: getCorrectAnswers(q).map(c => mt(applyTileMapping(c, mapping))),
     dora: q.dora ? q.dora.map(c => {
       const mapped = applyTileMapping(c, mapping);
       return doMirror ? mirrorDoraIndicator(mapped) : mapped;
@@ -1625,7 +1634,7 @@ function onTileClick(idx, code, q) {
   if (st.answered) return;
   st.answered = true;
 
-  const tileOk = code === q.correctAnswer;
+  const tileOk = isCorrectAnswer(q, code);
   const riichiOk = !q.riichiChoice || st.riichiSelected === q.riichiChoice;
   const ok = tileOk && riichiOk;
   if (ok) st.correct++;
@@ -1646,10 +1655,11 @@ function onTileClick(idx, code, q) {
 
   const handEl = document.getElementById('hand-tiles');
   handEl.classList.add('answered');
+  const answerSet = getCorrectAnswers(q);
   handEl.querySelectorAll('.tile-slot').forEach(slot => {
     const si = +slot.dataset.index, sc = slot.dataset.code;
     if (si === idx)                    slot.classList.add(tileOk ? 'correct' : 'wrong');
-    if (!tileOk && sc === q.correctAnswer) slot.classList.add('correct');
+    if (!tileOk && answerSet.includes(sc)) slot.classList.add('correct');
   });
 
   showFeedbackArea(ok, q);
@@ -2057,8 +2067,9 @@ async function showResult() {
 
       const handDiv = document.createElement('div');
       handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+      const reviewAnswers = getCorrectAnswers(q);
       sortedHand(q.hand, q.hand.length === 14).forEach(c => {
-        const isOk = c === q.correctAnswer;
+        const isOk = reviewAnswers.includes(c);
         const isNg = c === selectedCode && !isOk;
         handDiv.appendChild(makeTile(c, (isOk ? 'correct' : '') + (isNg ? ' wrong' : ''), true));
       });
@@ -2093,7 +2104,7 @@ async function showResult() {
 
       // 正解・解説
       const info = document.createElement('div');
-      const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + tileLabel(q.correctAnswer);
+      const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + getCorrectAnswers(q).map(tileLabel).join(' / ');
       const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
       info.appendChild(ans); info.appendChild(cmt);
       const infoRow = document.createElement('div');
