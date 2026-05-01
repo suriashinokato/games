@@ -172,6 +172,10 @@
 
     .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-left:6px; }
 
+    .list-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 14px 0 8px; }
+    .list-pagination-info { font-size: 0.85rem; color: var(--text-dim); }
+    .list-pagination .btn-home-quiz:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .admin-link { display: block; text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 24px; text-decoration: none; transition: color 0.2s; }
     .admin-link:hover { color: var(--accent); }
 
@@ -560,7 +564,9 @@
     <span id="list-tag-filter-chip" class="card-tag active-filter"></span>
     <button class="btn-home-quiz" style="font-size:0.75rem;border-radius:10px;padding:2px 8px;" onclick="setListTagFilter(null)">× クリア</button>
   </div>
+  <div id="problem-list-pagination-top" style="display:none"></div>
   <div id="problem-list"></div>
+  <div id="problem-list-pagination" style="display:none"></div>
 </div>
 
 <!-- ===== QUIZ ===== -->
@@ -981,6 +987,8 @@ let _authReady = IS_LOCAL;
 let _problemsLoadPromise = null;
 let listActiveTagFilter = null;
 let _listTagDelegateInit = false;
+let listCurrentPage = 1;
+const LIST_PAGE_SIZE = 10;
 
 function signIn() {
   if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
@@ -1275,6 +1283,13 @@ async function showProblemList() {
     ? problems.filter(p => Array.isArray(p.tags) && p.tags.includes(listActiveTagFilter))
     : problems;
 
+  // ページング: 範囲外ガード後、現ページの10件のみ描画
+  const totalPages = Math.max(1, Math.ceil(displayProblems.length / LIST_PAGE_SIZE));
+  if (listCurrentPage > totalPages) listCurrentPage = totalPages;
+  if (listCurrentPage < 1) listCurrentPage = 1;
+  const pageStart = (listCurrentPage - 1) * LIST_PAGE_SIZE;
+  const pageProblems = displayProblems.slice(pageStart, pageStart + LIST_PAGE_SIZE);
+
   const el = document.getElementById('problem-list');
   el.innerHTML = '';
   if (!displayProblems.length) {
@@ -1283,7 +1298,7 @@ async function showProblemList() {
       : '<p style="text-align:center;color:var(--text-dim);padding:32px 0">問題が登録されていません</p>';
   } else {
     const frag = document.createDocumentFragment();
-    displayProblems.forEach((q, i) => {
+    pageProblems.forEach((q, i) => {
       const item = document.createElement('div');
       item.className = 'prob-list-item';
       item.onclick = () => startSingleQuiz(q, displayProblems);
@@ -1294,7 +1309,7 @@ async function showProblemList() {
 
       const num = document.createElement('span');
       num.className = 'prob-list-num';
-      num.textContent = '#' + (i + 1);
+      num.textContent = '#' + (pageStart + i + 1) + ' / ' + displayProblems.length;
       header.appendChild(num);
 
       // ドラ（表示牌→実ドラ変換）
@@ -1426,11 +1441,52 @@ async function showProblemList() {
     });
     el.appendChild(frag);
   }
+  renderListPagination(totalPages, displayProblems.length);
   showScreen('list');
+}
+
+function renderListPagination(totalPages, totalCount) {
+  ['problem-list-pagination-top', 'problem-list-pagination'].forEach(id => {
+    const wrap = document.getElementById(id);
+    if (totalCount <= LIST_PAGE_SIZE) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    wrap.style.display = 'flex';
+    wrap.className = 'list-pagination';
+    wrap.innerHTML = '';
+
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'btn-home-quiz';
+    prev.textContent = '← 前へ';
+    prev.disabled = listCurrentPage <= 1;
+    prev.onclick = () => goToListPage(listCurrentPage - 1);
+
+    const info = document.createElement('span');
+    info.className = 'list-pagination-info';
+    info.textContent = listCurrentPage + ' / ' + totalPages + ' ページ';
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn-home-quiz';
+    next.textContent = '次へ →';
+    next.disabled = listCurrentPage >= totalPages;
+    next.onclick = () => goToListPage(listCurrentPage + 1);
+
+    wrap.appendChild(prev);
+    wrap.appendChild(info);
+    wrap.appendChild(next);
+  });
+}
+
+function goToListPage(p) {
+  listCurrentPage = p;
+  showProblemList().then(() => {
+    document.getElementById('problem-list').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
 }
 
 function setListTagFilter(tag) {
   listActiveTagFilter = tag;
+  listCurrentPage = 1;
   showProblemList();
 }
 
