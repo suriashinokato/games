@@ -818,10 +818,17 @@ function isCorrectAnswer(q, code) { return getCorrectAnswers(q).includes(code); 
 function transformQuestion(q, mapping, doMirror) {
   const mt = doMirror ? mirrorTile : (c => c);
   const mtt = doMirror ? mirrorText : (t => t);
+  const answers = getCorrectAnswers(q);
+  // 旧バグ（配列の correctAnswer を applyTileMapping に直接渡して "3mundefined" 等に化けるケース）の
+  // 残骸データが将来混入した場合に DevTools で気付けるよう、形式が壊れた要素を検知して警告する。
+  const badAnswers = answers.filter(c => !/^[0-9][mpsz]$/.test(c));
+  if (badAnswers.length) {
+    console.warn('[nankiru] 不正な correctAnswer を検知', { id: q.id, raw: q.correctAnswer, bad: badAnswers });
+  }
   return {
     ...q,
     hand: q.hand.map(c => mt(applyTileMapping(c, mapping))),
-    correctAnswer: getCorrectAnswers(q).map(c => mt(applyTileMapping(c, mapping))),
+    correctAnswer: answers.map(c => mt(applyTileMapping(c, mapping))),
     dora: q.dora ? q.dora.map(c => {
       const mapped = applyTileMapping(c, mapping);
       return doMirror ? mirrorDoraIndicator(mapped) : mapped;
@@ -1715,6 +1722,11 @@ function showFeedbackArea(ok, q) {
 function onTileClick(idx, code, q) {
   if (st.answered) return;
   st.answered = true;
+
+  // 通常問題なのに正解牌が空配列 = データ破損の予兆。判定は全て不正解になるため、原因究明のために警告する。
+  if (!q.questionType && getCorrectAnswers(q).length === 0) {
+    console.warn('[nankiru] correctAnswer が空の通常問題', { id: q.id });
+  }
 
   const tileOk = isCorrectAnswer(q, code);
   const riichiOk = !q.riichiChoice || st.riichiSelected === q.riichiChoice;

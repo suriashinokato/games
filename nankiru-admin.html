@@ -476,6 +476,7 @@
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
     <input type="file" id="import-input" accept=".json,application/json" onchange="importJSON(event)">
     <button class="btn btn-ghost" onclick="recalcAllUkeireru()">🧮 受け入れ枚数を一括再計算</button>
+    <button class="btn btn-ghost" onclick="checkCorrectAnswerIntegrity()">🩺 正解牌データ健全性チェック</button>
   </div>
   <div class="tag-filter-bar" id="tag-filter-bar" style="display:none">
     <span class="tag-filter-bar-label">タグ絞り込み:</span>
@@ -2378,6 +2379,37 @@ async function recalcAllUkeireru() {
   const failSummary = failedIds.length ? '\n失敗ID: ' + failedIds.join(', ') : '';
   alert(`完了: 成功 ${success} / スキップ ${skipped} / 失敗 ${failed}${skipSummary}${failSummary}`);
   openList();
+}
+
+// ===== 正解牌データ健全性チェック =====
+// 旧バグ（配列 correctAnswer を applyTileMapping に直接渡して "3mundefined" 等に化けるケース）の
+// 残骸データや、誤って手牌外の牌が正解設定された問題を読み取り専用でスキャンする。
+// Firestore は更新せず、不整合があれば ID とエラー内容を一覧表示する。
+async function checkCorrectAnswerIntegrity() {
+  const problems = await loadProblems(true); // 最新を強制取得
+  const tileCodeRe = /^[0-9][mpsz]$/;
+  const issues = []; // {id, problems: [...理由文字列]}
+  for (const p of problems) {
+    const reasons = [];
+    const answers = getCorrectAnswers(p);
+    if (p.questionType !== 'meld') {
+      if (answers.length === 0) reasons.push('正解牌が空');
+      const malformed = answers.filter(c => !tileCodeRe.test(c));
+      if (malformed.length) reasons.push('不正な牌コード: ' + malformed.join(', '));
+      const outOfHand = answers.filter(c => !(p.hand || []).includes(c));
+      if (outOfHand.length) reasons.push('手牌に存在しない: ' + outOfHand.join(', '));
+    }
+    if (reasons.length) issues.push({ id: p.id, reasons });
+  }
+
+  if (issues.length === 0) {
+    alert(`全 ${problems.length} 問のうち、正解牌データに不整合は検出されませんでした。`);
+    return;
+  }
+  console.warn('[admin] 正解牌データの不整合を検出:', issues);
+  const summary = issues.slice(0, 20).map(i => `${i.id}: ${i.reasons.join(' / ')}`).join('\n  ');
+  const more = issues.length > 20 ? `\n  …他 ${issues.length - 20} 件 (詳細は DevTools コンソール)` : '';
+  alert(`不整合 ${issues.length} 件 / 全 ${problems.length} 問\n  ${summary}${more}\n\n該当問題を編集画面で開き直して再保存すると、現行のバリデーションで配列形式に正規化されます。`);
 }
 
 // ===== TAGS =====
