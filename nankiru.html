@@ -441,6 +441,21 @@
     }
     .ukeireru-details[open] > summary::before { transform: rotate(90deg); }
     .ukeireru-details > .ukeireru-row { margin-top: 6px; }
+    .list-all-tags-details > summary {
+      list-style: none; cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface); color: var(--text-dim);
+      font-size: 0.82rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      border: 1px solid rgba(0,0,0,0.12);
+    }
+    .list-all-tags-details > summary::-webkit-details-marker { display: none; }
+    .list-all-tags-details > summary::before {
+      content: '▶'; font-size: 0.7rem; transition: transform 0.15s;
+    }
+    .list-all-tags-details[open] > summary::before { transform: rotate(90deg); }
+    .list-all-tags-details > summary:hover { background: rgba(0,0,0,0.04); }
+    .tag-count-badge { font-size: 0.72rem; color: var(--text-dim); font-weight: 500; }
     .commentary-tile {
       display: inline-block; vertical-align: middle;
       width: 22px; height: 30px; margin: 0 1px 2px;
@@ -558,7 +573,10 @@
     <button class="btn-home-quiz" onclick="goHome()">← ホーム</button>
     <h2 style="font-size:1.2rem;color:var(--accent);font-weight:700">問題一覧</h2>
   </div>
-  <div id="list-all-tags" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+  <details id="list-all-tags-details" class="list-all-tags-details" style="display:none;margin-bottom:10px;">
+    <summary>タグで絞り込み <span id="list-all-tags-count" class="tag-count-badge"></span></summary>
+    <div id="list-all-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+  </details>
   <div id="list-tag-filter-bar" style="display:none;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;padding:8px 12px;background:var(--surface);border-radius:8px;">
     <span style="font-size:0.75rem;color:var(--text-dim);flex-shrink:0">絞り込み中:</span>
     <span id="list-tag-filter-chip" class="card-tag active-filter"></span>
@@ -1256,10 +1274,13 @@ async function showProblemList() {
 
   // 全タグ一覧バー更新
   const allTagsEl = document.getElementById('list-all-tags');
+  const allTagsDetails = document.getElementById('list-all-tags-details');
+  const allTagsCount = document.getElementById('list-all-tags-count');
   const allTags = [...new Set(problems.flatMap(p => Array.isArray(p.tags) ? p.tags : []))];
   allTagsEl.innerHTML = '';
   if (allTags.length) {
-    allTagsEl.style.display = 'flex';
+    allTagsDetails.style.display = '';
+    allTagsCount.textContent = '(' + allTags.length + ')';
     allTags.forEach(tag => {
       const chip = document.createElement('span');
       chip.className = 'card-tag' + (listActiveTagFilter === tag ? ' active-filter' : '');
@@ -1269,7 +1290,8 @@ async function showProblemList() {
       allTagsEl.appendChild(chip);
     });
   } else {
-    allTagsEl.style.display = 'none';
+    allTagsDetails.style.display = 'none';
+    allTagsCount.textContent = '';
   }
 
   // フィルターバー更新
