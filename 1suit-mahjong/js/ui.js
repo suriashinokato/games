@@ -416,15 +416,18 @@ window.Bamboo = window.Bamboo || {};
     if (!dlg) return;
     dlg.classList.add('help-dialog');
     dlg.innerHTML = ''
+      + '<button id="help-close-x" class="help-close-x" aria-label="閉じる">×</button>'
       + '<h2>操作マニュアル</h2>'
       + '<div class="dialog-body help-body">' + buildHelpHtml() + '</div>'
       + '<button id="dialog-btn">閉じる</button>';
     dlg.style.display = '';
     dlg.scrollTop = 0;
-    document.getElementById('dialog-btn').addEventListener('click', function () {
+    function closeHelp() {
       dlg.style.display = 'none';
       dlg.classList.remove('help-dialog');
-    });
+    }
+    document.getElementById('dialog-btn').addEventListener('click', closeHelp);
+    document.getElementById('help-close-x').addEventListener('click', closeHelp);
   }
 
   function buildHelpHtml() {
