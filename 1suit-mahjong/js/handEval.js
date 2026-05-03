@@ -116,15 +116,50 @@ window.Bamboo = window.Bamboo || {};
     return true;
   }
 
-  function isWinningHand(counts) {
+  // split.sets が requiredKotsu の各牌について「その牌の刻子」を含むか。
+  // 暗槓は buildWinningCounts で 3 枚 padding されて split.sets に kotsu として現れる前提。
+  // findStandardSplits は padding を雀頭+順子に分解する余地も探索してしまうので、
+  // 暗槓 tile の刻子が split に存在するかをここで明示的に検査して、暗槓を 1 面子として
+  // ロックする制約を後付けで掛ける。
+  function splitMatchesRequired(split, requiredKotsu) {
+    if (!requiredKotsu || requiredKotsu.length === 0) return true;
+    var remaining = requiredKotsu.slice();
+    for (var i = 0; i < split.sets.length; i++) {
+      var s = split.sets[i];
+      if (s.type !== 'kotsu') continue;
+      var idx = remaining.indexOf(s.tile);
+      if (idx !== -1) remaining.splice(idx, 1);
+    }
+    return remaining.length === 0;
+  }
+
+  // requiredKotsu: 暗槓の tile 値配列（例: 暗槓(7) があれば [7]）。
+  // 省略時は従来挙動と完全一致。指定時は「各牌の刻子を含む split が存在する」場合のみ true。
+  function isWinningHand(counts, requiredKotsu) {
     if (totalTiles(counts) !== 14) return false;
-    if (isChiitoitsu(counts)) return true;
-    return findStandardSplits(counts).length > 0;
+    if (!requiredKotsu || requiredKotsu.length === 0) {
+      if (isChiitoitsu(counts)) return true;
+      return findStandardSplits(counts).length > 0;
+    }
+    // 暗槓があるとき七対子は構造的に成立しない（4 枚揃いの牌があるので）
+    var splits = findStandardSplits(counts);
+    for (var i = 0; i < splits.length; i++) {
+      if (splitMatchesRequired(splits[i], requiredKotsu)) return true;
+    }
+    return false;
   }
 
   // 役判定で使う「全分解」。標準形のみ。九蓮・七対子は別フラグで判断する。
-  function findWinningSplits(counts) {
-    return findStandardSplits(counts);
+  // requiredKotsu 指定時は、暗槓 tile の刻子を含む split のみ返す（yaku.js の countAnko が
+  // 「暗槓由来の刻子が split.sets に居る」前提で実装されているのを保つ）。
+  function findWinningSplits(counts, requiredKotsu) {
+    var splits = findStandardSplits(counts);
+    if (!requiredKotsu || requiredKotsu.length === 0) return splits;
+    var filtered = [];
+    for (var i = 0; i < splits.length; i++) {
+      if (splitMatchesRequired(splits[i], requiredKotsu)) filtered.push(splits[i]);
+    }
+    return filtered;
   }
 
   // ------------------------------------------------------------------
@@ -277,13 +312,14 @@ window.Bamboo = window.Bamboo || {};
   // ------------------------------------------------------------------
 
   // 13 枚の counts に対し、1〜9 のうち足したら 14 枚アガリになる牌をリスト化
-  function findWaits(counts13) {
+  // requiredKotsu 指定時は、暗槓 tile の刻子を含む分解で和了できる牌だけを返す。
+  function findWaits(counts13, requiredKotsu) {
     if (totalTiles(counts13) !== 13) return [];
     var waits = [];
     for (var n = 1; n <= 9; n++) {
       if (counts13[n] >= 4) continue; // もう 4 枚使ってる
       counts13[n]++;
-      if (isWinningHand(counts13)) waits.push(n);
+      if (isWinningHand(counts13, requiredKotsu)) waits.push(n);
       counts13[n]--;
     }
     return waits;

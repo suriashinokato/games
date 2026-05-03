@@ -69,6 +69,16 @@ window.Bamboo = window.Bamboo || {};
     }
   }
 
+  // 暗槓の tile 値配列。findWaits / isWinningHand / findWinningSplits の
+  // requiredKotsu に渡し、padding した刻子を必ず暗槓由来として固定する制約を付ける。
+  function ankanTiles(p) {
+    var tiles = [];
+    for (var i = 0; i < p.melds.length; i++) {
+      if (p.melds[i].type === 'ankan') tiles.push(p.melds[i].tile);
+    }
+    return tiles;
+  }
+
   function other(who) { return who === 'player' ? 'cpu' : 'player'; }
   function numAsc(a, b) { return a - b; }
 
@@ -239,7 +249,8 @@ window.Bamboo = window.Bamboo || {};
   function kanChangesWaits(p, kanTile) {
     var preCounts = buildTenpaiCounts(p);
     if (H.totalTiles(preCounts) !== 13) return false;
-    var preWaits = H.findWaits(preCounts);
+    // pre は「既存の暗槓のみ」が requiredKotsu。新カンはまだ宣言されていない。
+    var preWaits = H.findWaits(preCounts, ankanTiles(p));
     if (preWaits.length === 0) return false;
 
     var postHand = [];
@@ -257,7 +268,8 @@ window.Bamboo = window.Bamboo || {};
 
     var postCounts = H.toCounts(postHand);
     if (H.totalTiles(postCounts) !== 13) return true;
-    var postWaits = H.findWaits(postCounts);
+    // post は「既存の暗槓 + 新カン」を requiredKotsu として渡す。
+    var postWaits = H.findWaits(postCounts, ankanTiles(p).concat([kanTile]));
 
     if (preWaits.length !== postWaits.length) return true;
     for (var j = 0; j < preWaits.length; j++) {
@@ -344,7 +356,7 @@ window.Bamboo = window.Bamboo || {};
     // 第1ツモ（天和/地和に相当する局面）はアガリ不可。最大でもテンパイ止まり。
     if (p.isFirstTurn) return { result: null, reason: 'firstTurn' };
     var counts = buildWinningCounts(p, p.drawn);
-    if (!H.isWinningHand(counts)) return { result: null, reason: 'noWinningHand' };
+    if (!H.isWinningHand(counts, ankanTiles(p))) return { result: null, reason: 'noWinningHand' };
 
     var winResult = judgeWin(state, who, counts, p.drawn, true);
     if (!winResult) return { result: null, reason: 'noYaku' };
@@ -364,12 +376,12 @@ window.Bamboo = window.Bamboo || {};
     var lastTile = state.lastDiscard.tile;
 
     var counts = buildWinningCounts(p, lastTile);
-    if (!H.isWinningHand(counts)) return { result: null, reason: 'noWinningHand' };
+    if (!H.isWinningHand(counts, ankanTiles(p))) return { result: null, reason: 'noWinningHand' };
 
     // フリテン判定: リーチ中はリーチ宣言以降の捨て牌のみを対象とする。
     //               （リーチ前に切った当たり牌は無視する独自仕様）
     var counts13 = buildTenpaiCounts(p);
-    var waits = H.findWaits(counts13);
+    var waits = H.findWaits(counts13, ankanTiles(p));
     var discardForFuriten = p.isRiichi
       ? p.discard.slice(p.riichiTurnIndex)
       : p.discard;
@@ -383,7 +395,7 @@ window.Bamboo = window.Bamboo || {};
   // 役判定 + 点数計算 → winResult ドラフト
   function judgeWin(state, who, counts14, agariTile, isTsumo) {
     var p = state[who];
-    var splits = H.findWinningSplits(counts14);
+    var splits = H.findWinningSplits(counts14, ankanTiles(p));
     var detection = Y.detectYaku({
       winningCounts: counts14,
       agariTile: agariTile,

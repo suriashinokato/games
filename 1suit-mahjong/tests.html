@@ -468,34 +468,84 @@
       assertArrayEqual(res, [2]);
     });
 
-    test('テンパイ崩れる暗槓 → 拒否', function () {
+    test('テンパイ崩れる暗槓: kanChangesWaits = true (送りカン検出)', function () {
       // hand = 123 4444 5 678 99 (13 枚, 4 が 4 枚で順子と兼用)
-      //   pre 待ち: 99 雀頭 + 123 + 444 + 456 + 789 のような分解で 6 や 9 が成立
-      //   findWaits の結果を確認後、kan(4) で post counts は 4:3 になり多面的な分解が崩れる。
-      // drawn = 1 (≠ 4): hand+drawn には 4 が 4 枚、1 が 2 枚。kan 候補は 4 のみ。
+      //   pre 待ち: 4 を 444 刻子 / 234・456 順子 等に柔軟分解できる多面待ち
+      //   post-kan(4): 4444 が「1 面子確定」にロックされ、4 を含む順子分解が消滅 → 待ち変動
+      // 注: canDeclareKan は送りカン候補も含めて返す仕様（宣言時に finishChombo へ振り分け）。
+      //     ここでは検出ロジック本体である kanChangesWaits を直接検証する。
       var s = makeState([1,2,3, 4,4,4,4, 5, 6,7,8, 9,9], 1);
-      var preCounts = H.toCounts([1,2,3, 4,4,4,4, 5, 6,7,8, 9,9]);
-      var preWaits = H.findWaits(preCounts);
-      // 前提: テンパイであること
-      if (preWaits.length === 0) {
-        throw new Error('テスト前提崩壊: 与えた手牌がテンパイでない');
+      // 候補列挙には含まれる（チョンボ宣言用にあえて含める仕様）
+      assertArrayEqual(G.canDeclareKan(s, 'player'), [4]);
+      // しかし送りカン検出は true を返す
+      assertEqual(G.kanChangesWaits(s.player, 4), true);
+    });
+
+    test('九蓮形 + ツモ1: kanChangesWaits = true (ユーザ指定テスト #1)', function () {
+      // 手牌 1112 3456789 99 (13 枚) + ツモ 1 → アンカン 1 候補。
+      // pre 真の待ち: 純正九蓮 [1..9]
+      // post 真の待ち (1111 をロック、可視 23456789 99 + wait の 3 面子1 雀頭):
+      //   {1,2,4,5,7,8} のみ。3, 6, 9 は構造的に消滅 → 送りカン。
+      var s = makeState([1,1,1, 2,3,4,5,6,7,8, 9,9,9], 1);
+      assertArrayEqual(G.canDeclareKan(s, 'player'), [1]);
+      assertEqual(G.kanChangesWaits(s.player, 1), true);
+    });
+
+    test('独立した暗刻のアンカン (待ち不変) → kanChangesWaits = false', function () {
+      // hand = 222 333 444 555 9 (13 枚, 純粋 4 刻子 + 9 単騎)。drawn = 5 (4 枚目)。
+      // pre 待ち: 9 のタンキ単騎のみ ([9])。pair=99 は 9 が 1 枚で不可なので、9 を引いて完成。
+      // post-kan(5): 5555 を 1 面子確定にロックしても、もともと 5 は独立暗刻として使われる
+      //   分解しか存在しないため待ちは [9] のまま不変。
+      var s = makeState([2,2,2, 3,3,3, 4,4,4, 5,5,5, 9], 5);
+      assertArrayEqual(G.canDeclareKan(s, 'player'), [5]);
+      assertEqual(G.kanChangesWaits(s.player, 5), false);
+    });
+
+    test('リーチ中の九蓮形 + ツモ1: kanChangesWaits = true (リーチ中も送りカン判定)', function () {
+      // ユーザ指定テスト「リーチ中でも、待ちが変わればチョンボ」。
+      var s = makeState([1,1,1, 2,3,4,5,6,7,8, 9,9,9], 1, { isRiichi: true });
+      assertEqual(G.kanChangesWaits(s.player, 1), true);
+    });
+
+    test('ankanTiles 集約: 暗槓 1 つの状態で kanChangesWaits は既存暗槓を考慮する', function () {
+      // 既に ankan(7) がある状態 (p.hand は 10 枚に縮む)。
+      // hand = 1112 345 6 89 (10 枚) + drawn=1 → kan(1) 候補。
+      // pre 13 枚相当 = 1,1,1, 2,3,4,5, 6,8,9, 7,7,7 (padding) = {1:3, 2:1, 3:1, 4:1, 5:1, 6:1, 7:3, 8:1, 9:1}
+      // 1112 系のテンパイで kan(1) すると 1 を順子に使う分解が消滅 → 待ち変動を期待。
+      var s = makeState([1,1,1, 2,3,4,5, 6, 8,9], 1,
+        { melds: [{ type: 'ankan', tile: 7 }] });
+      // 候補に 1 が含まれる
+      assertArrayEqual(G.canDeclareKan(s, 'player'), [1]);
+      // 送りカン検出: 1111 ロック + 既存 7 ロックで待ち変動
+      assertEqual(G.kanChangesWaits(s.player, 1), true);
+    });
+
+    test('ロン判定: 暗槓1 後、3 ロンは無効 (順子123の分解は暗槓ロックで不可)', function () {
+      // 状態: ankan(1) を既に保有、hand = 23456789 + 99 (10 枚)、p.drawn=null。
+      // 暗槓ロックなしの素朴計算では 14 枚 counts {1:3 padding, 2:1, ..., 9:3} で 9 面待ち。
+      // しかし真の待ちは {1,2,4,5,7,8} のみで、3 ロン不能。
+      var s = makeState([2,3,4,5,6,7,8, 9,9,9], undefined,
+        { melds: [{ type: 'ankan', tile: 1 }] });
+      s.cpu.discard = [3];
+      s.lastDiscard = { who: 'cpu', tile: 3 };
+      s.player.isFirstTurn = false;
+      var ret = G.tryRon(s, 'player');
+      assertEqual(ret.result, null);
+      assertEqual(ret.reason, 'noWinningHand');
+    });
+
+    test('ロン判定: 暗槓1 後、5 ロンは正しく成立する', function () {
+      // 同じ hand で 5 を打たれた場合、{ankan(1) + 234 + 55(雀頭) + 678 + 999} で和了成立。
+      var s = makeState([2,3,4,5,6,7,8, 9,9,9], undefined,
+        { melds: [{ type: 'ankan', tile: 1 }] });
+      s.cpu.discard = [5];
+      s.lastDiscard = { who: 'cpu', tile: 5 };
+      s.player.isFirstTurn = false;
+      var ret = G.tryRon(s, 'player');
+      if (!ret.result) {
+        throw new Error('5 ロンが成立すべきだが reason=' + ret.reason);
       }
-      // post-kan(4): hand+drawn - 4×4 = [1,1, 2,3, 5, 6,7,8, 9,9] + ankan padding 3×4
-      //   = 13 枚相当 [1,1, 2,3, 4,4,4, 5, 6,7,8, 9,9]
-      var postCounts = H.toCounts([1,1, 2,3, 4,4,4, 5, 6,7,8, 9,9]);
-      var postWaits = H.findWaits(postCounts);
-      var sameWaits = preWaits.length === postWaits.length;
-      if (sameWaits) {
-        for (var i = 0; i < preWaits.length; i++) {
-          if (postWaits.indexOf(preWaits[i]) === -1) { sameWaits = false; break; }
-        }
-      }
-      var res = G.canDeclareKan(s, 'player');
-      if (sameWaits) {
-        assertArrayEqual(res, [4]);
-      } else {
-        assertArrayEqual(res, []);
-      }
+      assertEqual(ret.result.winType, 'ron');
     });
 
     // ====================================================================
