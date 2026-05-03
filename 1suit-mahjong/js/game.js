@@ -98,19 +98,32 @@ window.Bamboo = window.Bamboo || {};
     state.winResult = null;
     state.lastDiscard = null;
 
-    var wall = T.buildWall();
-    state.deadWall = wall.splice(0, DEAD_WALL_SIZE);
-    state.wall = wall;
-
     resetPlayerForRound(state.player);
     resetPlayerForRound(state.cpu);
 
-    for (var i = 0; i < HAND_SIZE; i++) {
-      state.player.hand.push(state.wall.pop());
-      state.cpu.hand.push(state.wall.pop());
+    // 配牌は「両者とも 1 シャンテン以上（テンパイ禁止）」になるまで山を作り直す。
+    // 1 スート麻雀では配牌テンパイの確率が比較的高く、そのまま第 1 ツモを引くと
+    // 天和・地和（廃止仕様）に相当する形でアガリ可能になってしまうため、
+    // ツモ前は最高でもイーシャンテンに収まるよう調整する。
+    var MAX_REDEAL = 100;
+    for (var attempt = 0; attempt < MAX_REDEAL; attempt++) {
+      var wall = T.buildWall();
+      state.deadWall = wall.splice(0, DEAD_WALL_SIZE);
+      state.wall = wall;
+
+      state.player.hand = [];
+      state.cpu.hand = [];
+      for (var i = 0; i < HAND_SIZE; i++) {
+        state.player.hand.push(state.wall.pop());
+        state.cpu.hand.push(state.wall.pop());
+      }
+      state.player.hand.sort(numAsc);
+      state.cpu.hand.sort(numAsc);
+
+      var pShanten = H.calcShanten(H.toCounts(state.player.hand));
+      var cShanten = H.calcShanten(H.toCounts(state.cpu.hand));
+      if (pShanten >= 1 && cShanten >= 1) break;
     }
-    state.player.hand.sort(numAsc);
-    state.cpu.hand.sort(numAsc);
 
     state.turnOwner = state.dealer;
     state.phase = (state.dealer === 'player') ? 'playerTurn' : 'cpuTurn';

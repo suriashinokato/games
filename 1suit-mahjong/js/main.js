@@ -216,6 +216,14 @@
     } else {
       // 自分のロン判定: 自動進行せずボタン操作待ち。
       // refresh で「ロン」「パス」ボタンが表示される。
+      // ただし第1打牌へのロンは仕様上不可（人和廃止）。
+      // この場合パスボタンしか出せず操作が無意味になるので、自動的にターンを進める。
+      if (state.player.isFirstTurn) {
+        G.advanceTurn(state);
+        refresh();
+        handleAfterDraw();
+        return;
+      }
       refresh();
     }
   }
