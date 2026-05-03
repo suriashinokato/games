@@ -292,8 +292,9 @@ window.Bamboo = window.Bamboo || {};
     state.player.isIppatsuValid = false;
     state.cpu.isIppatsuValid = false;
 
-    // 暗槓で両者の天和・地和・人和の権利が消える
-    // （本作の天和/地和/人和判定は isFirstTurn フラグに依存しているため、ここで折る）
+    // 暗槓で両者の「第1ツモ扱い」を解除する。
+    // isFirstTurn は第1ツモアガリ／第1打牌ロンの禁止ゲートとして使われており、
+    // ここで折らないと暗槓直後の嶺上ツモアガリが封じられてしまう。
     state.player.isFirstTurn = false;
     state.cpu.isFirstTurn = false;
 
@@ -320,10 +321,12 @@ window.Bamboo = window.Bamboo || {};
   // who がツモアガリ可能か（役判定込み）。
   // 戻り値: { result, reason }
   //   成功: { result: winResultドラフト, reason: null }
-  //   失敗: { result: null, reason: 'noTarget' | 'noWinningHand' | 'noYaku' }
+  //   失敗: { result: null, reason: 'noTarget' | 'firstTurn' | 'noWinningHand' | 'noYaku' }
   function tryTsumo(state, who) {
     var p = state[who];
     if (p.drawn === null) return { result: null, reason: 'noTarget' };
+    // 第1ツモ（天和/地和に相当する局面）はアガリ不可。最大でもテンパイ止まり。
+    if (p.isFirstTurn) return { result: null, reason: 'firstTurn' };
     var counts = buildWinningCounts(p, p.drawn);
     if (!H.isWinningHand(counts)) return { result: null, reason: 'noWinningHand' };
 
@@ -335,11 +338,13 @@ window.Bamboo = window.Bamboo || {};
   // who が「相手の last discard」でロン可能か。フリテンチェック込み。
   // 戻り値: { result, reason }
   //   成功: { result: winResultドラフト, reason: null }
-  //   失敗: { result: null, reason: 'noTarget' | 'noWinningHand' | 'furiten' | 'noYaku' }
+  //   失敗: { result: null, reason: 'noTarget' | 'firstTurn' | 'noWinningHand' | 'furiten' | 'noYaku' }
   function tryRon(state, who) {
     if (!state.lastDiscard) return { result: null, reason: 'noTarget' };
     if (state.lastDiscard.who === who) return { result: null, reason: 'noTarget' };
     var p = state[who];
+    // 第1打牌に対するロン（人和に相当する局面）はアガリ不可。
+    if (p.isFirstTurn) return { result: null, reason: 'firstTurn' };
     var lastTile = state.lastDiscard.tile;
 
     var counts = buildWinningCounts(p, lastTile);
