@@ -260,6 +260,11 @@ window.Bamboo = window.Bamboo || {};
     state.player.isIppatsuValid = false;
     state.cpu.isIppatsuValid = false;
 
+    // 暗槓で両者の天和・地和・人和の権利が消える
+    // （本作の天和/地和/人和判定は isFirstTurn フラグに依存しているため、ここで折る）
+    state.player.isFirstTurn = false;
+    state.cpu.isFirstTurn = false;
+
     // 嶺上ツモ
     if (state.deadWall.length === 0) {
       state.phase = 'draw';
@@ -300,10 +305,14 @@ window.Bamboo = window.Bamboo || {};
     var counts = buildWinningCounts(p, lastTile);
     if (!H.isWinningHand(counts)) return null;
 
-    // フリテン: 自分の捨て牌に待ちが含まれていればロン不可（暗槓考慮の 13 枚で計算）
+    // フリテン判定: リーチ中はリーチ宣言以降の捨て牌のみを対象とする。
+    //               （リーチ前に切った当たり牌は無視する独自仕様）
     var counts13 = buildTenpaiCounts(p);
     var waits = H.findWaits(counts13);
-    if (H.isFuriten(waits, p.discard)) return null;
+    var discardForFuriten = p.isRiichi
+      ? p.discard.slice(p.riichiTurnIndex)
+      : p.discard;
+    if (H.isFuriten(waits, discardForFuriten)) return null;
 
     return judgeWin(state, who, counts, lastTile, false);
   }

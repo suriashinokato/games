@@ -490,12 +490,31 @@ html, body {
   .player-area { padding: 6px; margin: 8px 0; }
   .player-name { font-size: 0.8rem; }
   .action-btn { padding: 5px 12px; font-size: 0.9rem; }
-  .hand-row { gap: 2px; }
-  .meld-row { gap: 2px; }
   .meld-set { padding: 1px; }
-  .discard { gap: 1px; padding: 2px; }
   .tile-btn.drawn { margin-left: 8px; }
   .dialog { padding: 16px 20px; min-width: 240px; max-width: 96vw; }
+
+  /* 対局画面の手牌・暗槓・河は 1 列固定（はみ出したら横スクロール） */
+  .hand-section {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+  }
+  .hand-row {
+    flex-wrap: nowrap;
+    overflow-x: visible;
+    gap: 2px;
+  }
+  .meld-row {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+  .discard {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 1px;
+    padding: 2px;
+  }
 
   /* ダイアログ内の手牌・暗槓・待ち牌をさらに小さく */
   .dialog-tile .tile { width: 22px; height: 31px; }

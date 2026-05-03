@@ -209,17 +209,21 @@ window.Bamboo = window.Bamboo || {};
 
   // 暗槓が混じっていても 13 枚の仮想手牌に整形して findWaits を呼ぶ。
   // 各暗槓につき同じ値の 3 枚を仮想的に追加（1 面子分）。
+  // 暗槓した tile はすでに 4 枚すべて消費されているので、結果から除外する。
   function computeWaits(state, who) {
     var H = window.Bamboo.handEval;
     var p = state[who];
     var virtual = p.hand.slice();
+    var ankanTiles = {};
     for (var i = 0; i < p.melds.length; i++) {
       if (p.melds[i].type === 'ankan') {
+        ankanTiles[p.melds[i].tile] = true;
         for (var k = 0; k < 3; k++) virtual.push(p.melds[i].tile);
       }
     }
     if (virtual.length !== 13) return [];
-    return H.findWaits(H.toCounts(virtual));
+    var waits = H.findWaits(H.toCounts(virtual));
+    return waits.filter(function (t) { return !ankanTiles[t]; });
   }
 
   function renderWaitsInline(state, waits) {
