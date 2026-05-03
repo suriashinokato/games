@@ -190,12 +190,15 @@ html, body {
   transform: translate(-50%, -50%);
   background: #1a1a1a;
   color: var(--fg-color);
-  padding: 24px 32px;
+  padding: 20px 24px;
   border-radius: 12px;
   border: 2px solid var(--accent-color);
   text-align: center;
   z-index: 100;
-  min-width: 280px;
+  min-width: 320px;
+  max-width: min(720px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
@@ -269,6 +272,22 @@ html, body {
 .action-pass { background: #555; }
 .action-pass:hover { background: #6a6a6a; }
 
+.action-tsumogiri { background: #2d8a4a; }
+.action-tsumogiri:hover { background: #3aa860; }
+
+.action-prompt {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 4px 12px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  background: rgba(245, 215, 110, 0.15);
+  border: 1px dashed var(--accent-color);
+  border-radius: 6px;
+}
+
 /* ----- 立直マーク ----- */
 
 .riichi-mark {
@@ -276,6 +295,19 @@ html, body {
   margin-left: 10px;
   padding: 1px 8px;
   background: #d68b1a;
+  color: #fff;
+  font-size: 0.75rem;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* ----- 親マーク ----- */
+
+.dealer-mark {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 8px;
+  background: #c83737;
   color: #fff;
   font-size: 0.75rem;
   border-radius: 10px;
@@ -346,6 +378,105 @@ html, body {
 }
 .tile-static.drawn { margin-left: 12px; }
 
+/* ----- 待ち牌表示 ----- */
+
+.waits-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 0.9rem;
+}
+
+.waits-label {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.waits-tiles {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.waits-tiles .tile {
+  width: calc(var(--tile-w) * 0.7);
+  height: calc(var(--tile-h) * 0.7);
+}
+
+.waits-none {
+  font-style: italic;
+  opacity: 0.5;
+}
+
+/* ----- ダイアログ内のプレイヤーセクション ----- */
+
+.dialog-player-section {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  text-align: left;
+}
+
+.dialog-player-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  margin-bottom: 4px;
+}
+
+.dialog-hand {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  align-items: flex-end;
+  margin-bottom: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dialog-tile {
+  display: inline-block;
+  line-height: 0;
+}
+
+.dialog-tile .tile {
+  width: calc(var(--tile-w) * 0.85);
+  height: calc(var(--tile-h) * 0.85);
+}
+
+.dialog-tile.drawn {
+  margin-left: 8px;
+}
+
+.dialog-tile.tile-agari .tile {
+  outline: 2px solid #ff7676;
+  outline-offset: -1px;
+}
+
+.dialog-meld {
+  display: inline-flex;
+  gap: 1px;
+  margin-left: 6px;
+  padding: 1px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.dialog-meld .tile {
+  width: calc(var(--tile-w) * 0.7);
+  height: calc(var(--tile-h) * 0.7);
+}
+
+.dialog-waits-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
 /* ----- レスポンシブ ----- */
 
 @media (max-width: 600px) {
@@ -364,5 +495,12 @@ html, body {
   .meld-set { padding: 1px; }
   .discard { gap: 1px; padding: 2px; }
   .tile-btn.drawn { margin-left: 8px; }
-  .dialog { padding: 16px 20px; min-width: 240px; max-width: 92vw; }
+  .dialog { padding: 16px 20px; min-width: 240px; max-width: 96vw; }
+
+  /* ダイアログ内の手牌・暗槓・待ち牌をさらに小さく */
+  .dialog-tile .tile { width: 22px; height: 31px; }
+  .dialog-meld .tile { width: 18px; height: 26px; }
+  .dialog-tile.drawn { margin-left: 6px; }
+  .dialog-meld { margin-left: 4px; }
+  .waits-tiles .tile { width: 22px; height: 31px; }
 }

@@ -56,8 +56,16 @@
                               && state.lastDiscard
                               && state.lastDiscard.who !== 'player');
 
+    // リーチ宣言したばかりの手番（=宣言したが宣言牌を打っていない状態）かを判定
+    state.isRiichiDeclareTurn = isMyTurnDrawPhase
+                                && state.player.isRiichi
+                                && state.player.discard.length === state.player.riichiTurnIndex;
+
     // ツモ・ロンボタンは「成立可否を問わず」常時表示（押せば誤ツモ／誤ロンチョンボの可能性）
-    state.canTsumo  = isMyTurnDrawPhase && state.player.drawn !== null;
+    // ただしリーチ宣言ターンの打牌前はツモボタンを出さない（牌を選ぶ操作優先）
+    state.canTsumo  = isMyTurnDrawPhase
+                      && state.player.drawn !== null
+                      && !state.isRiichiDeclareTurn;
     state.canRon    = isOpponentDiscard;
     state.canPass   = isOpponentDiscard;
 
@@ -69,13 +77,20 @@
                    ? G.canDeclareKan(state, 'player')
                    : [];
 
+    // ツモ切りボタン: リーチ宣言ターンより後の自分の手番でのみ有効（手出し禁止状態）
+    state.canTsumogiri = isMyTurnDrawPhase
+                         && state.player.drawn !== null
+                         && state.player.isRiichi
+                         && state.player.discard.length > state.player.riichiTurnIndex;
+
     U.renderTable(state, {
       onTileClick: onTileClick,
-      onTsumo:  onPlayerTsumo,
-      onRon:    onPlayerRon,
-      onPass:   onPlayerPass,
-      onRiichi: onPlayerRiichi,
-      onKan:    onPlayerKan,
+      onTsumo:     onPlayerTsumo,
+      onRon:       onPlayerRon,
+      onPass:      onPlayerPass,
+      onRiichi:    onPlayerRiichi,
+      onKan:       onPlayerKan,
+      onTsumogiri: onPlayerTsumogiri,
     });
   }
 
@@ -124,6 +139,15 @@
     G.declareKan(state, 'player', tile);
     refresh();
     handleAfterDraw();   // 嶺上ツモ後の判定（連続カン・ツモアガリ等）
+  }
+
+  function onPlayerTsumogiri() {
+    if (!state.canTsumogiri) return;
+    var drawn = state.player.drawn;
+    if (drawn === null) return;
+    G.discardTile(state, 'player', drawn, 'drawn');
+    refresh();
+    handleAfterDiscard();
   }
 
   // ------ フロー: 打牌の後 → ロンチェック → ターン進行 → ツモチェック ------
@@ -219,6 +243,15 @@
       ? '<p>親がテンパイ → 連荘（親そのまま）</p>'
       : '<p>親がノーテン → 親流れ（親交代）</p>';
 
+    // 局終了時の手牌公開（背景の対局画面側）
+    U.renderHandRevealed(state, 'cpu');
+    U.renderHandRevealed(state, 'player');
+
+    // ダイアログ内の手牌+待ちセクション
+    var handsHtml = ''
+      + U.buildDialogPlayerSection(state, 'cpu',    U.computeWaits(state, 'cpu'),    null)
+      + U.buildDialogPlayerSection(state, 'player', U.computeWaits(state, 'player'), null);
+
     var chomboInfo = '';
     var chombo = state.chombo;
     if (chombo) {
@@ -235,7 +268,7 @@
 
     U.showDialog(
       '流局',
-      '<p>山がなくなりました。</p>' + tenpaiInfo + dealerInfo + chomboInfo,
+      '<p>山がなくなりました。</p>' + handsHtml + tenpaiInfo + dealerInfo + chomboInfo,
       '次の局へ',
       function () {
         G.nextRound(state);

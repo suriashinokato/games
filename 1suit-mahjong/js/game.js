@@ -28,6 +28,8 @@ window.Bamboo = window.Bamboo || {};
       score: INITIAL_SCORE,
       isRiichi: false,
       riichiTurnIndex: -1,
+      isIppatsuValid: false,
+      isRinshan: false,
       isFirstTurn: true,
     };
   }
@@ -39,7 +41,32 @@ window.Bamboo = window.Bamboo || {};
     p.melds = [];
     p.isRiichi = false;
     p.riichiTurnIndex = -1;
+    p.isIppatsuValid = false;
+    p.isRinshan = false;
     p.isFirstTurn = true;
+  }
+
+  // 暗槓を「1 面子確定」とみなし、仮想 3 枚を補完して 14 枚 counts を作る
+  function buildWinningCounts(p, agariTile) {
+    var hand = p.hand.slice();
+    hand.push(agariTile);
+    appendAnkanPadding(p, hand);
+    return H.toCounts(hand);
+  }
+
+  // 暗槓込みで 13 枚相当の counts を作る（テンパイ判定・待ち牌列挙用）
+  function buildTenpaiCounts(p) {
+    var hand = p.hand.slice();
+    appendAnkanPadding(p, hand);
+    return H.toCounts(hand);
+  }
+
+  function appendAnkanPadding(p, hand) {
+    for (var i = 0; i < p.melds.length; i++) {
+      if (p.melds[i].type === 'ankan') {
+        for (var k = 0; k < 3; k++) hand.push(p.melds[i].tile);
+      }
+    }
   }
 
   function other(who) { return who === 'player' ? 'cpu' : 'player'; }
@@ -134,6 +161,14 @@ window.Bamboo = window.Bamboo || {};
     p.isFirstTurn = false;
     state.lastDiscard = { who: who, tile: tileValue };
 
+    // 嶺上開花は次の打牌で失効
+    p.isRinshan = false;
+
+    // 一発の失効: 自分の次の打牌（リーチ宣言の打牌より後）で消滅する
+    if (p.isIppatsuValid && p.discard.length > p.riichiTurnIndex + 1) {
+      p.isIppatsuValid = false;
+    }
+
     // 相手のロン判定はフローを止める必要があるので、ここでターン交代せず
     // phase を 'awaitRonCheck' に切り替える。main.js 側でロン判定後 advanceTurn を呼ぶ。
     state.phase = 'awaitRonCheck';
@@ -155,15 +190,19 @@ window.Bamboo = window.Bamboo || {};
   function canDeclareRiichiTenpai(state, who) {
     if (!canDeclareRiichi(state, who)) return false;
     var p = state[who];
-    var allHand = p.hand.slice();
-    allHand.push(p.drawn);
+    var realHand = p.hand.slice();
+    realHand.push(p.drawn);
+    var pad = [];
+    appendAnkanPadding(p, pad);
     var seen = {};
-    for (var i = 0; i < allHand.length; i++) {
-      var t = allHand[i];
+    for (var i = 0; i < realHand.length; i++) {
+      var t = realHand[i];
       if (seen[t]) continue;
       seen[t] = true;
-      var c = allHand.slice();
+      var c = realHand.slice();
       c.splice(c.indexOf(t), 1);
+      c = c.concat(pad);
+      if (c.length !== 13) continue;
       if (H.calcShanten(H.toCounts(c)) === 0) return true;
     }
     return false;
@@ -175,6 +214,8 @@ window.Bamboo = window.Bamboo || {};
     p.isRiichi = true;
     // 宣言ターンの discard.length を記録 → これより後の打牌はツモ切り強制
     p.riichiTurnIndex = p.discard.length;
+    // 一発の有効期限フラグ。宣言以降、自分の次の打牌で消滅する。
+    p.isIppatsuValid = true;
     // リーチ棒なし仕様なので score は減らさない
   }
 
@@ -215,12 +256,17 @@ window.Bamboo = window.Bamboo || {};
 
     p.melds.push({ type: 'ankan', tile: tile });
 
+    // 暗槓で両者の一発が消える（標準ルール）
+    state.player.isIppatsuValid = false;
+    state.cpu.isIppatsuValid = false;
+
     // 嶺上ツモ
     if (state.deadWall.length === 0) {
       state.phase = 'draw';
       return;
     }
     p.drawn = state.deadWall.pop();
+    p.isRinshan = true;     // 嶺上ツモ後のツモアガリは嶺上開花
     // ツモ完了。phase は呼び出し側で再判定（ツモアガリの可能性、再カンの可能性）
   }
 
@@ -238,9 +284,7 @@ window.Bamboo = window.Bamboo || {};
   function tryTsumo(state, who) {
     var p = state[who];
     if (p.drawn === null) return null;
-    var hand14 = p.hand.slice();
-    hand14.push(p.drawn);
-    var counts = H.toCounts(hand14);
+    var counts = buildWinningCounts(p, p.drawn);
     if (!H.isWinningHand(counts)) return null;
 
     return judgeWin(state, who, counts, p.drawn, true);
@@ -253,13 +297,11 @@ window.Bamboo = window.Bamboo || {};
     var p = state[who];
     var lastTile = state.lastDiscard.tile;
 
-    var hand14 = p.hand.slice();
-    hand14.push(lastTile);
-    var counts = H.toCounts(hand14);
+    var counts = buildWinningCounts(p, lastTile);
     if (!H.isWinningHand(counts)) return null;
 
-    // フリテン: 自分の捨て牌に待ちが含まれていればロン不可
-    var counts13 = H.toCounts(p.hand);
+    // フリテン: 自分の捨て牌に待ちが含まれていればロン不可（暗槓考慮の 13 枚で計算）
+    var counts13 = buildTenpaiCounts(p);
     var waits = H.findWaits(counts13);
     if (H.isFuriten(waits, p.discard)) return null;
 
@@ -276,6 +318,8 @@ window.Bamboo = window.Bamboo || {};
       isTsumo: isTsumo,
       isMenzen: true,                       // 本作は副露なし、暗槓のみ → 常にメンゼン
       isRiichi: p.isRiichi,
+      isIppatsuValid: p.isIppatsuValid,
+      isRinshan: p.isRinshan && isTsumo,    // 嶺上ツモ後のツモアガリのみ
       currentSuit: state.currentSuit,
       splits: splits,
       isFirstTurn: p.isFirstTurn,
@@ -417,7 +461,9 @@ window.Bamboo = window.Bamboo || {};
   }
 
   function isTenpai(p) {
-    return H.calcShanten(H.toCounts(p.hand)) === 0;
+    var counts13 = buildTenpaiCounts(p);
+    if (H.totalTiles(counts13) !== 13) return false;
+    return H.calcShanten(counts13) === 0;
   }
 
   function nextRound(state) {

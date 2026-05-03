@@ -25,15 +25,13 @@
     <div id="screen-table" class="screen" style="display:none;">
       <div class="info-bar">
         <span>第 <b id="info-round">-</b> 局</span>
-        <span>使用 <b id="info-suit">-</b></span>
         <span>山残 <b id="info-wall">-</b></span>
-        <span>親 <b id="info-dealer">-</b></span>
-        <span>ターン <b id="info-turn">-</b></span>
       </div>
 
       <div class="player-area area-cpu">
         <div class="player-name">
           相手 <span id="score-cpu">-</span> 点
+          <span class="dealer-mark" id="dealer-cpu" style="display:none;">親</span>
           <span class="riichi-mark" id="riichi-cpu" style="display:none;">立直</span>
         </div>
         <div class="hand-section">
@@ -51,6 +49,7 @@
         </div>
         <div class="player-name">
           自分 <span id="score-player">-</span> 点
+          <span class="dealer-mark" id="dealer-player" style="display:none;">親</span>
           <span class="riichi-mark" id="riichi-player" style="display:none;">立直</span>
         </div>
         <div class="action-bar" id="action-bar"></div>

@@ -234,15 +234,32 @@ window.Bamboo = window.Bamboo || {};
   function calcShanten(counts) {
     var c = copyCounts(counts);
     var standard = calcShantenStandard(c);
-    // 七対子は数牌 1 種類だと 7 種足りないので必ず 6 以上のシャンテン → 標準形が常に勝つ
-    // 九蓮形の特殊シャンテンは標準形に内包されているので別計算は不要
+    // 1〜9 の 9 種から 7 種選べば七対子は成立しうる（11 22 33 44 55 66 77 など）。
+    // 標準形と七対子形の小さい方を採用する。
+    var chiitoi = calcChiitoitsuShanten(counts);
+    var best = Math.min(standard, chiitoi);
+
+    // 九蓮形の特殊シャンテンは標準形に内包されているが、念のため明示
     if (totalTiles(counts) === 13 && isChuurenTenpai(counts)) {
       return 0;
     }
     if (totalTiles(counts) === 14 && isChuurenSplit(counts)) {
       return -1;
     }
-    return standard;
+    return best;
+  }
+
+  // 七対子のシャンテン: 6 - 対子数（種類が 7 未満ならその不足分を加算）
+  function calcChiitoitsuShanten(counts) {
+    var pairs = 0;
+    var kinds = 0;
+    for (var i = 1; i <= 9; i++) {
+      if (counts[i] >= 1) kinds++;
+      if (counts[i] >= 2) pairs++;
+    }
+    var shanten = 6 - pairs;
+    if (kinds < 7) shanten += (7 - kinds);
+    return shanten;
   }
 
   // テンパイ時に「あと 1 枚で九蓮宝燈」となる手か（標準シャンテン側でもテンパイ判定されるはずだが

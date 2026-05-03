@@ -231,9 +231,17 @@ window.Bamboo = window.Bamboo || {};
     if (args.isRiichi) {
       bestYaku.push({ name: '立直', han: 1 });
     }
+    // 一発: リーチ宣言の直後一巡以内のアガリ
+    if (args.isRiichi && args.isIppatsuValid) {
+      bestYaku.push({ name: '一発', han: 1 });
+    }
     // 門前清自摸和: ツモ + メンゼン
     if (args.isTsumo && args.isMenzen) {
       bestYaku.push({ name: '門前清自摸和', han: 1 });
+    }
+    // 嶺上開花: 暗槓直後の嶺上ツモでアガリ
+    if (args.isRinshan) {
+      bestYaku.push({ name: '嶺上開花', han: 1 });
     }
     // 清一色: 数牌 1 種類しか使わないので必ず成立 (メンゼン 6 翻)
     bestYaku.push({ name: '清一色', han: 6 });

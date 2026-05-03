@@ -26,18 +26,18 @@ window.Bamboo = window.Bamboo || {};
 
   function renderInfo(state) {
     setText('info-round',  state.round);
-    setText('info-suit',   SUIT_LABEL[state.currentSuit] || '-');
     setText('info-wall',   state.wall.length);
-    setText('info-dealer', WHO_LABEL[state.dealer] || '-');
-    setText('info-turn',   WHO_LABEL[state.turnOwner] || '-');
     setText('score-player', state.player.score.toLocaleString());
     setText('score-cpu',    state.cpu.score.toLocaleString());
+    // 親マーク
+    setMark('dealer-player', state.dealer === 'player');
+    setMark('dealer-cpu',    state.dealer === 'cpu');
     // 立直マーク
-    setRiichiMark('riichi-player', state.player.isRiichi);
-    setRiichiMark('riichi-cpu',    state.cpu.isRiichi);
+    setMark('riichi-player', state.player.isRiichi);
+    setMark('riichi-cpu',    state.cpu.isRiichi);
   }
 
-  function setRiichiMark(id, isOn) {
+  function setMark(id, isOn) {
     var el = document.getElementById(id);
     if (!el) return;
     el.style.display = isOn ? '' : 'none';
@@ -161,6 +161,12 @@ window.Bamboo = window.Bamboo || {};
           + '暗槓 ' + t + '</button>';
       }
     }
+    if (state.canTsumogiri) {
+      html += '<button class="action-btn action-tsumogiri" id="btn-tsumogiri">ツモ切り</button>';
+    }
+    if (state.isRiichiDeclareTurn) {
+      html += '<span class="action-prompt">どの牌を切りますか？</span>';
+    }
     el.innerHTML = html;
 
     if (state.canTsumo) {
@@ -185,6 +191,9 @@ window.Bamboo = window.Bamboo || {};
         })(kanBtns[k]);
       }
     }
+    if (state.canTsumogiri) {
+      document.getElementById('btn-tsumogiri').addEventListener('click', handlers.onTsumogiri);
+    }
   }
 
   function bindClick(btn, onTileClick) {
@@ -194,6 +203,39 @@ window.Bamboo = window.Bamboo || {};
       var who    = btn.dataset.who;
       onTileClick(who, tile, source);
     });
+  }
+
+  // ---- 待ち牌表示 ----
+
+  // 暗槓が混じっていても 13 枚の仮想手牌に整形して findWaits を呼ぶ。
+  // 各暗槓につき同じ値の 3 枚を仮想的に追加（1 面子分）。
+  function computeWaits(state, who) {
+    var H = window.Bamboo.handEval;
+    var p = state[who];
+    var virtual = p.hand.slice();
+    for (var i = 0; i < p.melds.length; i++) {
+      if (p.melds[i].type === 'ankan') {
+        for (var k = 0; k < 3; k++) virtual.push(p.melds[i].tile);
+      }
+    }
+    if (virtual.length !== 13) return [];
+    return H.findWaits(H.toCounts(virtual));
+  }
+
+  function renderWaitsInline(state, waits) {
+    if (!waits || waits.length === 0) return '<span class="waits-none">なし</span>';
+    var html = '';
+    for (var i = 0; i < waits.length; i++) {
+      html += T.renderTile(state.currentSuit, waits[i], { face: 'up' });
+    }
+    return html;
+  }
+
+  function renderWaitsBlock(state, label, waits) {
+    return '<div class="waits-line">'
+         + '<span class="waits-label">' + label + '</span>'
+         + '<span class="waits-tiles">' + renderWaitsInline(state, waits) + '</span>'
+         + '</div>';
   }
 
   // ---- アガリ結果ダイアログ ----
@@ -216,22 +258,28 @@ window.Bamboo = window.Bamboo || {};
   }
 
   function showWinDialog(state, onContinue) {
-    // 相手の手も公開
+    // 対局画面の相手手牌も公開（ダイアログを閉じても見えるように）
     renderHandRevealed(state, 'cpu');
     renderHandRevealed(state, 'player');
 
     var w = state.winResult;
 
+    var pWaits = computeWaits(state, 'player');
+    var cWaits = computeWaits(state, 'cpu');
+    var handsHtml = ''
+      + buildDialogPlayerSection(state, 'cpu',    cWaits, w)
+      + buildDialogPlayerSection(state, 'player', pWaits, w);
+
     if (w.winType === 'chombo') {
-      // 誤ロン・誤ツモのチョンボ
       var chomboBy = WHO_LABEL[w.chomboBy];
-      var typeLabel = w.chomboType === 'ron' ? '誤ロン' : '誤ツモ';
+      var chomboTypeLabel = w.chomboType === 'ron' ? '誤ロン' : '誤ツモ';
       var body = ''
+        + handsHtml
         + '<p class="chombo-msg">' + chomboBy + 'の宣言した手は和了形ではない／役なし／フリテン のいずれか</p>'
         + '<div class="rank-line">役満分の罰符</div>'
         + '<div class="points-line"><b>' + w.points.toLocaleString() + '</b> 点 → '
         + WHO_LABEL[w.winner] + ' へ</div>';
-      showDialog(chomboBy + ' チョンボ（' + typeLabel + '）', body, '次の局へ', onContinue);
+      showDialog(chomboBy + ' チョンボ（' + chomboTypeLabel + '）', body, '次の局へ', onContinue);
       return;
     }
 
@@ -246,11 +294,69 @@ window.Bamboo = window.Bamboo || {};
     var pointsLabel = w.points.toLocaleString();
 
     var winBody = ''
+      + handsHtml
       + '<ul class="yaku-list">' + yakuHtml + '</ul>'
       + hanLine
       + '<div class="points-line"><b>' + pointsLabel + '</b> 点 移動</div>';
 
     showDialog(winnerLabel + ' ' + winTypeLabel + ' 和了', winBody, '次の局へ', onContinue);
+  }
+
+  // ダイアログ内に表示するプレイヤー手牌+待ち牌セクション
+  function buildDialogPlayerSection(state, who, waits, winResult) {
+    var p = state[who];
+    var label = WHO_LABEL[who];
+
+    // アガリ牌をハイライト用に特定
+    var agariTile = null;
+    if (winResult && winResult.winType !== 'chombo' && winResult.winner === who) {
+      agariTile = winResult.agariTile;
+    }
+
+    var handHtml = '';
+    for (var i = 0; i < p.hand.length; i++) {
+      var hl = (winResult && winResult.winType === 'ron'
+                && winResult.winner === who
+                && p.hand[i] === agariTile) ? ' tile-agari' : '';
+      handHtml += '<span class="dialog-tile' + hl + '">'
+        + T.renderTile(state.currentSuit, p.hand[i], { face: 'up' }) + '</span>';
+    }
+    if (p.drawn !== null) {
+      var drawnHl = (winResult && winResult.winType === 'tsumo'
+                     && winResult.winner === who) ? ' tile-agari' : '';
+      handHtml += '<span class="dialog-tile drawn' + drawnHl + '">'
+        + T.renderTile(state.currentSuit, p.drawn, { face: 'up' }) + '</span>';
+    }
+    for (var j = 0; j < p.melds.length; j++) {
+      var m = p.melds[j];
+      if (m.type === 'ankan') {
+        handHtml += '<span class="dialog-meld">'
+          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
+          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
+          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
+          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
+          + '</span>';
+      }
+    }
+
+    var waitsLabel = (winResult && winResult.winType === 'ron' && winResult.winner === who)
+      ? 'ロン牌'
+      : (winResult && winResult.winType === 'tsumo' && winResult.winner === who)
+        ? 'ツモ牌'
+        : '待ち';
+    // ロン/ツモ時は単純に「アガリ牌」を1枚だけ表示するが、テンパイ手としての待ち全体も並列で出す
+    var waitsTilesHtml = (waits && waits.length > 0)
+      ? renderWaitsInline(state, waits)
+      : '<span class="waits-none">なし</span>';
+
+    return '<div class="dialog-player-section">'
+         + '<div class="dialog-player-label">' + label + '</div>'
+         + '<div class="dialog-hand">' + handHtml + '</div>'
+         + '<div class="dialog-waits-line">'
+         +   '<span class="waits-label">待ち</span>'
+         +   '<span class="waits-tiles">' + waitsTilesHtml + '</span>'
+         + '</div>'
+         + '</div>';
   }
 
   // ---- 汎用ダイアログ ----
@@ -291,5 +397,9 @@ window.Bamboo = window.Bamboo || {};
     showDialog: showDialog,
     hideDialog: hideDialog,
     showWinDialog: showWinDialog,
+    computeWaits: computeWaits,
+    renderWaitsBlock: renderWaitsBlock,
+    buildDialogPlayerSection: buildDialogPlayerSection,
+    renderHandRevealed: renderHandRevealed,
   };
 })();

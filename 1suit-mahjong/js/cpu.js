@@ -69,8 +69,10 @@ window.Bamboo = window.Bamboo || {};
       throw new Error('chooseDiscard: ツモ牌がない (' + who + ')');
     }
 
-    // リーチ後はツモ切り強制
-    if (p.isRiichi) {
+    // リーチ宣言ターンより後はツモ切り強制
+    // （宣言ターンの打牌はテンパイ維持牌を通常ロジックで選ぶ。これを忘れると
+    //   ノーテンの牌を打ってしまい、CPU がノーテンリーチ→チョンボになる）
+    if (p.isRiichi && p.discard.length > p.riichiTurnIndex) {
       return { tile: p.drawn, source: 'drawn' };
     }
 
