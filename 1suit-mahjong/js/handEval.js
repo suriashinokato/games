@@ -54,6 +54,38 @@ window.Bamboo = window.Bamboo || {};
     return splits;
   }
 
+  // counts に対し「雀頭 1 + ちょうど requiredSets 個の面子」での全消費が可能か。
+  // isWinningHand の暗槓ロック版（pre-lock）から呼ばれ、greedy 探索が kotsu 経路を
+  // 見落として偽待ちを生むのを構造的に防ぐ。
+  function canSplitPairAndSets(counts, requiredSets) {
+    for (var pair = 1; pair <= 9; pair++) {
+      if (counts[pair] < 2) continue;
+      counts[pair] -= 2;
+      var ok = decomposeNSets(counts, 1, requiredSets);
+      counts[pair] += 2;
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  function decomposeNSets(counts, start, n) {
+    if (n === 0) return totalTiles(counts) === 0;
+    var i = start;
+    while (i <= 9 && counts[i] === 0) i++;
+    if (i > 9) return false;
+    if (counts[i] >= 3) {
+      counts[i] -= 3;
+      if (decomposeNSets(counts, i, n - 1)) { counts[i] += 3; return true; }
+      counts[i] += 3;
+    }
+    if (i <= 7 && counts[i] >= 1 && counts[i + 1] >= 1 && counts[i + 2] >= 1) {
+      counts[i]--; counts[i + 1]--; counts[i + 2]--;
+      if (decomposeNSets(counts, i, n - 1)) { counts[i]++; counts[i + 1]++; counts[i + 2]++; return true; }
+      counts[i]++; counts[i + 1]++; counts[i + 2]++;
+    }
+    return false;
+  }
+
   // counts を「面子のみ」に分解できるか。できれば true を返し sets に { type, tile } を追記。
   // type は 'kotsu'（刻子）か 'shuntsu'（順子）。tile は刻子の値 or 順子の最小値。
   function decomposeAllSets(counts, start, sets) {
@@ -134,7 +166,10 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // requiredKotsu: 暗槓の tile 値配列（例: 暗槓(7) があれば [7]）。
-  // 省略時は従来挙動と完全一致。指定時は「各牌の刻子を含む split が存在する」場合のみ true。
+  // 省略時は従来挙動と完全一致。指定時は「各暗槓 tile を kotsu として先に 3 枚 lock し、
+  // 残り (14 - 3K) 枚で 雀頭 + (4 - K) 面子を構成できる」ことを直接判定する pre-lock 方式。
+  // findStandardSplits + splitMatchesRequired の事後 filter 方式は、greedy 分解が
+  // kotsu(暗槓 tile) 経路を見落として偽待ちを生むことがあるためここでは使わない。
   function isWinningHand(counts, requiredKotsu) {
     if (totalTiles(counts) !== 14) return false;
     if (!requiredKotsu || requiredKotsu.length === 0) {
@@ -142,11 +177,12 @@ window.Bamboo = window.Bamboo || {};
       return findStandardSplits(counts).length > 0;
     }
     // 暗槓があるとき七対子は構造的に成立しない（4 枚揃いの牌があるので）
-    var splits = findStandardSplits(counts);
-    for (var i = 0; i < splits.length; i++) {
-      if (splitMatchesRequired(splits[i], requiredKotsu)) return true;
+    var locked = copyCounts(counts);
+    for (var i = 0; i < requiredKotsu.length; i++) {
+      if (locked[requiredKotsu[i]] < 3) return false;
+      locked[requiredKotsu[i]] -= 3;
     }
-    return false;
+    return canSplitPairAndSets(locked, 4 - requiredKotsu.length);
   }
 
   // 役判定で使う「全分解」。標準形のみ。九蓮・七対子は別フラグで判断する。

@@ -549,6 +549,44 @@
     });
 
     // ====================================================================
+    section('findWaits: 暗槓ありの requiredKotsu 制約');
+    // ====================================================================
+
+    // ui.js の computeWaits 相当の挙動を tests.html 単独で再現するヘルパ。
+    // ui.js は本ページから読み込んでいないので、padding と filter を手で組み立てる。
+    function computeWaitsFromHand(handArr, ankanArr) {
+      var virtual = handArr.slice();
+      var ankanSet = {};
+      var requiredKotsu = [];
+      for (var i = 0; i < ankanArr.length; i++) {
+        ankanSet[ankanArr[i]] = true;
+        requiredKotsu.push(ankanArr[i]);
+        virtual.push(ankanArr[i], ankanArr[i], ankanArr[i]);
+      }
+      var waits = H.findWaits(H.toCounts(virtual), requiredKotsu);
+      return waits.filter(function (t) { return !ankanSet[t]; });
+    }
+
+    test('純チンイツ + 暗槓5: 233466778+8 + ankan(5) は 3 単騎のみ', function () {
+      // ユーザー報告ケース: 1, 4 が偽待ちとして混入していないことを保証。
+      // ロン3 → 234 + 33 + 678 + 678 + ankan(5) で和了
+      // ロン1 / 4 → kotsu(5) を含む split が構造的に作れず待ちでない
+      assertArrayEqual(computeWaitsFromHand([2,3,3,4,6,6,7,7,8,8], [5]), [3]);
+    });
+
+    test('回帰: 同手牌でロン1 は和了不可 (kotsu(5) split 無し)', function () {
+      assertEqual(H.isWinningHand(H.toCounts([2,3,3,4,6,6,7,7,8,8, 5,5,5, 1]), [5]), false);
+    });
+
+    test('回帰: 同手牌でロン4 は和了不可 (kotsu(5) split 無し)', function () {
+      assertEqual(H.isWinningHand(H.toCounts([2,3,3,4,6,6,7,7,8,8, 5,5,5, 4]), [5]), false);
+    });
+
+    test('回帰: 同手牌でロン3 は和了可 (kotsu(5) を含む split あり)', function () {
+      assertEqual(H.isWinningHand(H.toCounts([2,3,3,4,6,6,7,7,8,8, 5,5,5, 3]), [5]), true);
+    });
+
+    // ====================================================================
     section('detectYaku: 暗刻数 (暗槓との二重カウント回帰)');
     // ====================================================================
 
