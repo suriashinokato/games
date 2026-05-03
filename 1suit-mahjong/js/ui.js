@@ -210,31 +210,23 @@ window.Bamboo = window.Bamboo || {};
   // 暗槓が混じっていても 13 枚の仮想手牌に整形して findWaits を呼ぶ。
   // 各暗槓につき同じ値の 3 枚を仮想的に追加（1 面子分）。
   // 暗槓した tile はすでに 4 枚すべて消費されているので、結果から除外する。
+  // requiredKotsu に暗槓の tile を渡し、padding 分が他の面子に流用される
+  // 偽の待ち（例: 暗槓 9 のとき padding を 7-8-9 に解体して 7m を待ちにする）を抑止する。
   function computeWaits(state, who) {
     var H = window.Bamboo.handEval;
     var p = state[who];
     var virtual = p.hand.slice();
     var ankanTiles = {};
+    var requiredKotsu = [];
     for (var i = 0; i < p.melds.length; i++) {
       if (p.melds[i].type === 'ankan') {
         ankanTiles[p.melds[i].tile] = true;
+        requiredKotsu.push(p.melds[i].tile);
         for (var k = 0; k < 3; k++) virtual.push(p.melds[i].tile);
       }
     }
-    // [DEBUG] 待ち牌バグ調査用ログ。原因特定後に削除する。
-    console.log('[computeWaits]', who, {
-      hand: p.hand.slice(),
-      drawn: p.drawn,
-      melds: JSON.parse(JSON.stringify(p.melds)),
-      virtualLen: virtual.length,
-      virtualCounts: H.toCounts(virtual).slice(1),
-    });
-    if (virtual.length !== 13) {
-      console.log('[computeWaits] virtual.length !== 13 → []');
-      return [];
-    }
-    var waits = H.findWaits(H.toCounts(virtual));
-    console.log('[computeWaits] raw waits:', waits, 'ankanTiles:', ankanTiles);
+    if (virtual.length !== 13) return [];
+    var waits = H.findWaits(H.toCounts(virtual), requiredKotsu);
     return waits.filter(function (t) { return !ankanTiles[t]; });
   }
 
