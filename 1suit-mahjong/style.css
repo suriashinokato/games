@@ -480,9 +480,12 @@ html, body {
 /* ----- レスポンシブ ----- */
 
 @media (max-width: 600px) {
+  /* 牌サイズを画面幅で自動算出。
+     14 枚 (手牌13 + ツモ1) + 暗槓1個分(4枚) ≒ 16〜18 タイル分が目安。
+     16 で割り、暗槓セットの隙間とパディング (50px) を引く。 */
   :root {
-    --tile-w: 28px;
-    --tile-h: 40px;
+    --tile-w: min(28px, calc((100vw - 50px) / 16));
+    --tile-h: calc(var(--tile-w) * 4 / 3);
   }
   #app { padding: 8px; }
   .title { font-size: 1.6rem; }
@@ -491,27 +494,26 @@ html, body {
   .player-name { font-size: 0.8rem; }
   .action-btn { padding: 5px 12px; font-size: 0.9rem; }
   .meld-set { padding: 1px; }
-  .tile-btn.drawn { margin-left: 8px; }
+  .tile-btn.drawn { margin-left: 4px; }
   .dialog { padding: 16px 20px; min-width: 240px; max-width: 96vw; }
 
-  /* 対局画面の手牌・暗槓・河は 1 列固定（はみ出したら横スクロール） */
+  /* 対局画面の手牌・暗槓は 1 列固定。横スクロールなし（牌サイズで吸収） */
   .hand-section {
     flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 6px;
+    overflow: hidden;
+    gap: 4px;
   }
   .hand-row {
     flex-wrap: nowrap;
-    overflow-x: visible;
-    gap: 2px;
+    overflow: hidden;
+    gap: 1px;
   }
   .meld-row {
     flex-wrap: nowrap;
-    gap: 2px;
+    gap: 1px;
   }
   .discard {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
     gap: 1px;
     padding: 2px;
   }
