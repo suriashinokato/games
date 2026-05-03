@@ -36,11 +36,17 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // 14 枚 (手牌+ツモ) を 13 枚 counts 配列に変換（候補を 1 枚抜いた状態）
+  // 暗槓があるときは仮想 3 枚を補完して 13 枚相当にする（calcShanten の前提を満たす）
   function countsAfterDiscard(p, candidate) {
     var allHand = p.hand.slice();
     if (p.drawn !== null) allHand.push(p.drawn);
     var idx = allHand.indexOf(candidate.tile);
     allHand.splice(idx, 1); // 同じ値が複数あっても効果は同じなので最初の 1 枚を抜く
+    for (var k = 0; k < p.melds.length; k++) {
+      if (p.melds[k].type === 'ankan') {
+        for (var j = 0; j < 3; j++) allHand.push(p.melds[k].tile);
+      }
+    }
     return H.toCounts(allHand);
   }
 
@@ -87,12 +93,12 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // ---- 段階 5: 役ありなら必ずアガる方針 ----
-  // tryTsumo / tryRon が null でなければ役成立 → 宣言する
+  // tryTsumo / tryRon の result が null でなければ役成立 → 宣言する
   function shouldTsumo(state, who) {
-    return window.Bamboo.game.tryTsumo(state, who) !== null;
+    return window.Bamboo.game.tryTsumo(state, who).result !== null;
   }
   function shouldRon(state, who) {
-    return window.Bamboo.game.tryRon(state, who) !== null;
+    return window.Bamboo.game.tryRon(state, who).result !== null;
   }
 
   // ---- 段階 6: リーチ・暗槓 ----
@@ -104,7 +110,7 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // 4 枚揃った瞬間に宣言（簡略化: シャンテン悪化チェックなし）
-  // リーチ後はそもそも canDeclareKan が空配列を返す
+  // 待ちが変わる暗槓は canDeclareKan 側で抑止される（送りカン抑止）
   function shouldDeclareKan(state, who) {
     var available = window.Bamboo.game.canDeclareKan(state, who);
     return available.length > 0 ? available[0] : null;

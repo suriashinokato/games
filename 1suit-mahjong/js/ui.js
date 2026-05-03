@@ -221,8 +221,20 @@ window.Bamboo = window.Bamboo || {};
         for (var k = 0; k < 3; k++) virtual.push(p.melds[i].tile);
       }
     }
-    if (virtual.length !== 13) return [];
+    // [DEBUG] 待ち牌バグ調査用ログ。原因特定後に削除する。
+    console.log('[computeWaits]', who, {
+      hand: p.hand.slice(),
+      drawn: p.drawn,
+      melds: JSON.parse(JSON.stringify(p.melds)),
+      virtualLen: virtual.length,
+      virtualCounts: H.toCounts(virtual).slice(1),
+    });
+    if (virtual.length !== 13) {
+      console.log('[computeWaits] virtual.length !== 13 → []');
+      return [];
+    }
     var waits = H.findWaits(H.toCounts(virtual));
+    console.log('[computeWaits] raw waits:', waits, 'ankanTiles:', ankanTiles);
     return waits.filter(function (t) { return !ankanTiles[t]; });
   }
 
@@ -277,9 +289,23 @@ window.Bamboo = window.Bamboo || {};
     if (w.winType === 'chombo') {
       var chomboBy = WHO_LABEL[w.chomboBy];
       var chomboTypeLabel = w.chomboType === 'ron' ? '誤ロン' : '誤ツモ';
+      var reasonText;
+      switch (w.chomboReason) {
+        case 'noWinningHand':
+          reasonText = chomboBy + 'の宣言した手は和了形になっていない';
+          break;
+        case 'noYaku':
+          reasonText = chomboBy + 'の宣言した手は役がない';
+          break;
+        case 'furiten':
+          reasonText = chomboBy + 'の宣言した手はフリテン';
+          break;
+        default:
+          reasonText = chomboBy + 'の宣言した手は和了形ではない／役なし／フリテン のいずれか';
+      }
       var body = ''
         + handsHtml
-        + '<p class="chombo-msg">' + chomboBy + 'の宣言した手は和了形ではない／役なし／フリテン のいずれか</p>'
+        + '<p class="chombo-msg">' + reasonText + '</p>'
         + '<div class="rank-line">役満分の罰符</div>'
         + '<div class="points-line"><b>' + w.points.toLocaleString() + '</b> 点 → '
         + WHO_LABEL[w.winner] + ' へ</div>';

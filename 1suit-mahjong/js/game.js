@@ -221,6 +221,38 @@ window.Bamboo = window.Bamboo || {};
 
   // ---- 暗槓 ----
 
+  // 暗槓宣言が「待ちを変える / テンパイを崩す」かどうか（送りカン抑止用）。
+  // テンパイでない局面では守るべき待ちが無いので false を返す。
+  function kanChangesWaits(p, kanTile) {
+    var preCounts = buildTenpaiCounts(p);
+    if (H.totalTiles(preCounts) !== 13) return false;
+    var preWaits = H.findWaits(preCounts);
+    if (preWaits.length === 0) return false;
+
+    var postHand = [];
+    var removed = 0;
+    for (var i = 0; i < p.hand.length; i++) {
+      if (p.hand[i] === kanTile && removed < 4) { removed++; continue; }
+      postHand.push(p.hand[i]);
+    }
+    if (p.drawn !== null) {
+      if (p.drawn === kanTile && removed < 4) { removed++; }
+      else { postHand.push(p.drawn); }
+    }
+    appendAnkanPadding(p, postHand);
+    for (var k = 0; k < 3; k++) postHand.push(kanTile);
+
+    var postCounts = H.toCounts(postHand);
+    if (H.totalTiles(postCounts) !== 13) return true;
+    var postWaits = H.findWaits(postCounts);
+
+    if (preWaits.length !== postWaits.length) return true;
+    for (var j = 0; j < preWaits.length; j++) {
+      if (postWaits.indexOf(preWaits[j]) === -1) return true;
+    }
+    return false;
+  }
+
   // 暗槓可能な数値リスト。手牌+ツモで 4 枚揃っている数値を返す。
   function canDeclareKan(state, who) {
     var p = state[who];
@@ -230,8 +262,8 @@ window.Bamboo = window.Bamboo || {};
     var result = [];
     for (var n = 1; n <= 9; n++) {
       if (counts[n] === 4) {
-        // リーチ後は待ちが変わる暗槓を禁止 → 簡略化: リーチ後は暗槓不可
-        if (p.isRiichi) continue;
+        // 待ちが変わる暗槓は常に禁止（送りカン抑止）
+        if (kanChangesWaits(p, n)) continue;
         result.push(n);
       }
     }
@@ -285,25 +317,33 @@ window.Bamboo = window.Bamboo || {};
 
   // ---- アガリ判定（外向き） ----
 
-  // who がツモアガリ可能か（役判定込み）。可能なら winResult のドラフトを返す
+  // who がツモアガリ可能か（役判定込み）。
+  // 戻り値: { result, reason }
+  //   成功: { result: winResultドラフト, reason: null }
+  //   失敗: { result: null, reason: 'noTarget' | 'noWinningHand' | 'noYaku' }
   function tryTsumo(state, who) {
     var p = state[who];
-    if (p.drawn === null) return null;
+    if (p.drawn === null) return { result: null, reason: 'noTarget' };
     var counts = buildWinningCounts(p, p.drawn);
-    if (!H.isWinningHand(counts)) return null;
+    if (!H.isWinningHand(counts)) return { result: null, reason: 'noWinningHand' };
 
-    return judgeWin(state, who, counts, p.drawn, true);
+    var winResult = judgeWin(state, who, counts, p.drawn, true);
+    if (!winResult) return { result: null, reason: 'noYaku' };
+    return { result: winResult, reason: null };
   }
 
   // who が「相手の last discard」でロン可能か。フリテンチェック込み。
+  // 戻り値: { result, reason }
+  //   成功: { result: winResultドラフト, reason: null }
+  //   失敗: { result: null, reason: 'noTarget' | 'noWinningHand' | 'furiten' | 'noYaku' }
   function tryRon(state, who) {
-    if (!state.lastDiscard) return null;
-    if (state.lastDiscard.who === who) return null;
+    if (!state.lastDiscard) return { result: null, reason: 'noTarget' };
+    if (state.lastDiscard.who === who) return { result: null, reason: 'noTarget' };
     var p = state[who];
     var lastTile = state.lastDiscard.tile;
 
     var counts = buildWinningCounts(p, lastTile);
-    if (!H.isWinningHand(counts)) return null;
+    if (!H.isWinningHand(counts)) return { result: null, reason: 'noWinningHand' };
 
     // フリテン判定: リーチ中はリーチ宣言以降の捨て牌のみを対象とする。
     //               （リーチ前に切った当たり牌は無視する独自仕様）
@@ -312,9 +352,11 @@ window.Bamboo = window.Bamboo || {};
     var discardForFuriten = p.isRiichi
       ? p.discard.slice(p.riichiTurnIndex)
       : p.discard;
-    if (H.isFuriten(waits, discardForFuriten)) return null;
+    if (H.isFuriten(waits, discardForFuriten)) return { result: null, reason: 'furiten' };
 
-    return judgeWin(state, who, counts, lastTile, false);
+    var winResult = judgeWin(state, who, counts, lastTile, false);
+    if (!winResult) return { result: null, reason: 'noYaku' };
+    return { result: winResult, reason: null };
   }
 
   // 役判定 + 点数計算 → winResult ドラフト
@@ -331,6 +373,7 @@ window.Bamboo = window.Bamboo || {};
       isRinshan: p.isRinshan && isTsumo,    // 嶺上ツモ後のツモアガリのみ
       currentSuit: state.currentSuit,
       splits: splits,
+      isChiitoitsu: H.isChiitoitsu(counts14),
       isFirstTurn: p.isFirstTurn,
       isDealer: state.dealer === who,
       melds: p.melds,
@@ -361,36 +404,36 @@ window.Bamboo = window.Bamboo || {};
   // ---- アガリ宣言 ----
 
   function declareTsumo(state, who) {
-    var result = tryTsumo(state, who);
-    if (!result) throw new Error('ツモアガリ不可');
-    finishWin(state, result);
+    var ret = tryTsumo(state, who);
+    if (!ret.result) throw new Error('ツモアガリ不可');
+    finishWin(state, ret.result);
   }
 
   function declareRon(state, who) {
-    var result = tryRon(state, who);
-    if (!result) throw new Error('ロンアガリ不可');
-    finishWin(state, result);
+    var ret = tryRon(state, who);
+    if (!ret.result) throw new Error('ロンアガリ不可');
+    finishWin(state, ret.result);
   }
 
   // 「とりあえず宣言してみる」版: 成立しなければチョンボ処理。
   // 戻り値: 'win' なら和了成立、'chombo' ならチョンボ確定。
   function attemptTsumo(state, who) {
-    var result = tryTsumo(state, who);
-    if (result) {
-      finishWin(state, result);
+    var ret = tryTsumo(state, who);
+    if (ret.result) {
+      finishWin(state, ret.result);
       return 'win';
     }
-    finishChombo(state, who, 'tsumo');
+    finishChombo(state, who, 'tsumo', ret.reason);
     return 'chombo';
   }
 
   function attemptRon(state, who) {
-    var result = tryRon(state, who);
-    if (result) {
-      finishWin(state, result);
+    var ret = tryRon(state, who);
+    if (ret.result) {
+      finishWin(state, ret.result);
       return 'win';
     }
-    finishChombo(state, who, 'ron');
+    finishChombo(state, who, 'ron', ret.reason);
     return 'chombo';
   }
 
@@ -403,7 +446,8 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // 誤ロン・誤ツモ・ノーテンリーチ以外のチョンボ: 役満分罰符を相手に支払う。
-  function finishChombo(state, who, chomboType) {
+  // chomboReason: 'noWinningHand' | 'furiten' | 'noYaku' | 'noTarget' | null
+  function finishChombo(state, who, chomboType, chomboReason) {
     var penalty = chomboPenalty(state, who);
     var winner = other(who);
     state[who].score    -= penalty;
@@ -413,6 +457,7 @@ window.Bamboo = window.Bamboo || {};
       winType: 'chombo',
       chomboBy: who,
       chomboType: chomboType,        // 'ron' | 'tsumo'
+      chomboReason: chomboReason || null,
       yakuList: [],
       totalHan: 13,
       isYakuman: true,

@@ -28,10 +28,15 @@
   <!-- 依存モジュール -->
   <script src="js/tiles.js"></script>
   <script src="js/handEval.js"></script>
+  <script src="js/yaku.js"></script>
+  <script src="js/score.js"></script>
+  <script src="js/game.js"></script>
 
   <script>
   (function () {
     var H = window.Bamboo.handEval;
+    var Y = window.Bamboo.yaku;
+    var G = window.Bamboo.game;
     var resultsEl = document.getElementById('results');
     var summaryEl = document.getElementById('summary');
     var passCount = 0;
@@ -140,6 +145,26 @@
     });
 
     // ====================================================================
+    section('isWinningHand: 七対子');
+    // ====================================================================
+
+    test('七対子: 11 22 33 44 55 66 77 → 和了形', function () {
+      assertEqual(H.isChiitoitsu(counts([1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7])), true);
+      assertEqual(H.isWinningHand(counts([1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7])), true);
+    });
+    test('七対子: 4枚同種があると false (4枚は対子2組と数えない)', function () {
+      // 1111 22 33 44 55 66 77 は 13 種に見えるが 1×4 + 6 対子 → 対子数が 7 未満
+      assertEqual(H.isChiitoitsu(counts([1,1,1,1, 2,2, 3,3, 4,4, 5,5, 6,6])), false);
+    });
+    test('七対子の単騎テンパイ: 11 22 33 44 55 66 7 → 7 待ち', function () {
+      var w = H.findWaits(counts([1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7]));
+      // 7 待ちは含まれるはず（標準形では成立しないため、本ケースは七対子経由）
+      var has7 = false;
+      for (var i = 0; i < w.length; i++) if (w[i] === 7) has7 = true;
+      assertEqual(has7, true);
+    });
+
+    // ====================================================================
     section('calcShanten: テンパイ・1向聴・2向聴');
     // ====================================================================
 
@@ -206,6 +231,207 @@
     });
     test('河が空 → false', function () {
       assertEqual(H.isFuriten([1,9], []), false);
+    });
+
+    // ====================================================================
+    section('detectYaku: 七対子');
+    // ====================================================================
+
+    function hasYaku(yakuList, name) {
+      for (var i = 0; i < yakuList.length; i++) {
+        if (yakuList[i].name === name) return true;
+      }
+      return false;
+    }
+
+    test('純粋七対子ツモ (11 22 44 55 66 88 99 — 標準形に分解不能) → 七対子 + 清一色 + 門前ツモ', function () {
+      // 3 と 7 を抜いて 順子 を形成不可能にしている
+      var c14 = counts([1,1, 2,2, 4,4, 5,5, 6,6, 8,8, 9,9]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 9,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'man',
+        splits: H.findWinningSplits(c14),     // 純粋七対子なので空配列のはず
+        isChiitoitsu: H.isChiitoitsu(c14),    // true
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [],
+      });
+      assertEqual(H.findWinningSplits(c14).length, 0); // 前提: 標準形に分解不可
+      assertEqual(d.isYakuman, false);
+      assertEqual(hasYaku(d.yakuList, '七対子'), true);
+      assertEqual(hasYaku(d.yakuList, '清一色'), true);
+      assertEqual(hasYaku(d.yakuList, '門前清自摸和'), true);
+      // 2 (七対子) + 6 (清一色) + 1 (門前ツモ) = 9翻
+      assertEqual(d.totalHan, 9);
+    });
+
+    test('純粋七対子ロン (リーチ無し) → 七対子 + 清一色 のみ (ツモ役は付かない)', function () {
+      var c14 = counts([1,1, 2,2, 4,4, 5,5, 6,6, 8,8, 9,9]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 9,
+        isTsumo: false,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'man',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [],
+      });
+      assertEqual(hasYaku(d.yakuList, '七対子'), true);
+      assertEqual(hasYaku(d.yakuList, '門前清自摸和'), false);
+      assertEqual(d.totalHan, 8); // 2 + 6
+    });
+
+    test('二盃口にも七対子にも分解可能 → 二盃口 (3翻) を採用 (高点法)', function () {
+      // 112233 445566 77 は 4 順子 (123,123,456,456) + 雀頭 7 = 二盃口 でもあり、
+      // 同時に 7 種すべて 2 枚 = 七対子 でもある。高点法で 3翻 > 2翻 → 二盃口採用。
+      var c14 = counts([1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 7,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'man',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [],
+      });
+      assertEqual(hasYaku(d.yakuList, '二盃口'), true);
+      assertEqual(hasYaku(d.yakuList, '七対子'), false);
+    });
+
+    test('標準形 (4面子1雀頭) は七対子フラグ無視で従来どおり', function () {
+      // 123 234 345 456 77 → ツモ
+      var c14 = counts([1,2,3, 2,3,4, 3,4,5, 4,5,6, 7,7]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 7,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'man',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14), // false
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [],
+      });
+      assertEqual(hasYaku(d.yakuList, '七対子'), false);
+      assertEqual(hasYaku(d.yakuList, '清一色'), true);
+      assertEqual(hasYaku(d.yakuList, '門前清自摸和'), true);
+    });
+
+    // ====================================================================
+    section('canDeclareKan: 送りカン抑止');
+    // ====================================================================
+
+    function makeState(handArr, drawnTile, opts) {
+      opts = opts || {};
+      function emptyP() {
+        return {
+          hand: [], drawn: null, discard: [], melds: [],
+          score: 100000, isRiichi: false, riichiTurnIndex: -1,
+          isIppatsuValid: false, isRinshan: false, isFirstTurn: false,
+        };
+      }
+      var p = emptyP();
+      p.hand = handArr.slice().sort(function (a, b) { return a - b; });
+      p.drawn = (drawnTile === undefined) ? null : drawnTile;
+      p.melds = opts.melds || [];
+      p.isRiichi = !!opts.isRiichi;
+      return {
+        phase: 'playerTurn', currentSuit: 'man', round: 1,
+        dealer: 'player', turnOwner: 'player',
+        wall: [], deadWall: [],
+        player: p, cpu: emptyP(),
+        winResult: null, lastDiscard: null,
+      };
+    }
+
+    test('4枚揃っていない手 → カン候補なし', function () {
+      var s = makeState([1,1,1, 2,3,4, 5,6,7, 8,9,9, 9], 2);
+      assertArrayEqual(G.canDeclareKan(s, 'player'), []);
+    });
+
+    test('ノーテン手で 4 枚揃い → カン許可（守るべき待ちなし）', function () {
+      // 完全バラバラの 1-shanten 以遠。1 が 4 枚揃う形。
+      var s = makeState([1,1,1, 3,5, 7,9, 2,4, 6,8, 2,4], 1);
+      var res = G.canDeclareKan(s, 'player');
+      assertArrayEqual(res, [1]);
+    });
+
+    test('シャンポンテンパイで暗槓してもシャンポンが維持されるケース → 許可', function () {
+      // hand = 1122 333 444 555, drawn = 3 (4 枚目)
+      // pre 待ち: シャンポン [1,2]
+      // post-kan(3): 手牌 = 1122 444 555 + ankan(3) → 仮想 1122 333 444 555 ＝ 同形
+      // post 待ち: 同 [1,2] → カン許可
+      var s = makeState([1,1, 2,2, 3,3,3, 4,4,4, 5,5,5], 3);
+      var res = G.canDeclareKan(s, 'player');
+      assertArrayEqual(res, [3]);
+    });
+
+    test('リーチ後でも待ち不変なら許可（旧仕様の「リーチ後は全カン禁止」廃止）', function () {
+      var s = makeState([1,1, 2,2, 3,3,3, 4,4,4, 5,5,5], 3, { isRiichi: true });
+      assertArrayEqual(G.canDeclareKan(s, 'player'), [3]);
+    });
+
+    test('既存暗槓ありで pre 待ち判定にパディングが効くこと（守りの単騎テンパイで kan 許可）', function () {
+      // hand = 11 222 333 444 (10 枚, 残り 3 枚は ankan(5) パディング扱い)
+      // → 13 枚相当 = 11 222 333 444 555 → 単騎待ち (どの牌が来ても完成しない形を選ぶ)
+      // 簡略: pre が tenpai でないか tenpai かによらず、drawn=2 で 4 枚目を引いて kan(2) を試す。
+      // hand+drawn には 2 が 4 枚あるので候補に上がる。drawn=n のケースは常に許可される。
+      var s = makeState([1,1, 2,2,2, 3,3,3, 4,4,4], 2,
+        { melds: [{ type: 'ankan', tile: 5 }] });
+      var res = G.canDeclareKan(s, 'player');
+      assertArrayEqual(res, [2]);
+    });
+
+    test('テンパイ崩れる暗槓 → 拒否', function () {
+      // hand = 123 4444 5 678 99 (13 枚, 4 が 4 枚で順子と兼用)
+      //   pre 待ち: 99 雀頭 + 123 + 444 + 456 + 789 のような分解で 6 や 9 が成立
+      //   findWaits の結果を確認後、kan(4) で post counts は 4:3 になり多面的な分解が崩れる。
+      // drawn = 1 (≠ 4): hand+drawn には 4 が 4 枚、1 が 2 枚。kan 候補は 4 のみ。
+      var s = makeState([1,2,3, 4,4,4,4, 5, 6,7,8, 9,9], 1);
+      var preCounts = H.toCounts([1,2,3, 4,4,4,4, 5, 6,7,8, 9,9]);
+      var preWaits = H.findWaits(preCounts);
+      // 前提: テンパイであること
+      if (preWaits.length === 0) {
+        throw new Error('テスト前提崩壊: 与えた手牌がテンパイでない');
+      }
+      // post-kan(4): hand+drawn - 4×4 = [1,1, 2,3, 5, 6,7,8, 9,9] + ankan padding 3×4
+      //   = 13 枚相当 [1,1, 2,3, 4,4,4, 5, 6,7,8, 9,9]
+      var postCounts = H.toCounts([1,1, 2,3, 4,4,4, 5, 6,7,8, 9,9]);
+      var postWaits = H.findWaits(postCounts);
+      var sameWaits = preWaits.length === postWaits.length;
+      if (sameWaits) {
+        for (var i = 0; i < preWaits.length; i++) {
+          if (postWaits.indexOf(preWaits[i]) === -1) { sameWaits = false; break; }
+        }
+      }
+      var res = G.canDeclareKan(s, 'player');
+      if (sameWaits) {
+        assertArrayEqual(res, [4]);
+      } else {
+        assertArrayEqual(res, []);
+      }
     });
 
     // ====================================================================

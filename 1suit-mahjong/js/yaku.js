@@ -182,12 +182,6 @@ window.Bamboo = window.Bamboo || {};
     var bestHan = -1;
 
     var splits = args.splits;
-    if (splits.length === 0) {
-      // 通常 split が無い = 九蓮系のみ → 上の役満で捕捉済みのはず
-      // 念のため空で返す
-      return { yakuList: [], isYakuman: false, totalHan: 0 };
-    }
-
     for (var i = 0; i < splits.length; i++) {
       var split = splits[i];
       var ys = [];
@@ -220,6 +214,14 @@ window.Bamboo = window.Bamboo || {};
       if (han > bestHan) {
         bestHan = han;
         bestYaku = ys;
+      }
+    }
+
+    // 七対子: 標準分解と並列の候補として高点法に参加させる
+    if (args.isChiitoitsu) {
+      if (2 > bestHan) {
+        bestHan = 2;
+        bestYaku = [{ name: '七対子', han: 2 }];
       }
     }
 

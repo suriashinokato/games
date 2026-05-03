@@ -93,8 +93,6 @@ window.Bamboo = window.Bamboo || {};
     }
     return pairs === 7;
   }
-  // ※ 1 種類しかないので 9 種から 7 種選ぶ → 実質ありえない。常に false。
-  //    だが将来字牌入りに拡張する場合の API 互換のため形は残しておく。
 
   // 九蓮宝燈: 1 が 3+, 9 が 3+, 残りが 1+1 ずつ で合計 14 枚
   function isChuurenSplit(counts) {
