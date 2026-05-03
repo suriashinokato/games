@@ -25,12 +25,22 @@ window.Bamboo = window.Bamboo || {};
   // ロンの場合、アガリ牌で完成した刻子は「明刻」扱いになるためカウントから除外する。
   // ただし split.pair === agariTile（アガリ牌が雀頭で完成）の場合は、刻子はすべて手中で
   // 完成しており全て暗刻のまま（四暗刻単騎のケース）。
+  // 暗槓は buildWinningCounts で 3 枚分 padding されているため split.sets に刻子として
+  // 現れる。これは countAnkan 側で既に数えているので、二重計上を避けるためスキップする。
   function countAnko(split, melds, agariTile, isTsumo) {
-    var n = countAnkan(melds);
+    var n = 0;
+    var ankanTiles = {};
+    for (var j = 0; j < melds.length; j++) {
+      if (melds[j].type === 'ankan') {
+        n++;
+        ankanTiles[melds[j].tile] = true;
+      }
+    }
     var agariInPair = (split.pair === agariTile);
     for (var i = 0; i < split.sets.length; i++) {
       var s = split.sets[i];
       if (s.type !== 'kotsu') continue;
+      if (ankanTiles[s.tile]) continue;     // 暗槓由来の刻子 → 既にカウント済み
       if (!isTsumo && !agariInPair && s.tile === agariTile) {
         continue;     // ロンで完成した刻子 → 明刻
       }

@@ -499,6 +499,90 @@
     });
 
     // ====================================================================
+    section('detectYaku: 暗刻数 (暗槓との二重カウント回帰)');
+    // ====================================================================
+
+    // 暗槓は buildWinningCounts で 3 枚分パディングされ、split.sets では刻子として現れる。
+    // countAnko が countAnkan(melds) と split.sets の刻子を素直に合算すると暗槓を二重計上し、
+    // 三暗刻が四暗刻になってしまう。以下のテストはその回帰防止。
+
+    test('三暗刻: 暗槓1 + 手内刻子2 + 順子1 (ツモ) を四暗刻と誤検出しない', function () {
+      // 手内: 1-1-1, 5-5-5, 1-2-3, 雀頭 9-9 (10 枚) + 暗槓(7) → アガリ牌 1 (1-2-3 を構成)
+      // padding 込み 14 枚 counts: 1×4, 2×1, 3×1, 5×3, 7×3, 9×2
+      // split: pair=9 + 1-1-1 + 1-2-3 + 5-5-5 + 7-7-7
+      // 真の暗刻数: 暗槓7 + 1-1-1 + 5-5-5 = 3
+      var c14 = H.toCounts([1,1,1, 1,2,3, 5,5,5, 9,9,  7,7,7]); // 7-7-7 は暗槓パディング
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 1,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'sou',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [{ type: 'ankan', tile: 7 }],
+      });
+      assertEqual(d.isYakuman, false);
+      assertEqual(hasYaku(d.yakuList, '四暗刻'), false);
+      assertEqual(hasYaku(d.yakuList, '三暗刻'), true);
+    });
+
+    test('四暗刻: 暗槓1 + 手内刻子3 + 雀頭 (ツモ) は正しく四暗刻になる', function () {
+      // 手内: 1-1-1, 5-5-5, 6-6-6, 9-9 (11 枚) + 暗槓(3)、アガリ牌 1 をツモ単騎ではなく
+      // 雀頭 9 で待っていてツモ。ここではツモ牌 9 で雀頭完成のシナリオ。
+      // 簡易: pre-agari = 1-1-1, 5-5-5, 6-6-6, 9 (10 枚) + 暗槓(3)。drawn=9 → 14 枚相当。
+      // padding 込み 14 枚 counts: 1×3, 3×3, 5×3, 6×3, 9×2
+      var c14 = H.toCounts([1,1,1, 5,5,5, 6,6,6, 9,9,  3,3,3]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 9,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'sou',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [{ type: 'ankan', tile: 3 }],
+      });
+      assertEqual(d.isYakuman, true);
+      assertEqual(hasYaku(d.yakuList, '四暗刻'), true);
+    });
+
+    test('三暗刻: 暗槓2 + 手内刻子1 + 順子1 (ツモ) を四暗刻と誤検出しない', function () {
+      // 手内: 5-5-5, 1-2-3, 9-9 (8 枚) + 暗槓(3) + 暗槓(7)。アガリ牌 1 で 1-2-3 完成。
+      // padding 込み 14 枚 counts: 1×1, 2×1, 3×3+1, 5×3, 7×3, 9×2
+      // 注: 1 はアガリ込みで 1 枚。pair=9, sets=[1-2-3, 5-5-5, 3-3-3, 7-7-7]
+      var c14 = H.toCounts([1, 2, 3, 5,5,5, 9,9,  3,3,3,  7,7,7]);
+      var d = Y.detectYaku({
+        winningCounts: c14,
+        agariTile: 1,
+        isTsumo: true,
+        isMenzen: true,
+        isRiichi: false,
+        isIppatsuValid: false,
+        isRinshan: false,
+        currentSuit: 'sou',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [{ type: 'ankan', tile: 3 }, { type: 'ankan', tile: 7 }],
+      });
+      assertEqual(d.isYakuman, false);
+      assertEqual(hasYaku(d.yakuList, '四暗刻'), false);
+      assertEqual(hasYaku(d.yakuList, '三暗刻'), true);
+    });
+
+    // ====================================================================
     // サマリ表示
     // ====================================================================
     var total = passCount + failCount;
