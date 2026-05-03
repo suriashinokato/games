@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>1-Suit Mahjong Tests</title>
+  <style>
+    body {
+      font-family: ui-monospace, "Consolas", "Meiryo", monospace;
+      background: #111; color: #ddd;
+      margin: 0; padding: 16px;
+    }
+    h1 { font-size: 1.2rem; margin: 0 0 12px; }
+    h2 { font-size: 1rem; margin: 18px 0 6px; color: #f5d76e; }
+    #summary { font-size: 1rem; margin: 8px 0 16px; padding: 8px 12px; border-radius: 6px; }
+    #summary.all-ok { background: #1a4a2a; color: #b6f5b6; }
+    #summary.has-ng { background: #4a1a1a; color: #ffb6b6; }
+    .case { margin: 2px 0; font-size: 0.9rem; }
+    .ok  { color: #7eea7e; }
+    .ng  { color: #ff7676; }
+    .err { color: #ffb86c; font-size: 0.8rem; margin-left: 24px; }
+  </style>
+</head>
+<body>
+  <h1>1-Suit Mahjong: handEval ユニットテスト</h1>
+  <div id="summary"></div>
+  <div id="results"></div>
+
+  <!-- 依存モジュール -->
+  <script src="js/tiles.js"></script>
+  <script src="js/handEval.js"></script>
+
+  <script>
+  (function () {
+    var H = window.Bamboo.handEval;
+    var resultsEl = document.getElementById('results');
+    var summaryEl = document.getElementById('summary');
+    var passCount = 0;
+    var failCount = 0;
+    var currentSection = null;
+
+    function section(title) {
+      var h = document.createElement('h2');
+      h.textContent = title;
+      resultsEl.appendChild(h);
+      currentSection = h;
+    }
+
+    function test(name, fn) {
+      var div = document.createElement('div');
+      div.className = 'case';
+      try {
+        fn();
+        div.innerHTML = '<span class="ok">OK</span> ' + name;
+        passCount++;
+      } catch (e) {
+        div.innerHTML = '<span class="ng">NG</span> ' + name
+          + '<div class="err">' + (e && e.message ? e.message : e) + '</div>';
+        failCount++;
+      }
+      resultsEl.appendChild(div);
+    }
+
+    function assertEqual(actual, expected, msg) {
+      if (actual !== expected) {
+        throw new Error((msg || 'assertEqual') + ': expected ' + JSON.stringify(expected)
+          + ', got ' + JSON.stringify(actual));
+      }
+    }
+    function assertArrayEqual(actual, expected, msg) {
+      var a = JSON.stringify(actual);
+      var b = JSON.stringify(expected);
+      if (a !== b) {
+        throw new Error((msg || 'assertArrayEqual') + ': expected ' + b + ', got ' + a);
+      }
+    }
+
+    // ----- 補助 -----
+    function counts(hand) { return H.toCounts(hand); }
+
+    // ====================================================================
+    section('toCounts / totalTiles');
+    // ====================================================================
+
+    test('toCounts: 空配列', function () {
+      assertArrayEqual(counts([]), [0,0,0,0,0,0,0,0,0,0]);
+    });
+    test('toCounts: 1,1,1,9 → 1=3, 9=1', function () {
+      assertArrayEqual(counts([1,1,1,9]), [0,3,0,0,0,0,0,0,0,1]);
+    });
+    test('totalTiles: 13 枚', function () {
+      assertEqual(H.totalTiles(counts([1,2,3,4,5,6,7,8,9,1,1,9,9])), 13);
+    });
+
+    // ====================================================================
+    section('isWinningHand: 4面子1雀頭');
+    // ====================================================================
+
+    test('和了形: 123 234 345 456 77', function () {
+      // 123 234 345 456 77 = 順子4つ+雀頭
+      assertEqual(H.isWinningHand(counts([1,2,3, 2,3,4, 3,4,5, 4,5,6, 7,7])), true);
+    });
+    test('和了形: 刻子+順子混合 111 234 567 999 55', function () {
+      assertEqual(H.isWinningHand(counts([1,1,1, 2,3,4, 5,6,7, 9,9,9, 5,5])), true);
+    });
+    test('和了形: 全刻子 111 222 333 444 55', function () {
+      assertEqual(H.isWinningHand(counts([1,1,1, 2,2,2, 3,3,3, 4,4,4, 5,5])), true);
+    });
+    test('未和了: 雀頭なし', function () {
+      // 14枚だが対子がない
+      assertEqual(H.isWinningHand(counts([1,2,3, 4,5,6, 7,8,9, 1,2,3, 4,5])), false);
+    });
+    test('枚数違い (13枚) は false', function () {
+      assertEqual(H.isWinningHand(counts([1,2,3, 4,5,6, 7,8,9, 1,2,3, 4])), false);
+    });
+
+    // ====================================================================
+    section('isWinningHand: 九蓮宝燈');
+    // ====================================================================
+
+    test('九蓮: 1112345678999 + 5 = 14枚', function () {
+      // 1×3, 2,3,4,5,6,7,8 各1, 9×3, +5 = 14枚 (5は2枚になる)
+      assertEqual(H.isWinningHand(counts([1,1,1, 2,3,4,5,6,7,8, 9,9,9, 5])), true);
+    });
+    test('九蓮の split 検出 (isChuurenSplit)', function () {
+      assertEqual(H.isChuurenSplit(counts([1,1,1, 2,3,4,5,6,7,8, 9,9,9, 5])), true);
+    });
+    test('純正九蓮: アガリ牌 5 が来た時', function () {
+      var c = counts([1,1,1, 2,3,4,5,6,7,8, 9,9,9, 5]);
+      assertEqual(H.isPureChuuren(c, 5), true);
+    });
+    test('純正九蓮: 重複ではない 1 が来た場合', function () {
+      // 1112345678999 + 1 → 1×4
+      var c = counts([1,1,1, 2,3,4,5,6,7,8, 9,9,9, 1]);
+      assertEqual(H.isPureChuuren(c, 1), true);
+    });
+    test('非純正九蓮: 5 が 2 枚で 1 が 4 枚みたいな歪み無し ＝ 5 を pureとしない', function () {
+      // 1112245678999 + 5 = 1×3, 2×2, 4-8, 9×3 → これは九蓮形だが pure かどうかは agariTile に依る
+      var c = counts([1,1,1, 2,2,4,5,6,7,8, 9,9,9, 5]); // ←3が無いので九蓮形でない
+      assertEqual(H.isChuurenSplit(c), false);
+    });
+
+    // ====================================================================
+    section('calcShanten: テンパイ・1向聴・2向聴');
+    // ====================================================================
+
+    test('テンパイ: 順子3 + 雀頭 + 両面塔子 = 0', function () {
+      // 13枚: 11 222 333 444 56 → 雀頭11 + 222 333 444 + 塔子56 (4-7待ち) → テンパイ
+      assertEqual(H.calcShanten(counts([1,1, 2,2,2, 3,3,3, 4,4,4, 5,6])), 0);
+    });
+    test('和了形 (14 枚) は -1', function () {
+      // 123 234 345 456 77
+      assertEqual(H.calcShanten(counts([1,2,3, 2,3,4, 3,4,5, 4,5,6, 7,7])), -1);
+    });
+    test('1向聴: 雀頭 + 3面子 + 塔子1つで 1 枚足りない', function () {
+      // 13枚: 11 222 333 444 5 7 → 雀頭+3面子+完成済み +孤立2枚 → 1向聴
+      // (5+7 はカンチャン塔子相当だが、56 や 67 にすればテンパイ。間に1枚抜けてるので+1)
+      var s = H.calcShanten(counts([1,1, 2,2,2, 3,3,3, 4,4,4, 5, 9]));
+      assertEqual(s, 1);
+    });
+    test('シャンテン: 完全バラバラでも 8 以下', function () {
+      var s = H.calcShanten(counts([1,1,2,2,3,3,4,4,5,5,6,6,7]));
+      if (s < 0 || s > 3) throw new Error('expected 0-3, got ' + s);
+    });
+
+    // ====================================================================
+    section('findWaits: 待ち牌列挙');
+    // ====================================================================
+
+    test('単騎待ち 9: 111 222 333 444 + 9 (順子余地なし)', function () {
+      var w = H.findWaits(counts([1,1,1, 2,2,2, 3,3,3, 4,4,4, 9]));
+      assertArrayEqual(w, [9]);
+    });
+    test('両面+多面 1/4/7: 11 222 333 444 56', function () {
+      // 雀頭44+111+222+333+456 で 1 も成立、雀頭11+222+333+444+456 / 567 で 4・7 → 多面待ち
+      var w = H.findWaits(counts([1,1, 2,2,2, 3,3,3, 4,4,4, 5,6]));
+      assertArrayEqual(w.sort(function(a,b){return a-b;}), [1,4,7]);
+    });
+    test('嵌張待ち 6: 11 222 333 444 5 7', function () {
+      var w = H.findWaits(counts([1,1, 2,2,2, 3,3,3, 4,4,4, 5,7]));
+      assertArrayEqual(w, [6]);
+    });
+    test('辺張待ち 3: 11 222 444 555 12', function () {
+      var w = H.findWaits(counts([1,1, 2,2,2, 4,4,4, 5,5,5, 1,2]));
+      assertArrayEqual(w, [3]);
+    });
+    test('シャボ待ち 1-2: 11 22 444 666 888 (代替順子不能)', function () {
+      // 4・6・8 を孤立刻子にすることで 123・234・345 等の代替分解を封じる
+      var w = H.findWaits(counts([1,1, 2,2, 4,4,4, 6,6,6, 8,8,8]));
+      assertArrayEqual(w.sort(function(a,b){return a-b;}), [1,2]);
+    });
+    test('九面待ち（純正九蓮シャンテン）: 1〜9 すべて待ち', function () {
+      // 1112345678999 (13枚) → 1〜9 すべて待ち
+      var w = H.findWaits(counts([1,1,1, 2,3,4,5,6,7,8, 9,9,9]));
+      assertArrayEqual(w.sort(function(a,b){return a-b;}), [1,2,3,4,5,6,7,8,9]);
+    });
+
+    // ====================================================================
+    section('isFuriten');
+    // ====================================================================
+
+    test('待ちの一部が河にある → フリテン true', function () {
+      assertEqual(H.isFuriten([4,7], [9,1,4,2]), true);
+    });
+    test('待ちが全部河に無い → false', function () {
+      assertEqual(H.isFuriten([4,7], [9,1,2,3]), false);
+    });
+    test('河が空 → false', function () {
+      assertEqual(H.isFuriten([1,9], []), false);
+    });
+
+    // ====================================================================
+    // サマリ表示
+    // ====================================================================
+    var total = passCount + failCount;
+    summaryEl.textContent = total + ' 件 / OK ' + passCount + ' / NG ' + failCount;
+    summaryEl.className = failCount === 0 ? 'all-ok' : 'has-ng';
+  })();
+  </script>
+</body>
+</html>

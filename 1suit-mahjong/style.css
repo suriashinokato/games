@@ -1,0 +1,368 @@
+/* 1-Suit Mahjong スタイル */
+
+:root {
+  --tile-w: 40px;
+  --tile-h: 56px;
+  --bg-color: #0a5d3a;
+  --bg-deep: #073f27;
+  --fg-color: #f5f5f5;
+  --accent-color: #f5d76e;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  background: var(--bg-color);
+  color: var(--fg-color);
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.screen {
+  padding: 16px 0;
+}
+
+/* ----- タイトル / 結果画面 ----- */
+
+.title {
+  font-size: 2.2rem;
+  text-align: center;
+  margin: 32px 0 8px;
+  color: var(--accent-color);
+}
+
+.subtitle {
+  text-align: center;
+  margin: 0 0 16px;
+  opacity: 0.85;
+}
+
+.rule-summary {
+  max-width: 460px;
+  margin: 16px auto;
+  padding-left: 20px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.big-btn {
+  display: block;
+  margin: 32px auto 0;
+  font-size: 1.3rem;
+  padding: 12px 36px;
+  background: var(--accent-color);
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.big-btn:hover { background: #ffd770; }
+
+/* ----- 対局画面: 情報バー ----- */
+
+.info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.info-bar b {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+/* ----- 対局画面: プレイヤーエリア ----- */
+
+.player-area {
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+}
+
+.area-cpu {
+  border-top: 3px solid #c66;
+}
+
+.area-self {
+  border-top: 3px solid var(--accent-color);
+}
+
+.player-name {
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.player-name span {
+  font-family: ui-monospace, "Consolas", monospace;
+  color: var(--accent-color);
+  margin-left: 6px;
+}
+
+/* ----- 手牌 ----- */
+
+.hand-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-end;
+  min-height: var(--tile-h);
+  padding: 4px 0;
+}
+
+.tile-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 4px;
+}
+
+.tile-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.tile-btn:not(:disabled):hover {
+  transform: translateY(-6px);
+  transition: transform 0.1s;
+}
+
+.tile-btn.drawn {
+  margin-left: 16px;
+}
+
+/* ----- 牌画像 ----- */
+
+.tile {
+  width: var(--tile-w);
+  height: var(--tile-h);
+  display: block;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+  user-select: none;
+  -webkit-user-drag: none;
+  background: #fdf7e0;
+  border-radius: 4px;
+}
+
+/* ----- 河（捨て牌置き場） ----- */
+
+.discard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 8px;
+  min-height: calc(var(--tile-h) * 0.8);
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+.discard .tile {
+  width: calc(var(--tile-w) * 0.8);
+  height: calc(var(--tile-h) * 0.8);
+}
+
+/* ----- ダイアログ ----- */
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  color: var(--fg-color);
+  padding: 24px 32px;
+  border-radius: 12px;
+  border: 2px solid var(--accent-color);
+  text-align: center;
+  z-index: 100;
+  min-width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  color: var(--accent-color);
+}
+
+.dialog .dialog-body { margin: 12px 0 16px; font-size: 0.95rem; line-height: 1.5; }
+.dialog .hint { font-size: 0.8rem; opacity: 0.6; }
+
+.dialog .chombo {
+  color: #ff8c8c;
+  font-weight: bold;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 140, 140, 0.35);
+}
+.dialog .chombo b { color: #ffb6b6; font-size: 1.1rem; }
+
+.chombo-msg {
+  color: #ff8c8c;
+  font-weight: bold;
+  margin: 8px 0 12px;
+}
+
+.dialog button {
+  background: var(--accent-color);
+  color: #222;
+  border: none;
+  padding: 8px 24px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dialog button:hover { background: #ffd770; }
+
+/* ----- アクションボタン ----- */
+
+.action-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 36px;
+}
+
+.action-btn {
+  font-size: 1rem;
+  padding: 6px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #fff;
+}
+
+.action-tsumo { background: #c83737; }
+.action-tsumo:hover { background: #e84545; }
+
+.action-ron { background: #c83737; }
+.action-ron:hover { background: #e84545; }
+
+.action-riichi { background: #d68b1a; }
+.action-riichi:hover { background: #f0a830; }
+
+.action-kan { background: #4a78c8; }
+.action-kan:hover { background: #5a90e0; }
+
+.action-pass { background: #555; }
+.action-pass:hover { background: #6a6a6a; }
+
+/* ----- 立直マーク ----- */
+
+.riichi-mark {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 8px;
+  background: #d68b1a;
+  color: #fff;
+  font-size: 0.75rem;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* ----- 暗槓面子 ----- */
+
+.hand-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.meld-row {
+  display: flex;
+  gap: 4px;
+}
+
+.meld-set {
+  display: inline-flex;
+  gap: 1px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+.meld-set .tile {
+  width: calc(var(--tile-w) * 0.85);
+  height: calc(var(--tile-h) * 0.85);
+}
+
+/* ----- アガリダイアログ内 ----- */
+
+.yaku-list {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 12px;
+  text-align: left;
+  display: inline-block;
+}
+
+.yaku-list li {
+  padding: 2px 8px;
+  font-size: 0.95rem;
+}
+
+.yaku-list b { color: var(--accent-color); }
+
+.rank-line {
+  font-size: 1.2rem;
+  margin: 8px 0;
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.points-line {
+  font-size: 1.3rem;
+  margin-top: 8px;
+}
+
+.points-line b { color: #ff7676; font-size: 1.5rem; }
+
+.tile-static {
+  display: inline-block;
+  margin-right: 2px;
+}
+.tile-static.drawn { margin-left: 12px; }
+
+/* ----- レスポンシブ ----- */
+
+@media (max-width: 600px) {
+  :root {
+    --tile-w: 28px;
+    --tile-h: 40px;
+  }
+  #app { padding: 8px; }
+  .title { font-size: 1.6rem; }
+  .info-bar { font-size: 0.72rem; gap: 6px; padding: 6px 8px; }
+  .player-area { padding: 6px; margin: 8px 0; }
+  .player-name { font-size: 0.8rem; }
+  .action-btn { padding: 5px 12px; font-size: 0.9rem; }
+  .hand-row { gap: 2px; }
+  .meld-row { gap: 2px; }
+  .meld-set { padding: 1px; }
+  .discard { gap: 1px; padding: 2px; }
+  .tile-btn.drawn { margin-left: 8px; }
+  .dialog { padding: 16px 20px; min-width: 240px; max-width: 92vw; }
+}

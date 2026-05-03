@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1-Suit Mahjong</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- タイトル画面 -->
+    <div id="screen-title" class="screen">
+      <h1 class="title">1-Suit Mahjong</h1>
+      <p class="subtitle">1 種類の牌だけで遊ぶ 2 人麻雀</p>
+      <ul class="rule-summary">
+        <li>使用牌は萬子・筒子・索子から<strong>局ごとにランダム</strong>で決定</li>
+        <li>1〜9 を各 4 枚 = 計 36 枚で対局</li>
+        <li>持ち点 100,000 → 200,000 でクリア / 0 でゲームオーバー</li>
+        <li>段階 3 では人 vs 人モード（両方の手牌が見える）</li>
+      </ul>
+      <button id="start-btn" class="big-btn">START</button>
+    </div>
+
+    <!-- 対局画面 -->
+    <div id="screen-table" class="screen" style="display:none;">
+      <div class="info-bar">
+        <span>第 <b id="info-round">-</b> 局</span>
+        <span>使用 <b id="info-suit">-</b></span>
+        <span>山残 <b id="info-wall">-</b></span>
+        <span>親 <b id="info-dealer">-</b></span>
+        <span>ターン <b id="info-turn">-</b></span>
+      </div>
+
+      <div class="player-area area-cpu">
+        <div class="player-name">
+          相手 <span id="score-cpu">-</span> 点
+          <span class="riichi-mark" id="riichi-cpu" style="display:none;">立直</span>
+        </div>
+        <div class="hand-section">
+          <div class="hand-row" id="hand-cpu"></div>
+          <div class="meld-row" id="melds-cpu"></div>
+        </div>
+        <div class="discard" id="discard-cpu"></div>
+      </div>
+
+      <div class="player-area area-self">
+        <div class="discard" id="discard-player"></div>
+        <div class="hand-section">
+          <div class="hand-row" id="hand-player"></div>
+          <div class="meld-row" id="melds-player"></div>
+        </div>
+        <div class="player-name">
+          自分 <span id="score-player">-</span> 点
+          <span class="riichi-mark" id="riichi-player" style="display:none;">立直</span>
+        </div>
+        <div class="action-bar" id="action-bar"></div>
+      </div>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="screen-gameover" class="screen" style="display:none;">
+      <h1 class="title">GAME OVER</h1>
+      <p style="text-align:center;">持ち点が 0 になりました。</p>
+      <button id="restart-gameover-btn" class="big-btn">タイトルへ</button>
+    </div>
+
+    <!-- クリア画面 -->
+    <div id="screen-clear" class="screen" style="display:none;">
+      <h1 class="title">CLEAR!</h1>
+      <p style="text-align:center;">持ち点 200,000 を達成しました。</p>
+      <button id="restart-clear-btn" class="big-btn">タイトルへ</button>
+    </div>
+
+    <!-- 結果ダイアログ（流局・アガリ等） -->
+    <div id="result-dialog" class="dialog" style="display:none;"></div>
+
+  </div>
+
+  <script src="js/tiles.js"></script>
+  <script src="js/handEval.js"></script>
+  <script src="js/yaku.js"></script>
+  <script src="js/score.js"></script>
+  <script src="js/cpu.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
