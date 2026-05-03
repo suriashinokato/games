@@ -110,10 +110,15 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // 4 枚揃った瞬間に宣言（簡略化: シャンテン悪化チェックなし）
-  // 待ちが変わる暗槓は canDeclareKan 側で抑止される（送りカン抑止）
+  // CPU は送りカン（待ちが変わる暗槓）を絶対に行わない。
+  // canDeclareKan は送りカン候補も含むので、ここで明示的に除外する。
   function shouldDeclareKan(state, who) {
-    var available = window.Bamboo.game.canDeclareKan(state, who);
-    return available.length > 0 ? available[0] : null;
+    var G = window.Bamboo.game;
+    var available = G.canDeclareKan(state, who);
+    for (var i = 0; i < available.length; i++) {
+      if (!G.kanChangesWaits(state[who], available[i])) return available[i];
+    }
+    return null;
   }
 
   window.Bamboo.cpu = {

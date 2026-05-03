@@ -288,7 +288,13 @@ window.Bamboo = window.Bamboo || {};
 
     if (w.winType === 'chombo') {
       var chomboBy = WHO_LABEL[w.chomboBy];
-      var chomboTypeLabel = w.chomboType === 'ron' ? '誤ロン' : '誤ツモ';
+      var chomboTypeLabel;
+      switch (w.chomboType) {
+        case 'ron':   chomboTypeLabel = '誤ロン'; break;
+        case 'tsumo': chomboTypeLabel = '誤ツモ'; break;
+        case 'kan':   chomboTypeLabel = '送りカン'; break;
+        default:      chomboTypeLabel = 'チョンボ';
+      }
       var reasonText;
       switch (w.chomboReason) {
         case 'noWinningHand':
@@ -299,6 +305,9 @@ window.Bamboo = window.Bamboo || {};
           break;
         case 'furiten':
           reasonText = chomboBy + 'の宣言した手はフリテン';
+          break;
+        case 'okurikan':
+          reasonText = chomboBy + 'は待ちが変わる送りカンを宣言した';
           break;
         default:
           reasonText = chomboBy + 'の宣言した手は和了形ではない／役なし／フリテン のいずれか';
@@ -479,7 +488,7 @@ window.Bamboo = window.Bamboo || {};
       '</table>',
       '<p class="help-note">※ ツモ／ロンは成立可否を問わず押せます。成立していなければ自動的にチョンボ判定（誤ツモ・誤ロン）で役満分の罰符。</p>',
       '<p class="help-note">※ リーチ宣言ターン中は「どの牌を切りますか？」と表示され、手牌またはツモ牌から自由に選択。</p>',
-      '<p class="help-note">※ 暗槓ボタンは「待ちが変わる暗槓」「テンパイを崩す暗槓」では表示されません（送りカン抑止）。</p>',
+      '<p class="help-note">※ 待ちが変わる暗槓を宣言するとチョンボ（送りカン）になります。CPU は送りカンを行いません。</p>',
 
       '<h3>4. ゲームの流れ</h3>',
       '<ol>',
@@ -494,7 +503,7 @@ window.Bamboo = window.Bamboo || {};
       '<h3>5. 特殊ルール（要チェック）</h3>',
       '<ul>',
       '<li><b>リーチ後の手出し禁止</b>: 宣言ターン以外は強制ツモ切り。</li>',
-      '<li><b>送りカン禁止</b>: 待ちが変わる暗槓・テンパイを崩す暗槓は不可。</li>',
+      '<li><b>送りカンはチョンボ</b>: 待ちが変わる暗槓を宣言すると役満分の罰符（親 48,000 / 子 32,000）。CPU は送りカンを行わない。</li>',
       '<li><b>暗槓で一発消失</b>: 自他いずれの暗槓でも両者の一発が消える。</li>',
       '<li><b>嶺上開花</b>: 暗槓直後の嶺上ツモアガリで +1 翻。</li>',
       '<li><b>第 1 ツモのアガリ無効</b>: 配牌＋第 1 ツモでは和了不可（天和／地和廃止）。最大でもテンパイ止まりで、ツモボタンも出ない。</li>',

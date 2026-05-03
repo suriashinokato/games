@@ -267,6 +267,7 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // 暗槓可能な数値リスト。手牌+ツモで 4 枚揃っている数値を返す。
+  // 送りカン（待ちが変わる暗槓）も候補に含める ─ 宣言時にチョンボとして処理される。
   function canDeclareKan(state, who) {
     var p = state[who];
     var allHand = p.hand.slice();
@@ -274,11 +275,7 @@ window.Bamboo = window.Bamboo || {};
     var counts = H.toCounts(allHand);
     var result = [];
     for (var n = 1; n <= 9; n++) {
-      if (counts[n] === 4) {
-        // 待ちが変わる暗槓は常に禁止（送りカン抑止）
-        if (kanChangesWaits(p, n)) continue;
-        result.push(n);
-      }
+      if (counts[n] === 4) result.push(n);
     }
     return result;
   }
@@ -287,6 +284,12 @@ window.Bamboo = window.Bamboo || {};
     var p = state[who];
     var available = canDeclareKan(state, who);
     if (available.indexOf(tile) === -1) throw new Error('暗槓宣言不可: ' + tile);
+
+    // 送りカン（待ちが変わる暗槓）はチョンボ成立。槓子は組まず嶺上ツモも行わない。
+    if (kanChangesWaits(p, tile)) {
+      finishChombo(state, who, 'kan', 'okurikan');
+      return;
+    }
 
     // 手牌+ツモ から 4 枚抜く
     var allHand = p.hand.slice();
@@ -598,6 +601,7 @@ window.Bamboo = window.Bamboo || {};
     canDeclareRiichiTenpai: canDeclareRiichiTenpai,
     declareRiichi: declareRiichi,
     canDeclareKan: canDeclareKan,
+    kanChangesWaits: kanChangesWaits,
     declareKan: declareKan,
     endRoundDraw: endRoundDraw,
     nextRound: nextRound,
