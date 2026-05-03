@@ -340,6 +340,70 @@
     });
 
     // ====================================================================
+    section('detectYaku: 平和');
+    // ====================================================================
+
+    function detectFor(handArr, agariTile, opts) {
+      opts = opts || {};
+      var c14 = counts(handArr);
+      return Y.detectYaku({
+        winningCounts: c14,
+        agariTile: agariTile,
+        isTsumo: !!opts.isTsumo,
+        isMenzen: opts.isMenzen !== false,
+        isRiichi: !!opts.isRiichi,
+        isIppatsuValid: !!opts.isIppatsuValid,
+        isRinshan: false,
+        currentSuit: 'man',
+        splits: H.findWinningSplits(c14),
+        isChiitoitsu: H.isChiitoitsu(c14),
+        isFirstTurn: false,
+        isDealer: false,
+        melds: [],
+      });
+    }
+
+    test('平和 NG: 11 22 33 4 5 6 77 8 9 + 七 上がり (タンキ/辺張のみ)', function () {
+      // 一一二二三三四伍六七七七八九 — 唯一の分解 七七(雀頭)+一二三+一二三+四伍六+七八九
+      // agari=7 はタンキ(七七完成) または 辺張(八九→七八九) のみ。リャンメンは無いので平和 NG。
+      var d = detectFor([1,1, 2,2, 3,3, 4,5,6, 7,7, 8,9], 7, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), false);
+    });
+
+    test('平和 OK: 同手で 一 上がり (二三 → 一二三 のリャンメン)', function () {
+      // pre-win: 一一二二三三四伍六七七八九。final = pre-win + 一 = 一×3, 二×2, 三×2, 四,五,六, 七×2, 八,九
+      // 分解: pair=1 + 一二三 + 二三四 + 五六七 + 七八九 で agari=1 はリャンメン (二三 → 一二三)
+      var d = detectFor([1,1,1, 2,2, 3,3, 4,5,6, 7,7, 8,9], 1, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), true);
+    });
+
+    test('平和 OK: 同手で 四 上がり (二三 → 二三四 のリャンメン)', function () {
+      // final = pre-win + 四 = 一×2, 二×2, 三×2, 四×2, 五, 六, 七×2, 八, 九
+      var d = detectFor([1,1, 2,2, 3,3, 4,4, 5,6, 7,7, 8,9], 4, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), true);
+    });
+
+    test('平和 NG (辺張 t=1): 一二 + 二三四 + 四五六 + 六七八 + 九九 で 三 上がり', function () {
+      // pre-win: 1,2, 2,3,4, 4,5,6, 6,7,8, 9,9 (13枚)。agari=3 で 一二→一二三 の辺張。
+      // 唯一の分解: pair=9 + 一二三 + 二三四 + 四五六 + 六七八。agari=3 は (順子,1) の最大 t+2=3。
+      // 修正後の条件 t >= 2 を満たさない (t=1) → 平和 NG。
+      var d = detectFor([1,2, 2,3,4, 3, 4,5,6, 6,7,8, 9,9], 3, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), false);
+    });
+
+    test('平和 OK (リャンメン t=1, 一二三 で 一 上がり)', function () {
+      // pre-win: 二三 + 二三四 + 四五六 + 六七八 + 九九 (13枚)。agari=1 で 二三→一二三 のリャンメン。
+      var d = detectFor([1, 2,3, 2,3,4, 4,5,6, 6,7,8, 9,9], 1, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), true);
+    });
+
+    test('平和 OK (リャンメン t=7, 七八九 で 九 上がり)', function () {
+      // pre-win: 一一 + 二三四 + 四五六 + 六七八 + 七八 (13枚)。agari=9 で 七八→七八九 のリャンメン。
+      var d = detectFor([1,1, 2,3,4, 4,5,6, 6,7,8, 7,8, 9], 9, { isTsumo: false });
+      assertEqual(hasYaku(d.yakuList, '平和'), true);
+    });
+
+    // ====================================================================
     section('canDeclareKan: 送りカン抑止');
     // ====================================================================
 

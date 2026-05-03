@@ -50,9 +50,12 @@ window.Bamboo = window.Bamboo || {};
   // ------------------------------------------------------------------
 
   // 平和: 全順子 + 雀頭が役牌でない (数牌のみなので常に true) + 待ちが両面 + メンゼン
-  // 「両面待ち」の簡略判定:
-  //   アガリ牌が含まれる順子で、アガリ牌が「順子の両端 (最小 or 最大)」かつ
-  //   反対側へ伸ばす余地がある (=辺張ではない) なら両面とみなす。
+  //
+  // 「両面待ち」判定:
+  //   この split で、アガリ牌を含む順子 (t, t+1, t+2) が以下のいずれか:
+  //   ・アガリ牌が順子の最小 (t === agariTile) かつ t+3 ≤ 9 (= t ≤ 6) → 反対端 t+3 が有効
+  //   ・アガリ牌が順子の最大 (t+2 === agariTile) かつ t-1 ≥ 1 (= t ≥ 2) → 反対端 t-1 が有効
+  //   なら両面。中央 (カンチャン) と 雀頭一致 (タンキ) はマッチしないので自然に false。
   function isPinfu(split, agariTile, isMenzen) {
     if (!isMenzen) return false;
     for (var i = 0; i < split.sets.length; i++) {
@@ -62,12 +65,11 @@ window.Bamboo = window.Bamboo || {};
       var s = split.sets[j];
       var t = s.tile; // 順子の最小値 (t, t+1, t+2)
       if (t === agariTile) {
-        // アガリ牌が順子の最小 → 待ちは t と t+3 の両端の場合に両面
-        // t=1 だと辺張(123 で 3 待ち)になりやすいので除外
-        if (t > 1) return true;
+        // 順子の最小として完成 → 元の搭子 (t+1, t+2) の両面成立条件: t+3 ≤ 9
+        if (t <= 6) return true;
       } else if (t + 2 === agariTile) {
-        // アガリ牌が順子の最大 → t-1 と t+2 の両面
-        if (t + 2 < 9) return true;
+        // 順子の最大として完成 → 元の搭子 (t, t+1) の両面成立条件: t-1 ≥ 1
+        if (t >= 2) return true;
       }
     }
     return false;

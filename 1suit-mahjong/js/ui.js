@@ -409,6 +409,105 @@ window.Bamboo = window.Bamboo || {};
     if (dlg) dlg.style.display = 'none';
   }
 
+  // ---- ヘルプダイアログ（操作マニュアル） ----
+
+  function showHelpDialog() {
+    var dlg = document.getElementById('result-dialog');
+    if (!dlg) return;
+    dlg.classList.add('help-dialog');
+    dlg.innerHTML = ''
+      + '<h2>操作マニュアル</h2>'
+      + '<div class="dialog-body help-body">' + buildHelpHtml() + '</div>'
+      + '<button id="dialog-btn">閉じる</button>';
+    dlg.style.display = '';
+    dlg.scrollTop = 0;
+    document.getElementById('dialog-btn').addEventListener('click', function () {
+      dlg.style.display = 'none';
+      dlg.classList.remove('help-dialog');
+    });
+  }
+
+  function buildHelpHtml() {
+    return [
+      '<h3>1. ゲーム概要</h3>',
+      '<ul>',
+      '<li>1 種類の数牌（萬子・筒子・索子のいずれか）だけで遊ぶ 2 人麻雀。</li>',
+      '<li>使用牌は局ごとにランダム決定。1〜9 を各 4 枚 = 計 36 枚。</li>',
+      '<li>副露なし（ポン・チー無し、暗槓のみ）→ 常にメンゼン。</li>',
+      '<li>持ち点 100,000 → <b>200,000 で CLEAR</b> ／ <b>0 以下で GAME OVER</b>。</li>',
+      '</ul>',
+
+      '<h3>2. 画面の見方</h3>',
+      '<ul>',
+      '<li><b>情報バー</b>: 第 N 局／山残 N。</li>',
+      '<li><b>相手エリア</b>: 手牌（裏向き）／暗槓／河／点数／親・立直マーク。</li>',
+      '<li><b>自分エリア</b>: 河／手牌（クリック可）／暗槓／点数／アクションバー。</li>',
+      '<li><b>ツモ牌</b>は手牌の右側に枠付きで分離表示。</li>',
+      '<li>リーチ宣言後（宣言ターン以外）は手牌が disabled になりツモ切り強制。</li>',
+      '</ul>',
+
+      '<h3>3. 基本操作</h3>',
+      '<table class="help-table">',
+      '<tr><th>ボタン／操作</th><th>動作</th><th>表示条件</th></tr>',
+      '<tr><td>手牌の牌をクリック</td><td>その牌を打牌</td><td>自分の手番、リーチ前（宣言ターン中は可）</td></tr>',
+      '<tr><td>ツモ牌をクリック</td><td>ツモ切り</td><td>自分の手番、ツモ後</td></tr>',
+      '<tr><td>ツモ</td><td>ツモ和了を宣言</td><td>自分のツモ後</td></tr>',
+      '<tr><td>ロン</td><td>相手の打牌でロン宣言</td><td>相手の打牌直後</td></tr>',
+      '<tr><td>パス</td><td>ロンせずに見送る</td><td>相手の打牌直後</td></tr>',
+      '<tr><td>リーチ</td><td>リーチ宣言 → 続けて打牌</td><td>テンパイ＋ツモ後＋未リーチ</td></tr>',
+      '<tr><td>暗槓 N</td><td>数字 N の暗槓を宣言</td><td>同じ数字 4 枚が手牌＋ツモにある時</td></tr>',
+      '<tr><td>ツモ切り</td><td>リーチ後のツモ切り</td><td>リーチ宣言ターンより後の自分のツモ後</td></tr>',
+      '</table>',
+      '<p class="help-note">※ ツモ／ロンは成立可否を問わず押せます。成立していなければ自動的にチョンボ判定（誤ツモ・誤ロン）で役満分の罰符。</p>',
+      '<p class="help-note">※ リーチ宣言ターン中は「どの牌を切りますか？」と表示され、手牌またはツモ牌から自由に選択。</p>',
+      '<p class="help-note">※ 暗槓ボタンは「待ちが変わる暗槓」「テンパイを崩す暗槓」では表示されません（送りカン抑止）。</p>',
+
+      '<h3>4. ゲームの流れ</h3>',
+      '<ol>',
+      '<li>使用スートがランダム決定され、親に 13 枚配牌。</li>',
+      '<li>ツモ → 14 枚 → 判定 → 打牌。</li>',
+      '<li>もう一方がロン or パスを判定。</li>',
+      '<li>山が尽きるまで繰り返し → 山切れで流局。</li>',
+      '<li>親アガリ／親テンパイ流局で <b>連荘</b>、子アガリ／親ノーテン流局で <b>親交代</b>。</li>',
+      '<li>CLEAR（200,000 点到達）または GAME OVER（0 点以下）まで継続。</li>',
+      '</ol>',
+
+      '<h3>5. 特殊ルール（要チェック）</h3>',
+      '<ul>',
+      '<li><b>リーチ後の手出し禁止</b>: 宣言ターン以外は強制ツモ切り。</li>',
+      '<li><b>送りカン禁止</b>: 待ちが変わる暗槓・テンパイを崩す暗槓は不可。</li>',
+      '<li><b>暗槓で一発消失</b>: 自他いずれの暗槓でも両者の一発が消える。</li>',
+      '<li><b>暗槓で天和／地和／人和が消失</b>: 第 1 ツモまでに暗槓が入れば権利消滅。</li>',
+      '<li><b>嶺上開花</b>: 暗槓直後の嶺上ツモアガリで +1 翻。</li>',
+      '<li><b>フリテン</b>: ロン牌を自分が捨て済みならロン不可。ただし<b>リーチ前に切った牌はフリテン対象外</b>（独自仕様）。</li>',
+      '<li><b>ノーテンリーチチョンボ</b>: 流局時にリーチ宣言者がノーテンなら役満分の罰符（親 48,000 / 子 32,000）。両者ノーテンリーチは相殺。</li>',
+      '<li><b>誤ロン・誤ツモ</b>: 役満分の罰符。</li>',
+      '<li><b>リーチ棒なし／ノーテン罰符なし</b>: 通常のノーテン流局では点数移動なし。</li>',
+      '</ul>',
+
+      '<h3>6. 役一覧</h3>',
+      '<p><b>役満（13 翻、複合なし）</b>: 天和／地和／人和／緑一色（索子局のみ）／九蓮宝燈／純正九蓮宝燈／四暗刻／四槓子</p>',
+      '<table class="help-table">',
+      '<tr><th>通常役</th><th>翻</th></tr>',
+      '<tr><td>清一色（常に成立）</td><td>6</td></tr>',
+      '<tr><td>二盃口</td><td>3</td></tr>',
+      '<tr><td>一気通貫／対々和／三暗刻／三槓子／七対子</td><td>2</td></tr>',
+      '<tr><td>立直／一発／門前清自摸和／平和／一盃口／嶺上開花</td><td>1</td></tr>',
+      '</table>',
+      '<p class="help-note">清一色 6 翻が必ず付くので、和了の最低ランクは <b>跳満</b>。</p>',
+
+      '<h3>7. 点数（1 人払い・符計算なし）</h3>',
+      '<table class="help-table">',
+      '<tr><th>翻数</th><th>ランク</th><th>子</th><th>親</th></tr>',
+      '<tr><td>5 翻</td><td>満貫</td><td>8,000</td><td>12,000</td></tr>',
+      '<tr><td>6〜7 翻</td><td>跳満</td><td>12,000</td><td>18,000</td></tr>',
+      '<tr><td>8〜10 翻</td><td>倍満</td><td>16,000</td><td>24,000</td></tr>',
+      '<tr><td>11〜12 翻</td><td>三倍満</td><td>24,000</td><td>36,000</td></tr>',
+      '<tr><td>13 翻以上／役満</td><td>役満</td><td>32,000</td><td>48,000</td></tr>',
+      '</table>',
+    ].join('');
+  }
+
   // ---- 補助 ----
 
   function setText(id, value) {
@@ -426,6 +525,7 @@ window.Bamboo = window.Bamboo || {};
     renderInfo: renderInfo,
     showDialog: showDialog,
     hideDialog: hideDialog,
+    showHelpDialog: showHelpDialog,
     showWinDialog: showWinDialog,
     computeWaits: computeWaits,
     renderWaitsBlock: renderWaitsBlock,

@@ -27,6 +27,17 @@
     // ゲームオーバー / クリアからのリスタートボタン
     bindRestart('restart-gameover-btn');
     bindRestart('restart-clear-btn');
+    // ヘルプボタン（タイトル画面・対局画面共通）
+    bindHelp('help-title-btn');
+    bindHelp('help-table-btn');
+  }
+
+  function bindHelp(id) {
+    var btn = document.getElementById(id);
+    if (btn && !btn.dataset.bound) {
+      btn.addEventListener('click', U.showHelpDialog);
+      btn.dataset.bound = '1';
+    }
   }
 
   function bindRestart(id) {
