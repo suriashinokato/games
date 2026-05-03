@@ -136,8 +136,18 @@ window.Bamboo = window.Bamboo || {};
 
   // 役満を 1 個見つけたら返す。なければ null。
   function detectYakuman(args) {
-    // 天和・地和・人和は本作では廃止。第1ツモ／第1打牌のアガリは
-    // game.js 側の tryTsumo / tryRon で先にゲートされている。
+    // 天和: 親が配牌+第1ツモでアガリ
+    if (args.isFirstTurn && args.isTsumo && args.isDealer) {
+      return { name: '天和', han: 13 };
+    }
+    // 地和: 子が第1ツモでアガリ
+    if (args.isFirstTurn && args.isTsumo && !args.isDealer) {
+      return { name: '地和', han: 13 };
+    }
+    // 人和: 子が親の最初の打牌でロン
+    if (args.isFirstTurn && !args.isTsumo) {
+      return { name: '人和', han: 13 };
+    }
     // 緑一色 (索子局のみ)
     if (args.currentSuit === 'sou' && isRyuiisou(args.winningCounts)) {
       return { name: '緑一色', han: 13 };

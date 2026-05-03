@@ -101,14 +101,10 @@
 
     // ツモ・ロンボタンは「成立可否を問わず」常時表示（押せば誤ツモ／誤ロンチョンボの可能性）
     // ただしリーチ宣言ターンの打牌前はツモボタンを出さない（牌を選ぶ操作優先）
-    // また、第1ツモ／第1打牌のロンは仕様上アガリ不可なのでボタン自体を非表示にする
-    // （誤押下によるチョンボを避けるため）。
     state.canTsumo  = isMyTurnDrawPhase
                       && state.player.drawn !== null
-                      && !state.isRiichiDeclareTurn
-                      && !state.player.isFirstTurn;
-    state.canRon    = isOpponentDiscard
-                      && !state.player.isFirstTurn;
+                      && !state.isRiichiDeclareTurn;
+    state.canRon    = isOpponentDiscard;
     state.canPass   = isOpponentDiscard;
 
     state.canRiichi = isMyTurnDrawPhase
