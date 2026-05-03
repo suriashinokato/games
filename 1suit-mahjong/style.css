@@ -588,9 +588,12 @@ html, body {
   .dialog.help-dialog {
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     transform: none;
     width: 100vw;
     height: 100vh;
+    min-width: 0;
     max-width: 100vw;
     max-height: 100vh;
     border: none;
