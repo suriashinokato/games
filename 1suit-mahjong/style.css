@@ -89,8 +89,13 @@ html, body {
   margin-top: 0;
 }
 
-.info-help-btn {
+.info-bar-actions {
   margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.info-help-btn {
   background: transparent;
   color: var(--accent-color);
   border: 1px solid var(--accent-color);
@@ -344,6 +349,22 @@ html, body {
 }
 
 .dialog button:hover { background: #ffd770; }
+
+.dialog .dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dialog button.dialog-cancel-btn {
+  background: transparent;
+  color: var(--fg-color);
+  border: 1px solid rgba(245, 245, 245, 0.4);
+}
+.dialog button.dialog-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
 
 /* ----- アクションボタン ----- */
 

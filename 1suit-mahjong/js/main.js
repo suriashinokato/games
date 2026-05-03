@@ -14,6 +14,7 @@
   var CPU_THINK_MS = 600;
 
   var state = G.createInitialState();
+  state.gameEpoch = 0;
 
   // ------ 起動 ------
 
@@ -30,6 +31,32 @@
     // ヘルプボタン（タイトル画面・対局画面共通）
     bindHelp('help-title-btn');
     bindHelp('help-table-btn');
+    // 対局画面のホームへ戻るボタン
+    bindHome('home-table-btn');
+  }
+
+  function bindHome(id) {
+    var btn = document.getElementById(id);
+    if (btn && !btn.dataset.bound) {
+      btn.addEventListener('click', onHomeClick);
+      btn.dataset.bound = '1';
+    }
+  }
+
+  function onHomeClick() {
+    U.showConfirmDialog(
+      'ホームへ戻る',
+      '<p>対局を中断してタイトル画面に戻ります。</p>'
+        + '<p>現在の対局内容は失われます。よろしいですか？</p>',
+      'ホームへ戻る',
+      'キャンセル',
+      function () {
+        // 進行中の CPU 用 setTimeout を無効化
+        state.gameEpoch += 1;
+        G.restart(state);
+        bootTitle();
+      }
+    );
   }
 
   function bindHelp(id) {
@@ -173,7 +200,9 @@
     var ronCandidate = (state.lastDiscard.who === 'player') ? 'cpu' : 'player';
 
     if (ronCandidate === 'cpu') {
+      var ep = state.gameEpoch;
       setTimeout(function () {
+        if (state.gameEpoch !== ep) return;
         if (state.phase !== 'awaitRonCheck') return;
         if (C.shouldRon(state, 'cpu')) {
           G.declareRon(state, 'cpu');
@@ -198,7 +227,11 @@
     }
 
     if (state.turnOwner === 'cpu') {
-      setTimeout(runCpuTurn, CPU_THINK_MS);
+      var ep = state.gameEpoch;
+      setTimeout(function () {
+        if (state.gameEpoch !== ep) return;
+        runCpuTurn();
+      }, CPU_THINK_MS);
     } else {
       // 自分のツモ: refresh で canTsumo / canRiichi / canKan が反映される
       refresh();
@@ -221,7 +254,11 @@
       G.declareKan(state, 'cpu', kanTile);
       refresh();
       // 嶺上ツモ後にもう一度同じフローを回す
-      setTimeout(runCpuTurn, CPU_THINK_MS / 2);
+      var ep = state.gameEpoch;
+      setTimeout(function () {
+        if (state.gameEpoch !== ep) return;
+        runCpuTurn();
+      }, CPU_THINK_MS / 2);
       return;
     }
 

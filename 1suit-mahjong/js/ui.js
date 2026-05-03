@@ -409,6 +409,25 @@ window.Bamboo = window.Bamboo || {};
     if (dlg) dlg.style.display = 'none';
   }
 
+  function showConfirmDialog(title, body, okLabel, cancelLabel, onConfirm) {
+    var dlg = document.getElementById('result-dialog');
+    dlg.innerHTML = ''
+      + '<h2>' + title + '</h2>'
+      + '<div class="dialog-body">' + body + '</div>'
+      + '<div class="dialog-actions">'
+      +   '<button id="dialog-cancel-btn" class="dialog-cancel-btn">' + cancelLabel + '</button>'
+      +   '<button id="dialog-confirm-btn">' + okLabel + '</button>'
+      + '</div>';
+    dlg.style.display = '';
+    document.getElementById('dialog-cancel-btn').addEventListener('click', function () {
+      dlg.style.display = 'none';
+    });
+    document.getElementById('dialog-confirm-btn').addEventListener('click', function () {
+      dlg.style.display = 'none';
+      if (onConfirm) onConfirm();
+    });
+  }
+
   // ---- ヘルプダイアログ（操作マニュアル） ----
 
   function showHelpDialog() {
@@ -526,6 +545,7 @@ window.Bamboo = window.Bamboo || {};
     renderInfo: renderInfo,
     showDialog: showDialog,
     hideDialog: hideDialog,
+    showConfirmDialog: showConfirmDialog,
     showHelpDialog: showHelpDialog,
     showWinDialog: showWinDialog,
     computeWaits: computeWaits,
