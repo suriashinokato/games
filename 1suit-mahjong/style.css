@@ -593,12 +593,15 @@ html, body {
     transform: none;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     min-width: 0;
     max-width: 100vw;
     max-height: 100vh;
+    max-height: 100dvh;
     border: none;
     border-radius: 0;
     padding: 12px 14px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
     box-shadow: none;
   }
   .dialog.help-dialog h2 { font-size: 1.2rem; }
