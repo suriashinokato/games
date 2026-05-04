@@ -210,6 +210,10 @@ window.Bamboo = window.Bamboo || {};
   }
 
   // テンパイしてリーチできる手かどうか（CPU やヒント用）
+  // 暗槓があるときは findWaits に requiredKotsu を渡し、暗槓 tile を必ず刻子として
+  // ロックした状態で待ちが残るかを判定する。calcShanten は requiredKotsu を受けない
+  // ので、padding の 3 枚を雀頭や順子に流用した「偽テンパイ」を 0 シャンテンと
+  // 誤検出してしまう（CPU がノーテンリーチを宣言する原因になる）。
   function canDeclareRiichiTenpai(state, who) {
     if (!canDeclareRiichi(state, who)) return false;
     var p = state[who];
@@ -217,6 +221,7 @@ window.Bamboo = window.Bamboo || {};
     realHand.push(p.drawn);
     var pad = [];
     appendAnkanPadding(p, pad);
+    var ankanT = ankanTiles(p);
     var seen = {};
     for (var i = 0; i < realHand.length; i++) {
       var t = realHand[i];
@@ -226,7 +231,7 @@ window.Bamboo = window.Bamboo || {};
       c.splice(c.indexOf(t), 1);
       c = c.concat(pad);
       if (c.length !== 13) continue;
-      if (H.calcShanten(H.toCounts(c)) === 0) return true;
+      if (H.findWaits(H.toCounts(c), ankanT).length > 0) return true;
     }
     return false;
   }

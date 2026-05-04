@@ -26,11 +26,11 @@
   <div id="results"></div>
 
   <!-- 依存モジュール -->
-  <script src="js/tiles.js"></script>
-  <script src="js/handEval.js"></script>
-  <script src="js/yaku.js"></script>
-  <script src="js/score.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/tiles.js?v=20260504a"></script>
+  <script src="js/handEval.js?v=20260504a"></script>
+  <script src="js/yaku.js?v=20260504a"></script>
+  <script src="js/score.js?v=20260504a"></script>
+  <script src="js/game.js?v=20260504a"></script>
 
   <script>
   (function () {
@@ -584,6 +584,48 @@
 
     test('回帰: 同手牌でロン3 は和了可 (kotsu(5) を含む split あり)', function () {
       assertEqual(H.isWinningHand(H.toCounts([2,3,3,4,6,6,7,7,8,8, 5,5,5, 3]), [5]), true);
+    });
+
+    test('診断: findWaits 暗槓9 + 13枚 [1,2,3,3,5,5,6,7,7,8,9,9,9] は空待ち', function () {
+      // canDeclareRiichiTenpai の内部 findWaits 呼び出しに相当する直接確認。
+      // 13 枚 (手牌10 + 暗槓padding3) で requiredKotsu=[9] のとき、待ちは空のはず。
+      var counts13 = H.toCounts([1,2,3,3,5,5,6,7,7,8, 9,9,9]);
+      var waits = H.findWaits(counts13, [9]);
+      assertArrayEqual(waits, []);
+    });
+
+    test('診断: 14枚 [+4] でも暗槓9 ロックでは和了不可', function () {
+      // 「3-5 嵌張で 4 待ち」は 9-9 を雀頭にする split を要求するため、
+      // requiredKotsu=[9] では成立しない。
+      var c14 = H.toCounts([1,2,3,3,5,5,6,7,7,8, 9,9,9, 4]);
+      assertEqual(H.isWinningHand(c14, [9]), false);
+    });
+
+    test('回帰: calcShanten と findWaits の暗槓ロック差 (本不具合の核)', function () {
+      // スクリーンショットの post-kan 13 枚 [1,2,3,3,5,5,6,7,7,8,9,9,9] は、
+      // calcShanten ベースだと「9-9 を雀頭、9 を 7-8-9 に流用」する分解で
+      // 0-shanten (テンパイ) と判定される。しかし暗槓 9 は刻子としてロック
+      // されるべきなので、findWaits に requiredKotsu=[9] を渡せば待ちは空。
+      // canDeclareRiichiTenpai の旧実装が calcShanten を使っていたため、
+      // この差が CPU のノーテンリーチ宣言を引き起こしていた。
+      var counts13 = H.toCounts([1,2,3,3,5,5,6,7,7,8, 9,9,9]);
+      assertEqual(H.calcShanten(counts13), 0);              // 旧コード: テンパイと誤判定
+      assertArrayEqual(H.findWaits(counts13, [9]), []);     // 新コード: 正しく待ちなし
+    });
+
+    test('canDeclareRiichiTenpai: 暗槓9 + 真のテンパイ手 ではリーチ判定が true', function () {
+      // 暗槓9 + 手[1,2,3,3,5,5,6,7,7,8] + drawn=1 は、7 を捨てれば
+      // 1-1-2-3-3-5-5-6-7-8-9-9-9 となり requiredKotsu=[9] で待ち=2 のテンパイ。
+      // findWaits ベース判定でも正しく true を返すことを保証する。
+      var s = G.createInitialState();
+      s.currentSuit = 'man';
+      s.cpu.hand = [1,2,3,3,5,5,6,7,7,8];
+      s.cpu.drawn = 1;
+      s.cpu.melds = [{ type: 'ankan', tile: 9 }];
+      s.cpu.score = 100000;
+      s.cpu.isRiichi = false;
+      s.phase = 'cpuTurn';
+      assertEqual(G.canDeclareRiichiTenpai(s, 'cpu'), true);
     });
 
     // ====================================================================
