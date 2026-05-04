@@ -1306,7 +1306,7 @@ function makeMiniTile(code, extraClass) {
   const div = document.createElement('div');
   div.className = 'tile-mini' + (extraClass ? ' ' + extraClass : '');
   const img = document.createElement('img');
-  img.src = 'images_hai/' + code + '.png';
+  img.src = '../assets/images_hai/' + code + '.png';
   img.loading = 'lazy';
   img.decoding = 'async';
   img.alt = tileLabel(code);
@@ -1678,7 +1678,7 @@ function buildPalette() {
       btn.className = 'palette-tile' + (RED_TILES.has(code) ? ' red-tile' : '');
       btn.title = tileLabel(code);
       const img = document.createElement('img');
-      img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+      img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
       img.onerror = function() { this.style.display = 'none'; btn.insertAdjacentText('beforeend', tileLabel(code)); };
       btn.appendChild(img);
       btn.onclick = () => addTile(code);
@@ -1815,7 +1815,7 @@ function renderEditorHand(quickUpdate = false) {
     tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に追加';
     tile.dataset.code = code;
     const img = document.createElement('img');
-    img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+    img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
     tile.appendChild(img);
     tile.appendChild(makeRemoveBtn(() => removeTile(idx)));
@@ -1859,7 +1859,7 @@ function renderEditorDora() {
     tile.className = 'd-tile';
     tile.title = tileLabel(code) + '（×で削除）';
     const img = document.createElement('img');
-    img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+    img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
     tile.appendChild(img);
     const xBtn = makeRemoveBtn(() => removeDoraTile(idx));
@@ -1921,7 +1921,7 @@ function renderMeldPreview() {
       ? tileLabel(code) + '（×で削除）'
       : (isCalled ? '鳴いた牌（クリックで解除）' : 'クリックで鳴いた牌を変更 / ×で全消し');
     const img = document.createElement('img');
-    img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+    img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
     tile.appendChild(img);
     tile.appendChild(makeRemoveBtn(() => removeMeldDraftTile(idx)));
@@ -2006,7 +2006,7 @@ function renderMelds() {
       t.className = 'meld-list-tile' + (isCalled ? ' called' : '');
       t.title = tileLabel(c) + (isCalled ? '（鳴き牌）' : '');
       const img = document.createElement('img');
-      img.src = 'images_hai/' + c + '.png'; img.alt = tileLabel(c);
+      img.src = '../assets/images_hai/' + c + '.png'; img.alt = tileLabel(c);
       img.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(c)); };
       t.appendChild(img);
       tilesDiv.appendChild(t);
@@ -2076,7 +2076,7 @@ function updateIncomingTilePreview() {
   if (/^[0-9][mpsz]$/.test(code)) {
     editState.incomingTile = code;
     const img = document.createElement('img');
-    img.src = 'images_hai/' + code + '.png';
+    img.src = '../assets/images_hai/' + code + '.png';
     img.style.cssText = 'width:100%;height:100%;object-fit:contain';
     preview.appendChild(img);
   } else {
@@ -2113,7 +2113,7 @@ function makeMqTile(code, extraClass, onclick) {
   tile.className = 'meld-q-tile' + (extraClass ? ' ' + extraClass : '');
   tile.title = tileLabel(code);
   const img = document.createElement('img');
-  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
   tile.appendChild(img);
   tile.addEventListener('click', onclick);
@@ -2126,7 +2126,7 @@ function _makeMqTileEl(code, idx) {
   tile.dataset.idx = idx;
   tile.title = tileLabel(code);
   const img = document.createElement('img');
-  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = '../assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
   tile.appendChild(img);
   return tile;

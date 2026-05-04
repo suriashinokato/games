@@ -31,12 +31,12 @@ window.Bamboo = window.Bamboo || {};
 
   // -------- 画像ファイル参照 --------
   //
-  // 牌画像は ../images_hai/ にある PNG を直接読む（プロジェクトルートと同階層）。
+  // 牌画像は ../../assets/images_hai/ にある PNG を直接読む。
   // 命名: 1m.png 〜 9m.png（萬子）、1p〜9p（筒子）、1s〜9s（索子）、back.png
   //
   // 描画関数は <img> タグ文字列を返す。innerHTML に流し込めば表示される。
 
-  var IMAGE_DIR = '../images_hai/';
+  var IMAGE_DIR = '../../assets/images_hai/';
 
   var SUIT_TO_LETTER = { man: 'm', pin: 'p', sou: 's' };
 
