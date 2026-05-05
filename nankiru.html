@@ -373,6 +373,7 @@
     }
     .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
     .feedback-source { color: var(--text-dim); font-size: 0.78rem; margin-top: 10px; text-align: right; }
+    .feedback-tags { color: var(--text-dim); font-size: 0.78rem; margin-top: 6px; text-align: right; }
     .ukeireru-row {
       display: flex; flex-wrap: wrap; align-items: center;
       gap: 6px; margin-top: 8px;
@@ -650,6 +651,7 @@
       <div id="feedback-shanten" style="display:none"></div>
     </div>
     <div class="ukeireru-row" id="feedback-ukeireru" style="display:none"></div>
+    <div class="feedback-tags" id="feedback-tags" style="display:none"></div>
     <div class="feedback-source" id="feedback-source" style="display:none"></div>
   </div>
 
@@ -1707,6 +1709,13 @@ function showFeedbackArea(ok, q) {
   const srcText = [q.source, q.sourceMemo].filter(Boolean).join(' ');
   if (srcText) { srcEl.textContent = '出典: ' + srcText; srcEl.style.display = ''; }
   else { srcEl.style.display = 'none'; }
+  const tagsEl = document.getElementById('feedback-tags');
+  if (ok && Array.isArray(q.tags) && q.tags.length) {
+    tagsEl.textContent = 'タグ: ' + q.tags.join('、');
+    tagsEl.style.display = '';
+  } else {
+    tagsEl.style.display = 'none';
+  }
   fa.style.display = '';
   document.getElementById('q-instruction').style.display = 'none';
   if (st.mode !== 'list') {

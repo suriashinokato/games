@@ -2422,7 +2422,12 @@ async function addTag() {
   const input = document.getElementById('tag-input');
   const val = input.value.trim();
   if (!val) return;
-  if (editState.tags.includes(val)) { input.value = ''; return; }
+  if (editState.tags.includes(val)) {
+    alert('このタグは既に追加されています');
+    input.focus();
+    input.select();
+    return;
+  }
   editState.tags.push(val);
   input.value = '';
   input.focus();
