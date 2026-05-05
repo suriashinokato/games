@@ -100,11 +100,17 @@
         btn.dataset.tile = code;
         if (selectedSet.has(code)) btn.classList.add('selected');
         if (opts.lock) btn.disabled = true;
-        // 採点後の正解ハイライト
+        // 採点後のハイライト
+        //   正解 + 選んだ      → 緑 (answer-correct)
+        //   正解 + 選び漏れ    → 橙 (answer-missed)
+        //   不正解 + 選んだ    → 赤 (answer-extra)
         if (opts.correctSet && opts.correctSet.has(code)) {
-          btn.classList.add('answer-correct');
+          if (selectedSet.has(code)) {
+            btn.classList.add('answer-correct');
+          } else {
+            btn.classList.add('answer-missed');
+          }
         }
-        // 採点後のユーザー誤答ハイライト
         if (opts.userExtraSet && opts.userExtraSet.has(code)) {
           btn.classList.add('answer-extra');
         }
