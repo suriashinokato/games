@@ -373,7 +373,9 @@
     }
     .feedback-commentary { color: var(--text); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
     .feedback-source { color: var(--text-dim); font-size: 0.78rem; margin-top: 10px; text-align: right; }
-    .feedback-tags { color: var(--text-dim); font-size: 0.78rem; margin-top: 6px; text-align: right; }
+    .feedback-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; color: var(--text-dim); font-size: 0.78rem; }
+    .feedback-tags .card-tag { cursor: default; }
+    .feedback-tags .card-tag:hover { background: var(--surface); color: var(--text); border-color: var(--line); transform: none; box-shadow: none; }
     .ukeireru-row {
       display: flex; flex-wrap: wrap; align-items: center;
       gap: 6px; margin-top: 8px;
@@ -1711,7 +1713,13 @@ function showFeedbackArea(ok, q) {
   else { srcEl.style.display = 'none'; }
   const tagsEl = document.getElementById('feedback-tags');
   if (ok && Array.isArray(q.tags) && q.tags.length) {
-    tagsEl.textContent = 'タグ: ' + q.tags.join('、');
+    tagsEl.innerHTML = '';
+    q.tags.forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'card-tag';
+      chip.textContent = tag;
+      tagsEl.appendChild(chip);
+    });
     tagsEl.style.display = '';
   } else {
     tagsEl.style.display = 'none';
