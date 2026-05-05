@@ -1258,7 +1258,7 @@ async function initHome() {
 }
 async function goHome() { await initHome(); showScreen('home'); }
 async function confirmGoHome() {
-  if (st.answered || confirm('クイズを中断してホームに戻りますか？')) await goHome();
+  if (st.answered || confirm('問題を解くのを中断してホームに戻りますか？')) await goHome();
 }
 
 // ===== PROBLEM LIST =====
