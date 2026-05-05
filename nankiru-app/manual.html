@@ -7,22 +7,22 @@
 <link rel="icon" type="image/svg+xml" href="../shared/brand/nankiru-logo.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../shared/brand/nankiru-logo-180.png">
 <link rel="manifest" href="../nankiru.webmanifest">
-<meta name="theme-color" content="#2b4273">
+<meta name="theme-color" content="#1f5a3c">
 <meta name="apple-mobile-web-app-title" content="何切る">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f7f8fc;
+    --bg: #fafaf7;
     --surface: #ffffff;
-    --card: #eef1f8;
-    --accent: #3f5f9b;
-    --accent-strong: #2b4273;
-    --accent-dim: rgba(63,95,155,0.12);
-    --accent-shadow: rgba(63,95,155,0.22);
-    --label-soft: #65789a;
-    --correct: #26b99a;
-    --wrong: #c94b5c;
+    --card: #f1ede4;
+    --accent: #2e7d54;
+    --accent-strong: #1f5a3c;
+    --accent-dim: rgba(46,125,84,0.12);
+    --accent-shadow: rgba(46,125,84,0.22);
+    --label-soft: #5a7a6a;
+    --correct: #3fc88a;
+    --wrong: #c94b4b;
     --text: #111418;
     --text-dim: #5f6772;
     --line: #e6e1d6;
@@ -32,20 +32,20 @@
   /* ダークモード（OS設定追従） */
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #141722;
-      --surface: #202433;
-      --card: #2b3042;
-      --accent: #8aa8ff;
-      --accent-strong: #5f7fd4;
-      --accent-dim: rgba(138,168,255,0.16);
-      --accent-shadow: rgba(138,168,255,0.30);
-      --label-soft: #9aabd0;
-      --correct: #4ad6b3;
+      --bg: #15161a;
+      --surface: #1f2025;
+      --card: #2a2a30;
+      --accent: #5cb88a;
+      --accent-strong: #3a8e62;
+      --accent-dim: rgba(92,184,138,0.16);
+      --accent-shadow: rgba(92,184,138,0.30);
+      --label-soft: #8caea0;
+      --correct: #4ad690;
       --wrong: #e07070;
       --text: #e8e6e0;
       --text-dim: #9aa0aa;
-      --line: #3a4056;
-      --on-accent: #f8fbff;
+      --line: #3a3530;
+      --on-accent: #0e1a14;
     }
   }
 
@@ -158,7 +158,7 @@
     border-left: 4px solid var(--accent);
     background: var(--accent-dim);
   }
-  .callout-tip { border-color: var(--correct); background: rgba(38,185,154,0.1); }
+  .callout-tip { border-color: var(--correct); background: rgba(49,183,122,0.1); }
   .callout-warn { border-color: var(--wrong); background: rgba(201,75,75,0.1); }
   .callout-label { font-weight: 700; margin-right: 6px; }
   .callout-tip .callout-label { color: var(--correct); }
@@ -246,7 +246,7 @@
 
   <!-- 上部ナビ -->
   <div class="top-nav">
-    <a href="nankiru.html" class="nav-link">← ホームへ戻る</a>
+    <a href="../nankiru.html" class="nav-link">← ホームへ戻る</a>
     <a href="nankiru-admin.html" class="nav-link">⚙ 問題管理へ</a>
   </div>
 
@@ -603,7 +603,7 @@
 
   <!-- 下部ナビ -->
   <div class="top-nav" style="margin-top: 32px; justify-content: center;">
-    <a href="nankiru.html" class="nav-link">← ホームへ戻る</a>
+    <a href="../nankiru.html" class="nav-link">← ホームへ戻る</a>
     <a href="nankiru-admin.html" class="nav-link">⚙ 問題管理へ</a>
   </div>
 

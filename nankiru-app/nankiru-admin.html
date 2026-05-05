@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="../shared/brand/nankiru-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="../shared/brand/nankiru-logo-180.png">
   <link rel="manifest" href="../nankiru.webmanifest">
-  <meta name="theme-color" content="#2b4273">
+  <meta name="theme-color" content="#1f5a3c">
   <meta name="apple-mobile-web-app-title" content="何切る">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -18,22 +18,22 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f7f8fc;
+      --bg: #fafaf7;
       --surface: #ffffff;
-      --card: #eef1f8;
-      --accent: #3f5f9b;
-      --accent-strong: #2b4273;
-      --accent-dim: rgba(63,95,155,0.12);
-      --accent-shadow: rgba(63,95,155,0.22);
-      --label-soft: #65789a;
-      --correct: #26b99a;
-      --wrong: #c94b5c;
+      --card: #f1ede4;
+      --accent: #2e7d54;
+      --accent-strong: #1f5a3c;
+      --accent-dim: rgba(46,125,84,0.12);
+      --accent-shadow: rgba(46,125,84,0.22);
+      --label-soft: #5a7a6a;
+      --correct: #3fc88a;
+      --wrong: #c94b4b;
       --text: #111418;
       --text-dim: #5f6772;
       --line: #e6e1d6;
       --on-accent: #ffffff;
       --overlay-dark: rgba(17,20,24,0.72);
-      --meld-called-bg: rgba(63,95,155,0.06);
+      --meld-called-bg: rgba(46,125,84,0.06);
       --tile-w: 52px;
       --tile-h: 72px;
     }
@@ -44,22 +44,22 @@
     /* ダークモード（OS設定追従） */
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #141722;
-        --surface: #202433;
-        --card: #2b3042;
-        --accent: #8aa8ff;
-        --accent-strong: #5f7fd4;
-        --accent-dim: rgba(138,168,255,0.16);
-        --accent-shadow: rgba(138,168,255,0.30);
-        --label-soft: #9aabd0;
-        --correct: #4ad6b3;
+        --bg: #15161a;
+        --surface: #1f2025;
+        --card: #2a2a30;
+        --accent: #5cb88a;
+        --accent-strong: #3a8e62;
+        --accent-dim: rgba(92,184,138,0.16);
+        --accent-shadow: rgba(92,184,138,0.30);
+        --label-soft: #8caea0;
+        --correct: #4ad690;
         --wrong: #e07070;
         --text: #e8e6e0;
         --text-dim: #9aa0aa;
-        --line: #3a4056;
-        --on-accent: #f8fbff;
+        --line: #3a3530;
+        --on-accent: #0e1a14;
         --overlay-dark: rgba(0,0,0,0.78);
-        --meld-called-bg: rgba(138,168,255,0.12);
+        --meld-called-bg: rgba(92,184,138,0.12);
       }
     }
 
@@ -138,7 +138,7 @@
     .tile-mini.called-tile  { border: 2px solid var(--accent); }
 
     .problem-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-    .answer-badge { background: rgba(38,185,154,0.14); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge { background: rgba(49,183,122,0.14); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
     .card-btns { display: flex; gap: 8px; }
     .empty-msg { text-align: center; color: var(--text-dim); padding: 48px 0; font-size: 0.95rem; }
 
@@ -248,7 +248,7 @@
     .mb-preview .mb-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .editor-hand .e-tile:hover,
     .mb-preview .mb-tile:hover { border-color: var(--accent); }
-    .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(38,185,154,0.36); }
+    .editor-hand .e-tile.is-answer  { border-color: var(--correct); box-shadow: 0 0 10px rgba(49,183,122,0.36); }
     .mb-preview .mb-tile.is-called  { border-color: var(--accent);  box-shadow: 0 0 10px var(--accent-shadow); }
     .remove-btn {
       position: absolute; top: 1px; right: 1px; width: 16px; height: 16px;
@@ -350,7 +350,7 @@
     .editor-actions .btn { flex: 1; min-width: 120px; text-align: center; }
 
     .answer-badge-riichi { background: var(--accent-dim); color: var(--accent); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-    .answer-badge-meld { background: rgba(38,185,154,0.12); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .answer-badge-meld { background: rgba(49,183,122,0.12); color: var(--correct); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
 
     /* チー/ポン/カン問題用タイル選択 */
     .meld-q-tile {
@@ -364,7 +364,7 @@
     .meld-q-tile img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
     .meld-q-tile:hover { border-color: var(--accent); }
     .meld-q-tile.mq-selected-chi    { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-shadow); }
-    .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(38,185,154,0.36); }
+    .meld-q-tile.mq-selected-discard { border-color: var(--correct); box-shadow: 0 0 8px rgba(49,183,122,0.36); }
 
     /* ===== 出典選択UI ===== */
     .source-select-row { display: flex; gap: 8px; align-items: center; }
@@ -463,7 +463,7 @@
     <span class="page-title">問題管理</span>
     <span style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <a href="manual.html" class="page-back">📖 使い方ガイド</a>
-      <a href="nankiru.html" class="page-back">← クイズへ戻る</a>
+      <a href="../nankiru.html" class="page-back">← クイズへ戻る</a>
     </span>
   </div>
   <div id="auth-bar" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;flex-wrap:wrap">

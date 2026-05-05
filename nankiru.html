@@ -7,22 +7,22 @@
   <link rel="icon" type="image/svg+xml" href="shared/brand/nankiru-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="shared/brand/nankiru-logo-180.png">
   <link rel="manifest" href="nankiru.webmanifest">
-  <meta name="theme-color" content="#2b4273">
+  <meta name="theme-color" content="#1f5a3c">
   <meta name="apple-mobile-web-app-title" content="何切る">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f7f8fc;
+      --bg: #fafaf7;
       --surface: #ffffff;
-      --card: #eef1f8;
-      --accent: #3f5f9b;
-      --accent-strong: #2b4273;
-      --accent-dim: rgba(63,95,155,0.12);
-      --accent-shadow: rgba(63,95,155,0.22);
-      --label-soft: #65789a;
-      --correct: #26b99a;
-      --wrong: #c94b5c;
+      --card: #f1ede4;
+      --accent: #2e7d54;
+      --accent-strong: #1f5a3c;
+      --accent-dim: rgba(46,125,84,0.12);
+      --accent-shadow: rgba(46,125,84,0.22);
+      --label-soft: #5a7a6a;
+      --correct: #3fc88a;
+      --wrong: #c94b4b;
       --text: #111418;
       --text-dim: #5f6772;
       --line: #e6e1d6;
@@ -64,20 +64,20 @@
     /* ダークモード（OS設定追従） */
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #141722;
-        --surface: #202433;
-        --card: #2b3042;
-        --accent: #8aa8ff;
-        --accent-strong: #5f7fd4;
-        --accent-dim: rgba(138,168,255,0.16);
-        --accent-shadow: rgba(138,168,255,0.30);
-        --label-soft: #9aabd0;
-        --correct: #4ad6b3;
+        --bg: #15161a;
+        --surface: #1f2025;
+        --card: #2a2a30;
+        --accent: #5cb88a;
+        --accent-strong: #3a8e62;
+        --accent-dim: rgba(92,184,138,0.16);
+        --accent-shadow: rgba(92,184,138,0.30);
+        --label-soft: #8caea0;
+        --correct: #4ad690;
         --wrong: #e07070;
         --text: #e8e6e0;
         --text-dim: #9aa0aa;
-        --line: #3a4056;
-        --on-accent: #f8fbff;
+        --line: #3a3530;
+        --on-accent: #0e1a14;
       }
       /* 牌セル背景は白を維持（牌画像が白前提） */
       .prob-list-tile, .prob-list-dora-tile,
@@ -340,7 +340,7 @@
     .hand-tiles:not(.answered) .tile-slot:active { transform: translateY(-4px) scale(0.96); transition-duration: 0.08s; }
     .hand-tiles.answered .tile-slot { cursor: default; }
 
-    .tile-slot.correct { box-shadow: 0 0 14px rgba(38,185,154,0.45); animation: pulse-correct 0.45s ease; }
+    .tile-slot.correct { box-shadow: 0 0 14px rgba(49,183,122,0.45); animation: pulse-correct 0.45s ease; }
     .tile-slot.wrong   { box-shadow: 0 0 14px rgba(201,75,75,0.45); animation: shake-wrong 0.4s ease; }
     .tile-slot.correct::after, .tile-slot.wrong::after {
       content: ''; position: absolute; inset: 0;
@@ -378,7 +378,7 @@
       gap: 6px; margin-top: 8px;
     }
     .ukeireru-label {
-      display: inline-block; background: rgba(38,185,154,0.14); color: var(--correct);
+      display: inline-block; background: rgba(49,183,122,0.14); color: var(--correct);
       font-size: 0.82rem; font-weight: 700; padding: 3px 12px; border-radius: 20px;
       border: 1px solid var(--correct); flex-shrink: 0;
     }
@@ -436,7 +436,7 @@
     .ukeireru-details > summary {
       list-style: none; cursor: pointer; user-select: none;
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(38,185,154,0.14); color: var(--correct);
+      background: rgba(49,183,122,0.14); color: var(--correct);
       font-size: 0.82rem; font-weight: 700; padding: 3px 12px; border-radius: 20px;
       border: 1px solid var(--correct);
     }
@@ -494,7 +494,7 @@
     .riichi-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: var(--accent-dim); border-color: var(--accent); }
     .riichi-btn:disabled { cursor: default; }
     .riichi-btn.selected { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
-    .riichi-btn.correct { background: rgba(38,185,154,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(38,185,154,0.18); }
+    .riichi-btn.correct { background: rgba(49,183,122,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
     .riichi-btn.wrong   { background: rgba(201,75,75,0.12); color: var(--wrong);   border-color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
 
     /* ===== 来牌エリア ===== */
@@ -511,7 +511,7 @@
     .meld-btn:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
     .meld-btn:disabled { cursor: default; transform: none; }
     .meld-btn.selected { border-color: var(--accent-strong); background: var(--accent-strong); color: var(--on-accent); }
-    .meld-btn.correct  { border-color: var(--correct); background: rgba(38,185,154,0.12); color: var(--correct); }
+    .meld-btn.correct  { border-color: var(--correct); background: rgba(49,183,122,0.12); color: var(--correct); }
     .meld-btn.wrong    { border-color: var(--wrong);   background: rgba(201,75,75,0.12); color: var(--wrong); }
 
     /* ===== RESULT ===== */
@@ -534,7 +534,7 @@
     .review-hand { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
     .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; outline-width: 2px; border-radius: 4px; }
 
-    .review-answer-label { display: inline-block; background: rgba(38,185,154,0.14); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+    .review-answer-label { display: inline-block; background: rgba(49,183,122,0.14); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
     .review-commentary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 
     .result-actions { display: flex; gap: 12px; margin-top: 24px; }
@@ -2019,7 +2019,7 @@ function renderMeldReviewCard(card, q, entry) {
     btn.style.cssText = 'padding:5px 14px;border-radius:8px;font-weight:700;font-size:0.88rem;border:2px solid ' +
       (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
       (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
-      (isCorrect ? 'rgba(38,185,154,0.12)' : isSelected ? 'rgba(201,75,92,0.12)' : 'transparent');
+      (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
     btn.textContent = (ACTION_LABELS[a] || a) + (isCorrect ? ' ✓' : '');
     choiceRow.appendChild(btn);
   });
@@ -2195,7 +2195,7 @@ async function showResult() {
           btn.style.cssText = 'padding:5px 18px;border-radius:8px;font-weight:700;font-size:0.88rem;border:2px solid ' +
             (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
             (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
-            (isCorrect ? 'rgba(38,185,154,0.12)' : isSelected ? 'rgba(201,75,92,0.12)' : 'transparent');
+            (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
           btn.textContent = (c === 'riichi' ? 'リーチ' : 'ダマ') + (isCorrect ? ' ✓' : '');
           choiceRow.appendChild(btn);
         });
