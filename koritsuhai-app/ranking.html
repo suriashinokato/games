@@ -107,7 +107,7 @@
     .legend-arrow {
       flex: 1;
       height: 4px;
-      background: linear-gradient(90deg, var(--accent-red), var(--accent-green));
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-gold) 50%, var(--accent-green));
       border-radius: 2px;
       margin: 0 10px;
     }
@@ -130,11 +130,6 @@
       overflow: hidden;
     }
 
-    /* 色アクセント（牌画像エリア左ボーダー） */
-    .rank-item.top    .rank-tile-wrap { border-left: 4px solid var(--accent-green); }
-    .rank-item.mid    .rank-tile-wrap { border-left: 4px solid var(--border-gold); }
-    .rank-item.bottom .rank-tile-wrap { border-left: 4px solid var(--accent-red); }
-
     /* 牌画像 */
     .rank-tile-wrap {
       display: flex;
@@ -145,6 +140,8 @@
       flex-shrink: 0;
       padding: 10px 8px;
       border-right: 1px solid #e0d8c8;
+      border-left-width: 4px;
+      border-left-style: solid;
     }
     .rank-tile-wrap img {
       max-width: 104px;
@@ -316,11 +313,20 @@
     ]
   };
 
-  function tierClass(rank, total) {
-    const ratio = rank / total;
-    if (ratio <= 0.33) return 'bottom';   // 弱い（赤）
-    if (ratio <= 0.66) return 'mid';      // 中間（金）
-    return 'top';                          // 強い（緑）
+  function rankColor(rank, total) {
+    const t = total > 1 ? (rank - 1) / (total - 1) : 0;
+    const stops = [
+      [229, 57, 53],   // 赤 #e53935
+      [201, 168, 76],  // 金 #c9a84c
+      [76, 175, 80]    // 緑 #4caf50
+    ];
+    const seg = t < 0.5 ? 0 : 1;
+    const u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+    const a = stops[seg], b = stops[seg + 1];
+    const r  = Math.round(a[0] + (b[0] - a[0]) * u);
+    const g  = Math.round(a[1] + (b[1] - a[1]) * u);
+    const bl = Math.round(a[2] + (b[2] - a[2]) * u);
+    return 'rgb(' + r + ', ' + g + ', ' + bl + ')';
   }
 
   function showMode(mode) {
@@ -338,11 +344,12 @@
 
     tiles.forEach(function(tile) {
       const item = document.createElement('div');
-      item.className = 'rank-item ' + tierClass(tile.rank, total);
+      item.className = 'rank-item';
 
       // 牌画像
       const tileWrap = document.createElement('div');
       tileWrap.className = 'rank-tile-wrap';
+      tileWrap.style.borderLeftColor = rankColor(tile.rank, total);
 
       const img = document.createElement('img');
       img.src = tile.image;
