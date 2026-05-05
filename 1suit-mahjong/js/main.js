@@ -175,6 +175,11 @@
   function onPlayerKan(tile) {
     if (!state.canKan || state.canKan.indexOf(tile) === -1) return;
     G.declareKan(state, 'player', tile);
+    // 送りカン（待ちが変わる暗槓）はチョンボ確定 → ダイアログを表示
+    if (state.phase === 'win') {
+      showWinAndContinue();
+      return;
+    }
     refresh();
     handleAfterDraw();   // 嶺上ツモ後の判定（連続カン・ツモアガリ等）
   }

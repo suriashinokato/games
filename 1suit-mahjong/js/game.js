@@ -302,8 +302,9 @@ window.Bamboo = window.Bamboo || {};
     var available = canDeclareKan(state, who);
     if (available.indexOf(tile) === -1) throw new Error('暗槓宣言不可: ' + tile);
 
-    // 送りカン（待ちが変わる暗槓）はチョンボ成立。槓子は組まず嶺上ツモも行わない。
-    if (kanChangesWaits(p, tile)) {
+    // 送りカン（待ちが変わる暗槓）はリーチ中のみチョンボ成立。
+    // 非リーチ時は待ちが変わる暗槓も合法（標準ルール）。
+    if (p.isRiichi && kanChangesWaits(p, tile)) {
       finishChombo(state, who, 'kan', 'okurikan');
       return;
     }
