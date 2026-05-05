@@ -1,0 +1,20 @@
+{
+  "name": "麻雀 何切る練習帳",
+  "short_name": "何切る",
+  "start_url": "nankiru.html",
+  "display": "standalone",
+  "background_color": "#fafaf7",
+  "theme_color": "#1f5a3c",
+  "icons": [
+    {
+      "src": "shared/brand/nankiru-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "shared/brand/nankiru-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

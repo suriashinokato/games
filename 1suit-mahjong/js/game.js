@@ -547,10 +547,15 @@ window.Bamboo = window.Bamboo || {};
     return state.dealer === who ? 48000 : 32000;
   }
 
+  // 暗槓 tile は必ず刻子としてロックする ─ calcShanten は requiredKotsu を
+  // 受けないので、暗槓 padding の 3 枚を雀頭や順子に流用した「偽テンパイ」を
+  // 0-shanten と返してしまう。流局時のノーテンリーチ判定に calcShanten を
+  // 使うと、CPU のノーテンリーチが罰符スキップされ、ダイアログにも
+  // 「テンパイ」と表示される矛盾が起きる（待ちは findWaits ベースで列挙されるため空）。
   function isTenpai(p) {
     var counts13 = buildTenpaiCounts(p);
     if (H.totalTiles(counts13) !== 13) return false;
-    return H.calcShanten(counts13) === 0;
+    return H.findWaits(counts13, ankanTiles(p)).length > 0;
   }
 
   function nextRound(state) {

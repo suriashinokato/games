@@ -52,6 +52,30 @@ window.Bamboo = window.Bamboo || {};
 
   function isTerminal(t) { return t === 1 || t === 9; }
 
+  // 暗槓 tile の配列。calcShanten は requiredKotsu を受けないので、
+  // cpu.js 側でも保持して偽テンパイ補正に使う。
+  function ankanTilesFor(p) {
+    var tiles = [];
+    for (var i = 0; i < p.melds.length; i++) {
+      if (p.melds[i].type === 'ankan') tiles.push(p.melds[i].tile);
+    }
+    return tiles;
+  }
+
+  // 13 枚 counts のシャンテン数を「暗槓は刻子としてロック」前提で評価する。
+  // calcShanten は requiredKotsu を受けないため、暗槓 padding の 3 枚を雀頭や
+  // 順子に流用した「偽テンパイ」を 0-shanten と返してしまう。0-shanten のときだけ
+  // findWaits(counts, ankanT) で実テンパイか確認し、偽 0 は 1 に補正する。
+  // これを忘れると、canDeclareRiichiTenpai が真テンパイ候補の存在を見て
+  // riichi を許可した直後に、chooseDiscard が偽テンパイ候補（端牌優先で
+  // 選ばれがち）を打牌してしまい、結果として CPU がノーテンリーチを宣言する。
+  function shantenWithAnkanLock(counts, ankanT) {
+    var raw = H.calcShanten(counts);
+    if (ankanT.length === 0) return raw;
+    if (raw === 0 && H.findWaits(counts, ankanT).length === 0) return 1;
+    return raw;
+  }
+
   // 候補の優先度比較。シャンテン昇順 → 端牌優先 → 元の順
   function pickBest(scored) {
     var best = scored[0];
@@ -82,10 +106,11 @@ window.Bamboo = window.Bamboo || {};
       return { tile: p.drawn, source: 'drawn' };
     }
 
+    var ankanT = ankanTilesFor(p);
     var candidates = buildDiscardCandidates(p);
     var scored = candidates.map(function (cand) {
       var counts = countsAfterDiscard(p, cand);
-      return { candidate: cand, shanten: H.calcShanten(counts) };
+      return { candidate: cand, shanten: shantenWithAnkanLock(counts, ankanT) };
     });
 
     var best = pickBest(scored);

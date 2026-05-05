@@ -26,17 +26,19 @@
   <div id="results"></div>
 
   <!-- 依存モジュール -->
-  <script src="js/tiles.js?v=20260504a"></script>
-  <script src="js/handEval.js?v=20260504a"></script>
-  <script src="js/yaku.js?v=20260504a"></script>
-  <script src="js/score.js?v=20260504a"></script>
-  <script src="js/game.js?v=20260504a"></script>
+  <script src="js/tiles.js?v=20260505a"></script>
+  <script src="js/handEval.js?v=20260505a"></script>
+  <script src="js/yaku.js?v=20260505a"></script>
+  <script src="js/score.js?v=20260505a"></script>
+  <script src="js/cpu.js?v=20260505a"></script>
+  <script src="js/game.js?v=20260505a"></script>
 
   <script>
   (function () {
     var H = window.Bamboo.handEval;
     var Y = window.Bamboo.yaku;
     var G = window.Bamboo.game;
+    var C = window.Bamboo.cpu;
     var resultsEl = document.getElementById('results');
     var summaryEl = document.getElementById('summary');
     var passCount = 0;
@@ -626,6 +628,48 @@
       s.cpu.isRiichi = false;
       s.phase = 'cpuTurn';
       assertEqual(G.canDeclareRiichiTenpai(s, 'cpu'), true);
+    });
+
+    test('isTenpai: 暗槓9 + 偽テンパイ 13枚 は ノーテンとして判定される', function () {
+      // 手[1,2,3,3,5,5,6,7,7,8] + 暗槓(9) は、padding 後 13 枚 counts が
+      // [1,2,3,3,5,5,6,7,7,8,9,9,9] となる。calcShanten=0 だが
+      // requiredKotsu=[9] では待ちが空（真ノーテン）なので、isTenpai は
+      // false を返さないと、流局時にチョンボ罰符がスキップされる。
+      var p = {
+        hand: [1,2,3,3,5,5,6,7,7,8],
+        drawn: null,
+        melds: [{ type: 'ankan', tile: 9 }],
+      };
+      assertEqual(G.isTenpai(p), false);
+    });
+
+    test('isTenpai: 暗槓9 + 真テンパイ 13枚 は テンパイとして判定される', function () {
+      // 手[1,1,2,3,3,5,5,6,7,8] + 暗槓(9) は、padding 後 13 枚 counts が
+      // [1,1,2,3,3,5,5,6,7,8,9,9,9] となり、requiredKotsu=[9] で実際に待ちが
+      // 出る形（前テストの逆ケース）。フィックス後も真テンパイは true のまま。
+      var p = {
+        hand: [1,1,2,3,3,5,5,6,7,8],
+        drawn: null,
+        melds: [{ type: 'ankan', tile: 9 }],
+      };
+      assertEqual(G.isTenpai(p), true);
+    });
+
+    test('chooseDiscard: 暗槓9 + リーチ可能な手で 偽テンパイ候補を選ばない', function () {
+      // canDeclareRiichiTenpai が true を返す状況（=リーチ宣言ターン）で
+      // chooseDiscard が calcShanten ベースに 7 を捨てずに 1（偽テンパイ・端牌優先で
+      // 勝ちがち）を捨ててしまうと、CPU がノーテンリーチに転ぶ。
+      // shantenWithAnkanLock 補正により、真テンパイ候補（7 切り）が選ばれる。
+      var s = G.createInitialState();
+      s.currentSuit = 'man';
+      s.cpu.hand = [1,2,3,3,5,5,6,7,7,8];
+      s.cpu.drawn = 1;
+      s.cpu.melds = [{ type: 'ankan', tile: 9 }];
+      s.cpu.score = 100000;
+      s.cpu.isRiichi = false;
+      s.phase = 'cpuTurn';
+      var choice = C.chooseDiscard(s, 'cpu');
+      assertEqual(choice.tile, 7);
     });
 
     // ====================================================================
