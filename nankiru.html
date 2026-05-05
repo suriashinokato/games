@@ -877,7 +877,7 @@ function renderCommentary(text, container) {
       span.className = 'commentary-tile';
       span.title = tileLabel(part);
       const img = document.createElement('img');
-      img.src = 'assets/images_hai/' + part + '.png';
+      img.src = 'images_hai/' + part + '.png';
       img.alt = tileLabel(part);
       img.onerror = function() {
         this.style.display = 'none';
@@ -900,7 +900,7 @@ function buildTileCountChip(tile, count) {
   tileEl.className = 'u-tile';
   tileEl.title = tileLabel(tile);
   const img = document.createElement('img');
-  img.src = 'assets/images_hai/' + tile + '.png';
+  img.src = 'images_hai/' + tile + '.png';
   img.alt = tileLabel(tile);
   img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(tile)); };
   tileEl.appendChild(img);
@@ -946,7 +946,7 @@ function renderUkeireru(entries, container) {
         tileEl.className = 'ukeireru-kind';
         tileEl.title = tileLabel(t.tile);
         const img = document.createElement('img');
-        img.src = 'assets/images_hai/' + t.tile + '.png';
+        img.src = 'images_hai/' + t.tile + '.png';
         img.alt = tileLabel(t.tile);
         img.onerror = function() { this.style.display = 'none'; tileEl.insertAdjacentText('beforeend', tileLabel(t.tile)); };
         tileEl.appendChild(img);
@@ -1118,7 +1118,7 @@ function makeTile(code, extraClass, small) {
   slot.className = 'tile-slot' + (extraClass ? ' ' + extraClass : '') + (small ? ' sm' : '');
   slot.dataset.code = code;
   const img = document.createElement('img');
-  img.src = 'assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() {
     this.style.display = 'none';
     const sp = document.createElement('span'); sp.textContent = tileLabel(code); slot.appendChild(sp);
@@ -1132,7 +1132,7 @@ function makeDoraEl(code, small) {
   const d = document.createElement('div');
   d.className = 'dora-tile' + (small ? ' sm' : '');
   const img = document.createElement('img');
-  img.src = 'assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
+  img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
   img.onerror = function() { this.style.display = 'none'; d.insertAdjacentText('beforeend', tileLabel(code)); };
   d.appendChild(img);
   return d;
@@ -1188,7 +1188,7 @@ function makeMeldGroup(meld) {
     if (isBack) {
       img.src = 'images_hai/back.png'; img.alt = '伏せ牌';
     } else {
-      img.src = 'assets/images_hai/' + code + '.png'; img.alt = tileLabel(code);
+      img.src = 'images_hai/' + code + '.png'; img.alt = tileLabel(code);
       img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
     }
     tile.appendChild(img);
@@ -1230,7 +1230,7 @@ function makeMeldGroupSmall(meld) {
     if (isBack) {
       img2.src = 'images_hai/back.png'; img2.alt = '伏せ牌';
     } else {
-      img2.src = 'assets/images_hai/' + code + '.png'; img2.alt = tileLabel(code);
+      img2.src = 'images_hai/' + code + '.png'; img2.alt = tileLabel(code);
       img2.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(code)); };
     }
     img2.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:3px';
@@ -1356,7 +1356,7 @@ async function showProblemList() {
           const d = document.createElement('div');
           d.className = 'prob-list-dora-tile';
           const img = document.createElement('img');
-          img.src = 'assets/images_hai/' + code + '.png';
+          img.src = 'images_hai/' + code + '.png';
           img.alt = tileLabel(code);
           img.onerror = function() { this.style.display='none'; d.insertAdjacentText('beforeend', tileLabel(code)); };
           d.appendChild(img);
@@ -1404,7 +1404,7 @@ async function showProblemList() {
         const d = document.createElement('div');
         d.className = 'prob-list-tile';
         const img = document.createElement('img');
-        img.src = 'assets/images_hai/' + code + '.png';
+        img.src = 'images_hai/' + code + '.png';
         img.alt = tileLabel(code);
         img.onerror = function() { this.style.display='none'; d.insertAdjacentText('beforeend', tileLabel(code)); };
         d.appendChild(img);
@@ -1437,7 +1437,7 @@ async function showProblemList() {
               ? 'position:absolute;top:' + ((TH-TW)/2) + 'px;left:' + ((TH-TW)/2) + 'px;width:' + TW + 'px;height:' + TH + 'px;transform:rotate(270deg);background:#f5f0e8;border-radius:2px;overflow:hidden'
               : 'width:100%;height:100%;background:#f5f0e8;border-radius:2px;overflow:hidden';
             const img = document.createElement('img');
-            img.src = 'assets/images_hai/' + (isBack ? 'back' : code) + '.png';
+            img.src = 'images_hai/' + (isBack ? 'back' : code) + '.png';
             img.alt = isBack ? '伏せ牌' : tileLabel(code);
             img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
             img.onerror = function() { this.style.display='none'; inner.insertAdjacentText('beforeend', tileLabel(code)); };
