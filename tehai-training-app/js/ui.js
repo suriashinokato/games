@@ -1,0 +1,299 @@
+// DOM レンダリング担当
+// quiz.js から呼ばれて、画面の表示を更新するだけ。状態は持たない。
+
+(function () {
+  'use strict';
+
+  const T = window.TehaiTraining;
+  if (!T || !T.tiles) {
+    console.error('tiles.js より後に読み込んでください');
+    return;
+  }
+
+  const SHANTEN_LABEL = {
+    '-1': 'アガリ',
+    '0':  'テンパイ',
+    '1':  '1シャンテン',
+    '2':  '2シャンテン',
+    '3':  '3シャンテン',
+  };
+
+  function shantenLabel(n) {
+    return SHANTEN_LABEL[String(n)] || (n + 'シャンテン');
+  }
+
+  // 画面切替: data-screen 属性を持つ section を表示/非表示
+  function showScreen(name) {
+    document.querySelectorAll('[data-screen]').forEach(el => {
+      el.classList.toggle('active', el.dataset.screen === name);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  // 手牌1つ分の <img> を返す
+  function tileImg(code) {
+    const img = document.createElement('img');
+    img.className = 'tile';
+    img.src = T.tiles.imageUrl(code);
+    img.alt = T.tiles.displayName(code);
+    img.dataset.tile = code;
+    return img;
+  }
+
+  // 手牌をコンテナに描画
+  // options: { onClick: (tileCode, index) => void, highlightIndex: number }
+  function renderHand(container, hand, options) {
+    container.innerHTML = '';
+    const opts = options || {};
+    hand.forEach((code, i) => {
+      const img = tileImg(code);
+      if (opts.onClick) {
+        img.classList.add('clickable');
+        img.addEventListener('click', () => opts.onClick(code, i));
+      }
+      if (opts.highlightIndex === i) {
+        img.classList.add('selected');
+      }
+      container.appendChild(img);
+    });
+  }
+
+  // mode2 用: シャンテン3択ボタン
+  function renderShantenChoices(container, onPick) {
+    container.innerHTML = '';
+    const choices = [
+      { value: 0, label: 'テンパイ' },
+      { value: 1, label: '1シャンテン' },
+      { value: 2, label: '2シャンテン' },
+    ];
+    choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = c.label;
+      btn.dataset.value = c.value;
+      btn.addEventListener('click', () => onPick(c.value));
+      container.appendChild(btn);
+    });
+  }
+
+  // mode1 用: 34牌パレット (複数選択可)
+  // selectedSet: Set<string> 現在選ばれている牌コード
+  // onToggle: (tileCode) => void  クリック時に呼ばれる
+  function renderTilePalette(container, selectedSet, onToggle, options) {
+    container.innerHTML = '';
+    const opts = options || {};
+    const codes = T.tiles.tileCodes();
+    // 行ごと: m / p / s / z
+    const rows = {
+      m: codes.filter(c => c[1] === 'm'),
+      p: codes.filter(c => c[1] === 'p'),
+      s: codes.filter(c => c[1] === 's'),
+      z: codes.filter(c => c[1] === 'z'),
+    };
+    ['m', 'p', 's', 'z'].forEach(suit => {
+      const row = document.createElement('div');
+      row.className = 'palette-row';
+      rows[suit].forEach(code => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'palette-tile';
+        btn.dataset.tile = code;
+        if (selectedSet.has(code)) btn.classList.add('selected');
+        if (opts.lock) btn.disabled = true;
+        // 採点後の正解ハイライト
+        if (opts.correctSet && opts.correctSet.has(code)) {
+          btn.classList.add('answer-correct');
+        }
+        // 採点後のユーザー誤答ハイライト
+        if (opts.userExtraSet && opts.userExtraSet.has(code)) {
+          btn.classList.add('answer-extra');
+        }
+        const img = document.createElement('img');
+        img.src = T.tiles.imageUrl(code);
+        img.alt = T.tiles.displayName(code);
+        btn.appendChild(img);
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          onToggle(code);
+        });
+        row.appendChild(btn);
+      });
+      container.appendChild(row);
+    });
+  }
+
+  // 牌コード配列を「画像の連なり」として小さくレンダリングする (解説用)
+  function renderTileStrip(container, tiles) {
+    container.innerHTML = '';
+    if (!tiles || tiles.length === 0) {
+      container.textContent = '(なし)';
+      return;
+    }
+    tiles.forEach(code => {
+      const img = document.createElement('img');
+      img.className = 'tile tile-mini';
+      img.src = T.tiles.imageUrl(code);
+      img.alt = T.tiles.displayName(code);
+      container.appendChild(img);
+    });
+  }
+
+  // mode1 採点後の解説: 正解牌・ユーザー過剰選択・受け入れ枚数
+  function renderUkeireExplanation(container, problem, userSelected) {
+    container.innerHTML = '';
+    const correct = new Set(problem.ukeireTypes);
+    const ukeire = T.shanten.ukeireWithCount(problem.hand);
+    const div = document.createElement('div');
+    div.className = 'explanation';
+
+    const totalCount = ukeire.reduce((s, e) => s + e.count, 0);
+    const correctList = T.tiles.sortTiles(Array.from(correct));
+    const extra = T.tiles.sortTiles(userSelected.filter(t => !correct.has(t)));
+    const missed = T.tiles.sortTiles(correctList.filter(t => !userSelected.includes(t)));
+
+    div.innerHTML =
+      '<p>シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong></p>' +
+      '<p>正解の受け入れ牌 (合計 ' + totalCount + ' 枚):</p>' +
+      '<div class="strip" data-name="correct"></div>';
+    if (missed.length > 0) {
+      div.innerHTML += '<p style="margin-top:8px;">選び漏れ:</p><div class="strip" data-name="missed"></div>';
+    }
+    if (extra.length > 0) {
+      div.innerHTML += '<p style="margin-top:8px;">余分に選んだ牌:</p><div class="strip" data-name="extra"></div>';
+    }
+    container.appendChild(div);
+    renderTileStrip(div.querySelector('[data-name="correct"]'), correctList);
+    if (missed.length > 0) {
+      renderTileStrip(div.querySelector('[data-name="missed"]'), missed);
+    }
+    if (extra.length > 0) {
+      renderTileStrip(div.querySelector('[data-name="extra"]'), extra);
+    }
+  }
+
+  // mode3 採点後の解説: 各打牌候補の受け入れ枚数を一覧 (牌画像つき)
+  function renderDiscardExplanation(container, problem, userDiscard) {
+    container.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'explanation';
+
+    const head = document.createElement('p');
+    head.innerHTML = 'シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
+    div.appendChild(head);
+    const sub = document.createElement('p');
+    sub.textContent = '各打牌候補の受け入れ:';
+    div.appendChild(sub);
+
+    const correctSet = new Set(problem.bestDiscards.map(d => d.discard));
+    const table = document.createElement('table');
+    table.className = 'discard-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>打牌</th><th>枚数</th><th>受け入れ牌</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+
+    problem.allDiscards.forEach(opt => {
+      const isCorrect = correctSet.has(opt.discard);
+      const isUser = opt.discard === userDiscard;
+      const tr = document.createElement('tr');
+      if (isCorrect) tr.classList.add('row-best');
+
+      // 打牌セル: 牌画像 + マーカー
+      const tdDiscard = document.createElement('td');
+      const discardCell = document.createElement('div');
+      discardCell.className = 'discard-cell';
+      if (isUser) {
+        const m = document.createElement('span');
+        m.className = 'marker';
+        m.textContent = '👉';
+        discardCell.appendChild(m);
+      }
+      if (isCorrect) {
+        const m = document.createElement('span');
+        m.className = 'marker';
+        m.textContent = '★';
+        discardCell.appendChild(m);
+      }
+      const dImg = document.createElement('img');
+      dImg.className = 'tile tile-mini';
+      dImg.src = T.tiles.imageUrl(opt.discard);
+      dImg.alt = T.tiles.displayName(opt.discard);
+      discardCell.appendChild(dImg);
+      tdDiscard.appendChild(discardCell);
+
+      // 枚数セル
+      const tdCount = document.createElement('td');
+      tdCount.className = 'col-count';
+      tdCount.textContent = opt.totalCount;
+
+      // 受け入れ牌セル: 牌画像のみ (種類のみ表示、各牌の枚数は省略)
+      const tdTiles = document.createElement('td');
+      if (opt.tiles.length === 0) {
+        tdTiles.textContent = '(なし)';
+      } else {
+        const list = document.createElement('div');
+        list.className = 'ukeire-list';
+        opt.tiles.forEach(e => {
+          const tImg = document.createElement('img');
+          tImg.className = 'tile tile-mini';
+          tImg.src = T.tiles.imageUrl(e.tile);
+          tImg.alt = T.tiles.displayName(e.tile);
+          list.appendChild(tImg);
+        });
+        tdTiles.appendChild(list);
+      }
+
+      tr.appendChild(tdDiscard);
+      tr.appendChild(tdCount);
+      tr.appendChild(tdTiles);
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    div.appendChild(table);
+    container.appendChild(div);
+  }
+
+  // 結果バッジ ○/× を表示
+  function renderResultBadge(container, isCorrect) {
+    container.innerHTML = '';
+    const badge = document.createElement('div');
+    badge.className = 'result-badge ' + (isCorrect ? 'correct' : 'wrong');
+    badge.textContent = isCorrect ? '○ 正解' : '× 不正解';
+    container.appendChild(badge);
+  }
+
+  // mode2 の解説: 正解シャンテンと、必要なら受け入れ牌の参考表示
+  function renderShantenExplanation(container, problem, userAnswer) {
+    container.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'explanation';
+    const correct = shantenLabel(problem.shanten);
+    const yours = shantenLabel(userAnswer);
+    div.innerHTML =
+      '<p>正解: <strong>' + correct + '</strong></p>' +
+      '<p>あなたの回答: ' + yours + '</p>';
+    container.appendChild(div);
+  }
+
+  // 進捗バー (現在問題数 / 連続正解数)
+  function renderProgress(container, stats) {
+    container.innerHTML =
+      '<span>第 ' + stats.questionNum + ' 問</span>' +
+      '<span>連続正解: ' + stats.streak + '</span>';
+  }
+
+  window.TehaiTraining.ui = {
+    showScreen: showScreen,
+    renderHand: renderHand,
+    renderShantenChoices: renderShantenChoices,
+    renderResultBadge: renderResultBadge,
+    renderShantenExplanation: renderShantenExplanation,
+    renderUkeireExplanation: renderUkeireExplanation,
+    renderDiscardExplanation: renderDiscardExplanation,
+    renderTilePalette: renderTilePalette,
+    renderTileStrip: renderTileStrip,
+    renderProgress: renderProgress,
+    shantenLabel: shantenLabel,
+  };
+})();

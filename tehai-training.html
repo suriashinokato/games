@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>麻雀 手牌トレーニング</title>
+  <meta name="theme-color" content="#2d3f9e">
+  <meta name="apple-mobile-web-app-title" content="手牌トレ">
+  <link rel="icon" type="image/svg+xml" href="shared/brand/tehai-training-logo.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="shared/brand/tehai-training-logo-180.png">
+  <link rel="manifest" href="tehai-training.webmanifest">
+  <style>
+    /* ===== カスタムプロパティ (クール系インディゴ&ティール: 既存3アプリと差別化) ===== */
+    :root {
+      --bg-page:       #eef2f8;
+      --bg-card:       #ffffff;
+      --bg-commentary: #f1f5fa;
+      --border-tile:   #c5cfdd;
+      --border-strong: #2d3f9e;
+      --accent-primary:        #4a5fc1;
+      --accent-primary-strong: #2d3f9e;
+      --accent-primary-soft:   rgba(74,95,193,0.10);
+      --accent-success:        #14a085;
+      --accent-success-bg:     #e0f4ee;
+      --accent-error:          #c93653;
+      --accent-error-bg:       #fbe6ec;
+      --text-main:     #1f2942;
+      --text-sub:      #5a6680;
+      --shadow-card:   0 2px 10px rgba(45,63,158,0.08);
+      --shadow-tile:   0 2px 6px rgba(31,41,66,0.18);
+      /* 14枚を必ず1行に収めるため、ビューポート幅に応じて自動縮小する
+         (画面側余白16px×2 + .hand内側余白10px×2 + 牌間gap4px×13 = 104px を差し引いて14分割) */
+      --tile-w:        min(40px, calc((100vw - 104px) / 14));
+      --tile-h:        calc(var(--tile-w) * 1.4);
+      --radius:        10px;
+      --font:          'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', system-ui, sans-serif;
+    }
+
+    /* ===== リセット・基盤 ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ===== ヘッダー ===== */
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+    }
+    header p {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
+
+    /* ===== 画面切替 ===== */
+    [data-screen] { display: none; width: 100%; max-width: 720px; }
+    [data-screen].active { display: block; }
+
+    /* ===== ホーム画面 ===== */
+    .mode-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .mode-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 18px 20px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      color: inherit;
+      transition: transform 0.08s ease, box-shadow 0.12s ease;
+    }
+    .mode-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+    }
+    .mode-card[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .mode-card h2 {
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    .mode-card p {
+      font-size: 0.88rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+    .mode-card .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      background: var(--accent-primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ===== クイズ画面 ===== */
+    .quiz-progress {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+    .hand {
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      padding: 14px 10px;
+      display: flex;
+      flex-wrap: nowrap;        /* スマホでも1行 (--tile-w が自動縮小) */
+      gap: 4px;
+      justify-content: center;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 16px;
+    }
+    .tile {
+      width: var(--tile-w);
+      height: var(--tile-h);
+      object-fit: contain;
+      border: 1px solid var(--border-tile);
+      border-radius: 4px;
+      background: white;
+      box-shadow: var(--shadow-tile);
+    }
+    .tile.clickable { cursor: pointer; }
+    .tile.clickable:hover { transform: translateY(-2px); }
+    .tile.selected {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-primary-soft), var(--shadow-tile);
+    }
+
+    .prompt {
+      font-size: 1.05rem;
+      text-align: center;
+      margin: 12px 0 16px;
+      color: var(--text-main);
+    }
+    .answer-area {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .choice-btn {
+      flex: 1 1 auto;
+      min-width: 130px;
+      min-height: 56px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      cursor: pointer;
+      color: var(--text-main);
+      box-shadow: var(--shadow-card);
+      transition: transform 0.08s ease, background 0.12s ease;
+    }
+    .choice-btn:hover:not([disabled]) {
+      transform: translateY(-1px);
+      background: var(--accent-primary-soft);
+      border-color: var(--accent-primary);
+    }
+    .choice-btn[disabled] {
+      cursor: default;
+      opacity: 0.7;
+    }
+    .choice-btn.correct-choice {
+      background: var(--accent-success-bg);
+      border-color: var(--accent-success);
+      color: var(--accent-success);
+      font-weight: 600;
+    }
+    .choice-btn.wrong-choice {
+      background: var(--accent-error-bg);
+      border-color: var(--accent-error);
+      color: var(--accent-error);
+    }
+
+    .result-badge {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 600;
+      padding: 10px;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+    .result-badge.correct {
+      background: var(--accent-success-bg);
+      color: var(--accent-success);
+    }
+    .result-badge.wrong {
+      background: var(--accent-error-bg);
+      color: var(--accent-error);
+    }
+
+    .explanation {
+      background: var(--bg-commentary);
+      border-left: 3px solid var(--accent-primary);
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .explanation p + p { margin-top: 4px; }
+
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .secondary-btn, .primary-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 1px solid var(--border-tile);
+      box-shadow: var(--shadow-card);
+    }
+    .primary-btn {
+      background: var(--accent-primary-strong);
+      color: white;
+      border-color: var(--accent-primary-strong);
+      font-weight: 600;
+    }
+    .primary-btn:hover {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+    .secondary-btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+    .hidden { display: none !important; }
+
+    /* ===== mode1: 牌パレット ===== */
+    .palette {
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      padding: 10px 8px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 12px;
+    }
+    .palette-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .palette-row:last-child { margin-bottom: 0; }
+    .palette-tile {
+      width: 36px;
+      height: 50px;
+      padding: 0;
+      border: 2px solid var(--border-tile);
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      transition: transform 0.06s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .palette-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+    .palette-tile:hover:not([disabled]) {
+      transform: translateY(-1px);
+      border-color: var(--accent-primary);
+    }
+    .palette-tile.selected {
+      border-color: var(--accent-primary-strong);
+      box-shadow: 0 0 0 2px var(--accent-primary-soft);
+      background: var(--accent-primary-soft);
+    }
+    .palette-tile.answer-correct {
+      border-color: var(--accent-success);
+      background: var(--accent-success-bg);
+    }
+    .palette-tile.answer-extra {
+      border-color: var(--accent-error);
+      background: var(--accent-error-bg);
+    }
+    .palette-tile[disabled] { cursor: default; }
+
+    .submit-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .submit-row .primary-btn {
+      flex: 0 0 auto;
+      min-width: 200px;
+    }
+
+    /* ===== 解説の中の小さい牌一覧 ===== */
+    .strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 4px;
+    }
+    .tile.tile-mini {
+      width: 26px;
+      height: 36px;
+    }
+
+    /* ===== mode3: 打牌候補一覧テーブル ===== */
+    .discard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+    .discard-table th, .discard-table td {
+      border-bottom: 1px solid var(--border-tile);
+      padding: 6px 6px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    .discard-table th {
+      background: var(--accent-primary-soft);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .discard-table .col-count,
+    .discard-table th:nth-child(2) {
+      text-align: center;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .discard-table tr.row-best td {
+      background: var(--accent-success-bg);
+      color: var(--accent-success);
+      font-weight: 600;
+    }
+    .discard-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .discard-cell .marker {
+      font-size: 0.95rem;
+    }
+    .ukeire-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      align-items: center;
+    }
+
+    /* ===== ホーム画面: 出題元フィルタ ===== */
+    .source-filter {
+      margin-top: 18px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .source-filter .filter-label {
+      font-weight: 600;
+      color: var(--text-main);
+      margin-right: 4px;
+    }
+    .source-filter label {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.9rem;
+    }
+    .home-link-row {
+      margin-top: 14px;
+      text-align: center;
+    }
+    .home-link-row .secondary-btn {
+      flex: 0 0 auto;
+      padding: 10px 24px;
+    }
+
+    /* ===== 管理画面 (登録 + 一覧) ===== */
+    .manage-back { margin-bottom: 12px; }
+    .manage-back .secondary-btn {
+      flex: 0 0 auto;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+    }
+    .section-heading {
+      font-size: 1.1rem;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      color: var(--text-main);
+      letter-spacing: 0.04em;
+    }
+    .register-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .form-label {
+      font-weight: 600;
+      color: var(--text-main);
+      min-width: 60px;
+      font-size: 0.9rem;
+    }
+    .hand-count {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+    #register-mode, #register-memo {
+      flex: 1;
+      padding: 7px 8px;
+      border: 1px solid var(--border-tile);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--text-main);
+    }
+    #register-mode:focus, #register-memo:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    /* パレットタイルに使用枚数バッジを表示 */
+    .palette-tile { position: relative; }
+    .palette-count {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--accent-primary-strong);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid white;
+    }
+
+    .preview-box {
+      background: var(--bg-commentary);
+      border-left: 3px solid var(--accent-primary);
+      padding: 10px 12px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 0.92rem;
+    }
+    .preview-box p { margin-bottom: 4px; }
+    .preview-hint {
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      padding: 8px 0;
+      text-align: center;
+    }
+
+    .save-notice {
+      background: var(--accent-success-bg);
+      color: var(--accent-success);
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 10px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .save-notice.error {
+      background: var(--accent-error-bg);
+      color: var(--accent-error);
+    }
+
+    /* 一覧の各カード */
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-tile);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .problem-head {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .mode-tag {
+      background: var(--accent-primary);
+      color: white;
+      font-size: 0.78rem;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .memo-tag {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+    .strip-card-hand {
+      margin-bottom: 8px;
+      gap: 2px;
+    }
+    .problem-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .secondary-btn.small {
+      flex: 0 0 auto;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      min-width: 0;
+    }
+    .secondary-btn.danger {
+      color: var(--accent-error);
+      border-color: var(--accent-error);
+    }
+    .secondary-btn.danger:hover {
+      background: var(--accent-error-bg);
+    }
+    .empty-msg {
+      text-align: center;
+      color: var(--text-sub);
+      padding: 24px;
+      font-size: 0.9rem;
+    }
+
+    /* ===== モバイル調整 ===== */
+    /* --tile-w/--tile-h は ":root" で 100vw から自動算出されるため、
+       ここで上書きしない (上書きすると14枚が1行に収まらなくなる) */
+    @media (max-width: 480px) {
+      header h1 { font-size: 1.25rem; }
+      .choice-btn { min-width: 100px; min-height: 48px; font-size: 0.9rem; }
+      .palette-tile { width: 30px; height: 42px; }
+      .tile.tile-mini { width: 22px; height: 30px; }
+      .discard-table { font-size: 0.78rem; }
+      .submit-row .primary-btn { min-width: 0; width: 100%; }
+      .form-row { flex-wrap: wrap; }
+      .form-label { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>麻雀 手牌トレーニング</h1>
+    <p>シャンテン・受け入れ・最大受け入れ打牌の3モード</p>
+  </header>
+
+  <!-- ===== ホーム画面 ===== -->
+  <section data-screen="home" class="active">
+    <div class="mode-list">
+      <button type="button" class="mode-card" data-start-mode="shanten">
+        <h2>シャンテン判定</h2>
+        <p>13枚の手牌を見て、テンパイ／1シャンテン／2シャンテンを3択で答えます。</p>
+      </button>
+      <button type="button" class="mode-card" data-start-mode="ukeire">
+        <h2>受け入れ種類</h2>
+        <p>受け入れ牌（シャンテンを進める牌）の種類を全てパレットから選びます。</p>
+      </button>
+      <button type="button" class="mode-card" data-start-mode="discard">
+        <h2>最大受け入れ打牌</h2>
+        <p>14枚の手牌から、受け入れが最大になる打牌をクリックで選びます。同点正解は全て○。</p>
+      </button>
+    </div>
+
+    <div class="source-filter" id="source-filter">
+      <span class="filter-label">出題元</span>
+      <label><input type="radio" name="source" value="random">ランダムのみ</label>
+      <label><input type="radio" name="source" value="user">登録問題のみ</label>
+      <label><input type="radio" name="source" value="both">両方ミックス</label>
+    </div>
+
+    <div class="home-link-row">
+      <button type="button" class="secondary-btn" data-action="manage">問題を登録 ／ 一覧</button>
+    </div>
+  </section>
+
+  <!-- ===== 管理画面 (登録 + 一覧) ===== -->
+  <section data-screen="manage">
+    <div class="manage-back">
+      <button type="button" class="secondary-btn" data-action="back-home">← ホーム</button>
+    </div>
+
+    <h2 class="section-heading" id="register-heading">問題の登録</h2>
+    <div class="register-form">
+      <div class="form-row">
+        <label class="form-label" for="register-mode">モード</label>
+        <select id="register-mode">
+          <option value="shanten">シャンテン判定 (13枚)</option>
+          <option value="ukeire">受け入れ種類 (13枚)</option>
+          <option value="discard">最大受け入れ打牌 (14枚)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <span class="form-label">手牌</span>
+        <span id="register-hand-count" class="hand-count">0/13 枚</span>
+      </div>
+      <div class="hand" id="register-hand"></div>
+      <div class="palette" id="register-palette"></div>
+      <div class="form-row">
+        <label class="form-label" for="register-memo">メモ</label>
+        <input type="text" id="register-memo" placeholder="任意 (40文字まで)" maxlength="40">
+      </div>
+      <div id="register-preview"></div>
+      <div class="nav-row">
+        <button type="button" class="secondary-btn" id="register-clear">クリア</button>
+        <button type="button" class="primary-btn" id="register-save">保存</button>
+      </div>
+      <div id="register-notice"></div>
+    </div>
+
+    <h2 class="section-heading">登録済み問題</h2>
+    <div id="problem-list"></div>
+  </section>
+
+  <!-- ===== クイズ画面 ===== -->
+  <section data-screen="quiz">
+    <div class="quiz-progress" id="progress"></div>
+    <div class="hand" id="hand"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="answer-area" id="answer-area"></div>
+
+    <div id="result-badge"></div>
+    <div id="explanation"></div>
+
+    <div class="nav-row">
+      <button type="button" class="secondary-btn" id="home-btn">ホームへ</button>
+      <button type="button" class="primary-btn hidden" id="next-btn">次の問題へ</button>
+    </div>
+  </section>
+
+  <!-- ===== スクリプト読み込み ===== -->
+  <!-- 既存ロジック (window.NankiruShanten を提供) -->
+  <script src="nankiru-app/nankiru-shanten.js"></script>
+  <!-- 新規モジュール (依存関係順) -->
+  <script src="tehai-training-app/js/tiles.js"></script>
+  <script src="tehai-training-app/js/shanten-bridge.js"></script>
+  <script src="tehai-training-app/js/random-hand.js"></script>
+  <script src="tehai-training-app/js/ui.js"></script>
+  <script src="tehai-training-app/js/storage.js"></script>
+  <script src="tehai-training-app/js/quiz.js"></script>
+  <script src="tehai-training-app/js/manage.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      window.TehaiTraining.quiz.init();
+      window.TehaiTraining.manage.init();
+    });
+  </script>
+</body>
+</html>

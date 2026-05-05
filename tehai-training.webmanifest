@@ -1,0 +1,20 @@
+{
+  "name": "麻雀 手牌トレーニング",
+  "short_name": "手牌トレ",
+  "start_url": "tehai-training.html",
+  "display": "standalone",
+  "background_color": "#eef2f8",
+  "theme_color": "#2d3f9e",
+  "icons": [
+    {
+      "src": "shared/brand/tehai-training-logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "shared/brand/tehai-training-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
