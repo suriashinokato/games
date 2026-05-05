@@ -32,36 +32,11 @@ html, body {
 
 /* ----- タイトル / 結果画面 ----- */
 
-.title-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin: 32px 0 8px;
-}
-
-.title-logo {
-  width: 50px;
-  height: 50px;
-  flex: 0 0 auto;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.28));
-}
-
 .title {
   font-size: 2.2rem;
   text-align: center;
   margin: 32px 0 8px;
   color: var(--accent-color);
-}
-
-.title-brand .title {
-  margin: 0;
-}
-
-@media (max-width: 480px) {
-  .title-brand { gap: 10px; }
-  .title-logo { width: 40px; height: 40px; }
-  .title-brand .title { font-size: 1.8rem; }
 }
 
 .subtitle {
