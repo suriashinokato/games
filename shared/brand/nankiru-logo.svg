@@ -8,15 +8,15 @@
       <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#0b2a1a" flood-opacity="0.3"/>
     </filter>
   </defs>
-  <rect width="128" height="128" rx="28" fill="#1f5a3c"/>
+  <rect width="128" height="128" rx="28" fill="#2b4273"/>
   <path d="M18 94c20 14 70 14 92 0v17c-22 13-72 13-92 0z" fill="#123624" opacity="0.42"/>
   <g filter="url(#shadow)">
     <rect x="28" y="18" width="72" height="96" rx="14" fill="#d8c59d"/>
     <rect x="35" y="25" width="58" height="82" rx="10" fill="url(#face)"/>
   </g>
-  <path d="M47 73l13 13 25-37" fill="none" stroke="#1f5a3c" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M47 73l13 13 25-37" fill="none" stroke="#2b4273" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M42 50h20" stroke="#c9a84c" stroke-width="7" stroke-linecap="round"/>
   <path d="M42 94h44" stroke="#c94b4b" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="49" cy="39" r="5" fill="#1f5a3c"/>
+  <circle cx="49" cy="39" r="5" fill="#2b4273"/>
   <circle cx="65" cy="39" r="5" fill="#c9a84c"/>
 </svg>
