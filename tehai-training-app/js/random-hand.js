@@ -199,6 +199,20 @@
     return true;
   }
 
+  // 1 または 9 の数牌が単独で槓子 (4枚) になっているか (隣接±2 が0枚)
+  function hasIsolatedTerminalKan(counts) {
+    for (const suit of ['m', 'p', 's']) {
+      for (const rank of [1, 9]) {
+        const idx = NS.tileToIndex(rank + suit);
+        if (counts[idx] !== 4) continue;
+        const neighbors = rank === 1 ? [2, 3] : [7, 8];
+        const hasNeighbor = neighbors.some(n => counts[NS.tileToIndex(n + suit)] > 0);
+        if (!hasNeighbor) return true;
+      }
+    }
+    return false;
+  }
+
   // 14枚手牌が mode3 の出題条件を満たすか判定
   //   - 最良打牌と最悪打牌の枚数差が 4 以上 (採点紛糾を避ける)
   //   - 最良打牌に字牌の孤立牌が含まれない (簡単すぎるので除外)
@@ -215,6 +229,7 @@
     for (let n = 1; n <= 7; n++) {
       if (counts[NS.tileToIndex(n + 'z')] === 4) return false;
     }
+    if (hasIsolatedTerminalKan(counts)) return false;
     const bestDiscards = all.filter(o => o.totalCount === best);
     for (const opt of bestDiscards) {
       if (opt.discard[1] === 'z' && counts[NS.tileToIndex(opt.discard)] === 1) {
