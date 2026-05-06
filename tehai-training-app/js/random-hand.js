@@ -185,9 +185,24 @@
     return T.tiles.sortTiles(hand);
   }
 
+  // 1 または 9 の数牌が孤立しているか (自身1枚のみ、かつ隣接±2 が0枚)
+  function isIsolatedTerminal(tileCode, counts) {
+    const suit = tileCode[1];
+    if (suit !== 'm' && suit !== 'p' && suit !== 's') return false;
+    const rank = parseInt(tileCode[0], 10);
+    if (rank !== 1 && rank !== 9) return false;
+    if (counts[NS.tileToIndex(tileCode)] !== 1) return false;
+    const neighbors = rank === 1 ? [2, 3] : [7, 8];
+    for (const n of neighbors) {
+      if (counts[NS.tileToIndex(n + suit)] > 0) return false;
+    }
+    return true;
+  }
+
   // 14枚手牌が mode3 の出題条件を満たすか判定
   //   - 最良打牌と最悪打牌の枚数差が 4 以上 (採点紛糾を避ける)
   //   - 最良打牌に字牌の孤立牌が含まれない (簡単すぎるので除外)
+  //   - 最良打牌に 1/9 の孤立牌が含まれない (簡単すぎるので除外)
   //   - 字牌を4枚持つ手牌は除外 (出題として不自然)
   function passesDiscardFilters(hand) {
     const all = T.shanten.allDiscardOptions(hand);
@@ -203,6 +218,9 @@
     const bestDiscards = all.filter(o => o.totalCount === best);
     for (const opt of bestDiscards) {
       if (opt.discard[1] === 'z' && counts[NS.tileToIndex(opt.discard)] === 1) {
+        return false;
+      }
+      if (isIsolatedTerminal(opt.discard, counts)) {
         return false;
       }
     }
