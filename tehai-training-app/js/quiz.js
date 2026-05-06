@@ -107,7 +107,7 @@
       T.ui.renderHand(handEl, state.problem.hand);
       renderUkeireAnswerArea(answerEl);
     } else if (state.mode === 'discard') {
-      promptEl.textContent = '受け入れが最大になる打牌をクリックしてください';
+      promptEl.textContent = '受け入れが最大になる打牌は？';
       T.ui.renderHand(handEl, state.problem.hand, {
         onClick: onDiscardPick,
       });
