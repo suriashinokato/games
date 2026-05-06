@@ -1300,9 +1300,20 @@ async function renderTagManagement() {
   const catOptionsHtml = sel => TAG_CATEGORIES.map(
     c => `<option value="${c.key}"${c.key === sel ? ' selected' : ''}>${c.label}</option>`
   ).join('');
-  tags.forEach((t, i) => {
+  // 表示順: 未分類を先頭、その後 TAG_CATEGORIES の順、同カテゴリ内はマスタ登録順
+  const displayCatOrder = ['uncategorized', ...TAG_CATEGORY_KEYS.filter(k => k !== 'uncategorized')];
+  const sortedTags = tags
+    .map((t, i) => ({ tag: t, storageIndex: i }))
+    .sort((a, b) => {
+      const ca = displayCatOrder.indexOf(a.tag.category);
+      const cb = displayCatOrder.indexOf(b.tag.category);
+      if (ca !== cb) return ca - cb;
+      return a.storageIndex - b.storageIndex;
+    });
+  sortedTags.forEach(({ tag: t, storageIndex: i }) => {
     const li = document.createElement('li');
     li.dataset.index = i;
+    li.dataset.category = t.category;
     li.innerHTML = `
       <span class="drag-handle" title="ドラッグして並び替え">⠿</span>
       <span class="src-label" data-category="${t.category}">${escapeText(t.name)}</span>
@@ -1322,11 +1333,16 @@ async function renderTagManagement() {
   sortableTagsInstance = Sortable.create(ul, {
     handle: '.drag-handle',
     animation: 150,
-    onEnd: async function(evt) {
+    onMove: function(evt) {
+      return evt.dragged.dataset.category === evt.related.dataset.category;
+    },
+    onEnd: async function() {
+      const liNodes = Array.from(ul.querySelectorAll('li[data-index]'));
       const tags = normalizeTagList(JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'));
-      const [moved] = tags.splice(evt.oldIndex, 1);
-      tags.splice(evt.newIndex, 0, moved);
-      await saveTags(tags);
+      const newOrder = liNodes
+        .map(li => tags[parseInt(li.dataset.index, 10)])
+        .filter(Boolean);
+      await saveTags(newOrder);
     }
   });
 }
