@@ -103,7 +103,7 @@
       T.ui.renderHand(handEl, state.problem.hand);
       T.ui.renderShantenChoices(answerEl, onShantenPick);
     } else if (state.mode === 'ukeire') {
-      promptEl.textContent = '受け入れ牌（シャンテンを進める牌）を全て選んで「決定」を押してください';
+      promptEl.textContent = '受け入れ牌を全て選んでください';
       T.ui.renderHand(handEl, state.problem.hand);
       renderUkeireAnswerArea(answerEl);
     } else if (state.mode === 'discard') {
