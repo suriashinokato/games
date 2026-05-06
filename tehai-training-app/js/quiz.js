@@ -97,6 +97,8 @@
     document.getElementById('result-badge').innerHTML = '';
     document.getElementById('explanation').innerHTML = '';
     document.getElementById('next-btn').classList.add('hidden');
+    document.getElementById('prompt').classList.remove('hidden');
+    document.getElementById('answer-area').classList.remove('hidden');
 
     if (state.mode === 'shanten') {
       promptEl.textContent = 'この手牌のシャンテン数は？';
@@ -195,17 +197,8 @@
       });
     } else if (state.mode === 'ukeire') {
       T.ui.renderUkeireExplanation(explainEl, state.problem, state.userAnswer, isCorrect);
-      // パレットを採点モードで再描画 (正解=緑、ユーザー過剰=赤)
-      const correctSet = new Set(state.problem.ukeireTypes);
-      const userExtra = new Set(state.userAnswer.filter(t => !correctSet.has(t)));
-      T.ui.renderTilePalette(
-        document.querySelector('#answer-area .palette'),
-        state.ukeireSelection,
-        () => {},
-        { lock: true, correctSet: correctSet, userExtraSet: userExtra }
-      );
-      const submitBtn = document.getElementById('ukeire-submit');
-      if (submitBtn) submitBtn.disabled = true;
+      document.getElementById('prompt').classList.add('hidden');
+      document.getElementById('answer-area').classList.add('hidden');
     } else if (state.mode === 'discard') {
       T.ui.renderDiscardExplanation(explainEl, state.problem, state.userAnswer, isCorrect);
     }

@@ -159,14 +159,14 @@
 
     div.innerHTML =
       '<p class="result-heading">' + (isCorrect ? '○ 正解' : '× 不正解') + '</p>' +
-      '<p>シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong></p>' +
-      '<p>正解の受け入れ牌 (合計 ' + totalCount + ' 枚):</p>' +
+      '<p>・シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong></p>' +
+      '<p>・正解の受け入れ牌 (合計 ' + totalCount + ' 枚):</p>' +
       '<div class="strip" data-name="correct"></div>';
     if (missed.length > 0) {
-      div.innerHTML += '<p style="margin-top:8px;">選び漏れ:</p><div class="strip" data-name="missed"></div>';
+      div.innerHTML += '<p style="margin-top:8px;">・選び漏れ:</p><div class="strip" data-name="missed"></div>';
     }
     if (extra.length > 0) {
-      div.innerHTML += '<p style="margin-top:8px;">余分に選んだ牌:</p><div class="strip" data-name="extra"></div>';
+      div.innerHTML += '<p style="margin-top:8px;">・余分に選んだ牌:</p><div class="strip" data-name="extra"></div>';
     }
     container.appendChild(div);
     renderTileStrip(div.querySelector('[data-name="correct"]'), correctList);
@@ -190,10 +190,10 @@
     div.appendChild(heading);
 
     const head = document.createElement('p');
-    head.innerHTML = 'シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
+    head.innerHTML = '・シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
     div.appendChild(head);
     const sub = document.createElement('p');
-    sub.textContent = '各打牌候補の受け入れ:';
+    sub.textContent = '・各打牌候補の受け入れ:';
     div.appendChild(sub);
 
     const correctSet = new Set(problem.bestDiscards.map(d => d.discard));
