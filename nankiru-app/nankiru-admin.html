@@ -36,6 +36,22 @@
       --meld-called-bg: rgba(46,125,84,0.06);
       --tile-w: 52px;
       --tile-h: 72px;
+      /* タグカテゴリ別カラー */
+      --cat-yaku-bg:        rgba(231,76,60,0.12);
+      --cat-yaku-bd:        #e74c3c;
+      --cat-yaku-fg:        #c0392b;
+      --cat-source-bg:      rgba(52,152,219,0.12);
+      --cat-source-bd:      #3498db;
+      --cat-source-fg:      #1f6fa6;
+      --cat-tactic-bg:      rgba(39,174,96,0.12);
+      --cat-tactic-bd:      #27ae60;
+      --cat-tactic-fg:      #1e7d44;
+      --cat-difficulty-bg:  rgba(243,156,18,0.14);
+      --cat-difficulty-bd:  #f39c12;
+      --cat-difficulty-fg:  #b87308;
+      --cat-shape-bg:       rgba(155,89,182,0.12);
+      --cat-shape-bd:       #9b59b6;
+      --cat-shape-fg:       #6f3a85;
     }
     @media (max-width: 480px) {
       :root { --tile-w: 40px; --tile-h: 56px; }
@@ -60,6 +76,22 @@
         --on-accent: #0e1a14;
         --overlay-dark: rgba(0,0,0,0.78);
         --meld-called-bg: rgba(92,184,138,0.12);
+        /* タグカテゴリ別カラー (dark) */
+        --cat-yaku-bg:        rgba(255,107,107,0.18);
+        --cat-yaku-bd:        #ff6b6b;
+        --cat-yaku-fg:        #ff9b9b;
+        --cat-source-bg:      rgba(93,173,226,0.18);
+        --cat-source-bd:      #5dade2;
+        --cat-source-fg:      #93c5e8;
+        --cat-tactic-bg:      rgba(88,214,141,0.18);
+        --cat-tactic-bd:      #58d68d;
+        --cat-tactic-fg:      #8fe2af;
+        --cat-difficulty-bg:  rgba(245,176,65,0.20);
+        --cat-difficulty-bd:  #f5b041;
+        --cat-difficulty-fg:  #f5c97e;
+        --cat-shape-bg:       rgba(187,143,206,0.20);
+        --cat-shape-bd:       #bb8fce;
+        --cat-shape-fg:       #d3b3df;
       }
     }
 
@@ -442,6 +474,29 @@
     .card-tag:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px var(--accent-shadow); }
     .card-tag.active-filter { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); }
     .card-tag:active { transform: translateY(0) scale(0.96); box-shadow: none; }
+    /* タグカテゴリ別カラー（active-filter 時は accent-strong を維持するので除外） */
+    .card-tag[data-category="yaku"]:not(.active-filter)       { background: var(--cat-yaku-bg);       border-color: var(--cat-yaku-bd);       color: var(--cat-yaku-fg); }
+    .card-tag[data-category="source"]:not(.active-filter)     { background: var(--cat-source-bg);     border-color: var(--cat-source-bd);     color: var(--cat-source-fg); }
+    .card-tag[data-category="tactic"]:not(.active-filter)     { background: var(--cat-tactic-bg);     border-color: var(--cat-tactic-bd);     color: var(--cat-tactic-fg); }
+    .card-tag[data-category="difficulty"]:not(.active-filter) { background: var(--cat-difficulty-bg); border-color: var(--cat-difficulty-bd); color: var(--cat-difficulty-fg); }
+    .card-tag[data-category="shape"]:not(.active-filter)      { background: var(--cat-shape-bg);      border-color: var(--cat-shape-bd);      color: var(--cat-shape-fg); }
+    /* tag-chip もカテゴリで色分け（編集画面のチップ） */
+    .tag-chip[data-category="yaku"]       { background: var(--cat-yaku-bg);       border-color: var(--cat-yaku-bd);       color: var(--cat-yaku-fg); }
+    .tag-chip[data-category="source"]     { background: var(--cat-source-bg);     border-color: var(--cat-source-bd);     color: var(--cat-source-fg); }
+    .tag-chip[data-category="tactic"]     { background: var(--cat-tactic-bg);     border-color: var(--cat-tactic-bd);     color: var(--cat-tactic-fg); }
+    .tag-chip[data-category="difficulty"] { background: var(--cat-difficulty-bg); border-color: var(--cat-difficulty-bd); color: var(--cat-difficulty-fg); }
+    .tag-chip[data-category="shape"]      { background: var(--cat-shape-bg);      border-color: var(--cat-shape-bd);      color: var(--cat-shape-fg); }
+    .tag-chip[data-category="yaku"]       .tag-chip-remove { color: var(--cat-yaku-fg); }
+    .tag-chip[data-category="source"]     .tag-chip-remove { color: var(--cat-source-fg); }
+    .tag-chip[data-category="tactic"]     .tag-chip-remove { color: var(--cat-tactic-fg); }
+    .tag-chip[data-category="difficulty"] .tag-chip-remove { color: var(--cat-difficulty-fg); }
+    .tag-chip[data-category="shape"]      .tag-chip-remove { color: var(--cat-shape-fg); }
+    /* タグ管理リスト内のカテゴリ select */
+    .tag-cat-select {
+      flex-shrink: 0; padding: 3px 6px; font-size: 0.72rem;
+      background: var(--surface); border: 1px solid var(--line); color: var(--text);
+      border-radius: 4px; cursor: pointer;
+    }
     .tag-filter-bar {
       display:flex; flex-wrap:wrap; gap:6px; align-items:center;
       margin-bottom:14px; min-height:28px;
@@ -1090,25 +1145,69 @@ async function deleteSource(index) {
 // ===== TAGS (master list) =====
 const TAGS_KEY = 'nankiru_tags';
 
+// カテゴリ定義（表示順 = ソート順）
+const TAG_CATEGORIES = [
+  { key: 'yaku',          label: '役名' },
+  { key: 'source',        label: '出典' },
+  { key: 'tactic',        label: '戦術/テーマ' },
+  { key: 'difficulty',    label: '難易度' },
+  { key: 'shape',         label: '形状' },
+  { key: 'uncategorized', label: '未分類' },
+];
+const TAG_CATEGORY_KEYS = TAG_CATEGORIES.map(c => c.key);
+
+// マスタタグの表示順とカテゴリを引けるキャッシュ
+let _tagMasterCache = [];   // [{name, category}]
+let _tagCategoryMap = new Map(); // name -> {category, order}
+
+// 旧形式（string[]）と新形式（{name,category}[]）混在を新形式に正規化
+function normalizeTagList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(t => {
+      if (typeof t === 'string') {
+        const name = t.trim();
+        return name ? { name, category: 'uncategorized' } : null;
+      }
+      if (t && typeof t === 'object' && typeof t.name === 'string' && t.name.trim()) {
+        const cat = TAG_CATEGORY_KEYS.includes(t.category) ? t.category : 'uncategorized';
+        return { name: t.name.trim(), category: cat };
+      }
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function rebuildTagCategoryMap(list) {
+  _tagMasterCache = list;
+  _tagCategoryMap = new Map();
+  list.forEach((t, i) => _tagCategoryMap.set(t.name, { category: t.category, order: i }));
+}
+
 async function loadTags() {
   if (currentUser && isAdmin) {
     try {
       const doc = await db.doc('users/' + currentUser.uid + '/meta/tags').get();
       if (doc.exists) {
-        const list = doc.data().list || [];
+        const list = normalizeTagList(doc.data().list || []);
         localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+        rebuildTagCategoryMap(list);
         return list;
       }
     } catch(e) { console.warn('Firestoreタグ読込失敗', e); }
   }
-  return JSON.parse(localStorage.getItem(TAGS_KEY) || '[]');
+  const list = normalizeTagList(JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'));
+  rebuildTagCategoryMap(list);
+  return list;
 }
 
 async function saveTags(arr) {
-  localStorage.setItem(TAGS_KEY, JSON.stringify(arr));
+  const list = normalizeTagList(arr);
+  localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+  rebuildTagCategoryMap(list);
   if (currentUser && isAdmin) {
     try {
-      await db.doc('users/' + currentUser.uid + '/meta/tags').set({ list: arr });
+      await db.doc('users/' + currentUser.uid + '/meta/tags').set({ list });
     } catch(e) { console.warn('Firestoreタグ保存失敗', e); }
   }
 }
@@ -1119,13 +1218,37 @@ function subscribeToTags() {
   tagsUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/tags')
     .onSnapshot(snap => {
       if (snap.metadata.hasPendingWrites) return;
-      const list = snap.data()?.list || [];
+      const list = normalizeTagList(snap.data()?.list || []);
       localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+      rebuildTagCategoryMap(list);
       // 管理画面が開いていれば再描画
       if (document.getElementById('tag-list-ul')) renderTagManagement();
       // エディタが開いていれば候補を更新
       if (document.getElementById('tag-suggestions')) renderTagSuggestions();
+      // 編集中の問題タグもカテゴリ反映のため再描画
+      if (document.getElementById('editor-tag-chips')) renderEditorTags();
+      // 一覧画面のタグチップも色付け更新
+      if (document.getElementById('screen-list')?.style.display !== 'none') renderList();
     });
+}
+
+// タグ名からカテゴリを引く（マスタに無ければ uncategorized）
+function getTagCategory(name) {
+  return _tagCategoryMap.get(name)?.category || 'uncategorized';
+}
+
+// タグ配列をカテゴリ順 → マスタ登録順 で安定ソートして返す（元配列は破壊しない）
+function sortTagsByCategory(tags) {
+  const order = TAG_CATEGORY_KEYS;
+  return tags.slice().sort((a, b) => {
+    const ca = getTagCategory(a);
+    const cb = getTagCategory(b);
+    if (ca !== cb) return order.indexOf(ca) - order.indexOf(cb);
+    const oa = _tagCategoryMap.get(a)?.order ?? Infinity;
+    const ob = _tagCategoryMap.get(b)?.order ?? Infinity;
+    if (oa !== ob) return oa - ob;
+    return a.localeCompare(b, 'ja');
+  });
 }
 
 // _adminProblemsCache の各問題に変換 fn を適用し、tags が変わった問題のみ
@@ -1172,17 +1295,23 @@ async function renderTagManagement() {
     ul.innerHTML = '<li class="empty-sources">登録されたタグはありません</li>';
     return;
   }
+  const escapeAttr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const escapeText = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const catOptionsHtml = sel => TAG_CATEGORIES.map(
+    c => `<option value="${c.key}"${c.key === sel ? ' selected' : ''}>${c.label}</option>`
+  ).join('');
   tags.forEach((t, i) => {
     const li = document.createElement('li');
     li.dataset.index = i;
     li.innerHTML = `
       <span class="drag-handle" title="ドラッグして並び替え">⠿</span>
-      <span class="src-label">${t}</span>
+      <span class="src-label" data-category="${t.category}">${escapeText(t.name)}</span>
       <div class="src-edit-row" style="display:none">
-        <input type="text" class="num-input src-edit-input" value="${t.replace(/"/g, '&quot;')}">
+        <input type="text" class="num-input src-edit-input" value="${escapeAttr(t.name)}">
         <button class="btn-save-source" title="保存" onclick="saveTagEdit(${i})">✓</button>
         <button class="btn-cancel-source" title="キャンセル" onclick="cancelTagEdit(${i})">✕</button>
       </div>
+      <select class="tag-cat-select" title="カテゴリ" onchange="setTagCategory(${i}, this.value)">${catOptionsHtml(t.category)}</select>
       <div class="src-action-btns">
         <button class="btn-edit-source" title="編集" onclick="startTagEdit(${i})">✎</button>
         <button class="btn-del-source" title="削除" onclick="deleteMasterTag(${i})">✕</button>
@@ -1194,12 +1323,25 @@ async function renderTagManagement() {
     handle: '.drag-handle',
     animation: 150,
     onEnd: async function(evt) {
-      const tags = JSON.parse(localStorage.getItem(TAGS_KEY) || '[]');
+      const tags = normalizeTagList(JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'));
       const [moved] = tags.splice(evt.oldIndex, 1);
       tags.splice(evt.newIndex, 0, moved);
       await saveTags(tags);
     }
   });
+}
+
+async function setTagCategory(index, category) {
+  if (!TAG_CATEGORY_KEYS.includes(category)) return;
+  const tags = await loadTags();
+  if (!tags[index]) return;
+  if (tags[index].category === category) return;
+  tags[index].category = category;
+  await saveTags(tags);
+  await renderTagManagement();
+  if (document.getElementById('screen-list').style.display !== 'none') await renderList();
+  if (document.getElementById('tag-suggestions')) await renderTagSuggestions();
+  if (document.getElementById('editor-tag-chips')) renderEditorTags();
 }
 
 function startTagEdit(index) {
@@ -1231,9 +1373,10 @@ async function saveTagEdit(index) {
   const newVal = li.querySelector('.src-edit-input').value.trim();
   if (!newVal) return;
   const tags = await loadTags();
-  const oldVal = tags[index];
+  const oldVal = tags[index]?.name;
+  if (!oldVal) return;
   if (newVal === oldVal) { cancelTagEdit(index); return; }
-  if (tags.includes(newVal)) { alert('同名のタグが既に存在します'); return; }
+  if (tags.some((t, i) => i !== index && t.name === newVal)) { alert('同名のタグが既に存在します'); return; }
 
   // 影響範囲を事前カウントして確認
   const affected = _adminProblemsCache.filter(
@@ -1244,7 +1387,7 @@ async function saveTagEdit(index) {
     : `「${oldVal}」を「${newVal}」にリネームします。よろしいですか？`;
   if (!confirm(msg)) return;
 
-  tags[index] = newVal;
+  tags[index] = { name: newVal, category: tags[index].category };
   await saveTags(tags);
   await applyTagCascade(arr => arr.map(t => t === oldVal ? newVal : t));
 
@@ -1259,15 +1402,16 @@ async function addMasterTag(text) {
   const t = text.trim();
   if (!t) return;
   const tags = await loadTags();
-  if (tags.includes(t)) return;
-  tags.push(t);
+  if (tags.some(x => x.name === t)) return;
+  tags.push({ name: t, category: 'uncategorized' });
   await saveTags(tags);
   await renderTagManagement();
 }
 
 async function deleteMasterTag(index) {
   const tags = await loadTags();
-  const target = tags[index];
+  const target = tags[index]?.name;
+  if (!target) return;
   const affected = _adminProblemsCache.filter(
     p => Array.isArray(p.tags) && p.tags.includes(target)
   ).length;
@@ -1340,6 +1484,7 @@ async function openList() {
   showScreen('list');
   subscribeToSources();   // editor の出典 select に必要
   subscribeToTags();      // editor のタグ候補に必要
+  await loadTags();       // _tagCategoryMap を先に温めてカテゴリ色を反映させる
   await renderList();
 }
 
@@ -1355,7 +1500,7 @@ async function openManage() {
     const derived = [...new Set(
       _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
     )];
-    if (derived.length) await saveTags(derived);
+    if (derived.length) await saveTags(derived.map(name => ({ name, category: 'uncategorized' })));
   }
   await renderSourceManagement();
   await renderTagManagement();
@@ -1502,10 +1647,11 @@ async function renderList() {
       if (p.tags && p.tags.length) {
         const tagsRow = document.createElement('div');
         tagsRow.className = 'card-tags';
-        p.tags.forEach(tag => {
+        sortTagsByCategory(p.tags).forEach(tag => {
           const chip = document.createElement('span');
           chip.className = 'card-tag' + (activeTagFilter === tag ? ' active-filter' : '');
           chip.dataset.tag = tag;
+          chip.dataset.category = getTagCategory(tag);
           chip.textContent = tag;
           chip.title = 'このタグでフィルター';
           tagsRow.appendChild(chip);
@@ -2435,8 +2581,8 @@ async function addTag() {
 
   // マスタに無ければ追加（fire-and-forget でも可だが await して候補に即反映）
   const tags = await loadTags();
-  if (!tags.includes(val)) {
-    tags.push(val);
+  if (!tags.some(t => t.name === val)) {
+    tags.push({ name: val, category: 'uncategorized' });
     await saveTags(tags);
   }
 }
@@ -2454,6 +2600,7 @@ function renderEditorTags() {
     const chip = document.createElement('span');
     chip.className = 'tag-chip';
     chip.dataset.tag = tag;
+    chip.dataset.category = getTagCategory(tag);
     chip.textContent = tag;
     const btn = document.createElement('button');
     btn.className = 'tag-chip-remove';
@@ -2475,23 +2622,24 @@ async function renderTagSuggestions() {
   if (!masterTags.length) {
     masterTags = [...new Set(
       _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
-    )];
+    )].map(name => ({ name, category: 'uncategorized' }));
   }
-  const allTags = masterTags.filter(t => !editState.tags.includes(t));
+  const allTags = masterTags.filter(t => !editState.tags.includes(t.name));
   el.innerHTML = '';
   if (allTags.length) {
     el.style.display = 'flex';
     label.style.display = '';
-    allTags.forEach(tag => {
+    allTags.forEach(t => {
       const chip = document.createElement('span');
       chip.className = 'tag-chip';
-      chip.dataset.tag = tag;
+      chip.dataset.tag = t.name;
+      chip.dataset.category = t.category;
       chip.style.cssText += ';cursor:pointer;opacity:0.7';
-      chip.textContent = tag;
+      chip.textContent = t.name;
       chip.title = 'クリックで追加';
       chip.onclick = () => {
-        if (!editState.tags.includes(tag)) {
-          editState.tags.push(tag);
+        if (!editState.tags.includes(t.name)) {
+          editState.tags.push(t.name);
           renderEditorTags();
         }
       };

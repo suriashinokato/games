@@ -34,6 +34,22 @@
       --tile-h: calc(var(--tile-w) * 1.4);
       --meld-w: var(--tile-w);
       --meld-h: var(--tile-h);
+      /* タグカテゴリ別カラー */
+      --cat-yaku-bg:        rgba(231,76,60,0.12);
+      --cat-yaku-bd:        #e74c3c;
+      --cat-yaku-fg:        #c0392b;
+      --cat-source-bg:      rgba(52,152,219,0.12);
+      --cat-source-bd:      #3498db;
+      --cat-source-fg:      #1f6fa6;
+      --cat-tactic-bg:      rgba(39,174,96,0.12);
+      --cat-tactic-bd:      #27ae60;
+      --cat-tactic-fg:      #1e7d44;
+      --cat-difficulty-bg:  rgba(243,156,18,0.14);
+      --cat-difficulty-bd:  #f39c12;
+      --cat-difficulty-fg:  #b87308;
+      --cat-shape-bg:       rgba(155,89,182,0.12);
+      --cat-shape-bd:       #9b59b6;
+      --cat-shape-fg:       #6f3a85;
     }
 
     body {
@@ -78,6 +94,22 @@
         --text-dim: #9aa0aa;
         --line: #3a3530;
         --on-accent: #0e1a14;
+        /* タグカテゴリ別カラー (dark) */
+        --cat-yaku-bg:        rgba(255,107,107,0.18);
+        --cat-yaku-bd:        #ff6b6b;
+        --cat-yaku-fg:        #ff9b9b;
+        --cat-source-bg:      rgba(93,173,226,0.18);
+        --cat-source-bd:      #5dade2;
+        --cat-source-fg:      #93c5e8;
+        --cat-tactic-bg:      rgba(88,214,141,0.18);
+        --cat-tactic-bd:      #58d68d;
+        --cat-tactic-fg:      #8fe2af;
+        --cat-difficulty-bg:  rgba(245,176,65,0.20);
+        --cat-difficulty-bd:  #f5b041;
+        --cat-difficulty-fg:  #f5c97e;
+        --cat-shape-bg:       rgba(187,143,206,0.20);
+        --cat-shape-bd:       #bb8fce;
+        --cat-shape-fg:       #d3b3df;
       }
       /* 牌セル背景は白を維持（牌画像が白前提） */
       .prob-list-tile, .prob-list-dora-tile,
@@ -164,7 +196,7 @@
     .prob-list-tile { width: 22px; height: 31px; background: #ffffff; border: 1px solid #e6e1d6; border-radius: 4px; overflow: hidden; flex-shrink: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.04); }
     .prob-list-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prob-list-tsumo-gap { width: 6px; flex-shrink: 0; }
-    /* タグフィルター: 完全フラット統一。カテゴリ別の塗り分けは廃止。 */
+    /* タグ：カテゴリ別カラー（active-filter は accent-strong を維持） */
     .card-tag {
       display: inline-block; padding: 3px 8px; border-radius: 12px;
       font-size: 0.72rem; font-weight: 600; cursor: pointer;
@@ -174,6 +206,11 @@
     .card-tag:hover { background: var(--accent-dim); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px var(--accent-shadow); }
     .card-tag.active-filter { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); }
     .card-tag:active { transform: translateY(0) scale(0.96); box-shadow: none; }
+    .card-tag[data-category="yaku"]:not(.active-filter)       { background: var(--cat-yaku-bg);       border-color: var(--cat-yaku-bd);       color: var(--cat-yaku-fg); }
+    .card-tag[data-category="source"]:not(.active-filter)     { background: var(--cat-source-bg);     border-color: var(--cat-source-bd);     color: var(--cat-source-fg); }
+    .card-tag[data-category="tactic"]:not(.active-filter)     { background: var(--cat-tactic-bg);     border-color: var(--cat-tactic-bd);     color: var(--cat-tactic-fg); }
+    .card-tag[data-category="difficulty"]:not(.active-filter) { background: var(--cat-difficulty-bg); border-color: var(--cat-difficulty-bd); color: var(--cat-difficulty-fg); }
+    .card-tag[data-category="shape"]:not(.active-filter)      { background: var(--cat-shape-bg);      border-color: var(--cat-shape-bd);      color: var(--cat-shape-fg); }
 
     .prob-list-tags { display:flex; flex-wrap:wrap; gap:5px; margin-left:6px; }
 
@@ -375,7 +412,12 @@
     .feedback-source { color: var(--text-dim); font-size: 0.78rem; margin-top: 10px; text-align: right; }
     .feedback-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; color: var(--text-dim); font-size: 0.78rem; }
     .feedback-tags .card-tag { cursor: default; }
-    .feedback-tags .card-tag:hover { background: var(--surface); color: var(--text); border-color: var(--line); transform: none; box-shadow: none; }
+    /* フィードバック内のチップはクリック不可。hover でも色はそのまま、動きだけ抑制 */
+    .feedback-tags .card-tag:hover { transform: none; box-shadow: none; }
+    .feedback-tags .card-tag:not([data-category]):hover,
+    .feedback-tags .card-tag[data-category="uncategorized"]:hover {
+      background: var(--surface); color: var(--text); border-color: var(--line);
+    }
     .ukeireru-row {
       display: flex; flex-wrap: wrap; align-items: center;
       gap: 6px; margin-top: 8px;
@@ -1107,6 +1149,94 @@ async function loadProblems(forceReload = false) {
   }
 }
 
+// ===== TAGS (master list, read-only on main page) =====
+const TAGS_KEY = 'nankiru_tags';
+const TAG_CATEGORIES = [
+  { key: 'yaku',          label: '役名' },
+  { key: 'source',        label: '出典' },
+  { key: 'tactic',        label: '戦術/テーマ' },
+  { key: 'difficulty',    label: '難易度' },
+  { key: 'shape',         label: '形状' },
+  { key: 'uncategorized', label: '未分類' },
+];
+const TAG_CATEGORY_KEYS = TAG_CATEGORIES.map(c => c.key);
+let _tagCategoryMap = new Map();   // name -> {category, order}
+let _tagMasterUnsubscribe = null;
+
+function normalizeTagList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(t => {
+      if (typeof t === 'string') {
+        const name = t.trim();
+        return name ? { name, category: 'uncategorized' } : null;
+      }
+      if (t && typeof t === 'object' && typeof t.name === 'string' && t.name.trim()) {
+        const cat = TAG_CATEGORY_KEYS.includes(t.category) ? t.category : 'uncategorized';
+        return { name: t.name.trim(), category: cat };
+      }
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function rebuildTagCategoryMap(list) {
+  _tagCategoryMap = new Map();
+  list.forEach((t, i) => _tagCategoryMap.set(t.name, { category: t.category, order: i }));
+}
+
+async function loadTagMaster() {
+  if (currentUser) {
+    try {
+      const doc = await db.doc('users/' + currentUser.uid + '/meta/tags').get();
+      if (doc.exists) {
+        const list = normalizeTagList(doc.data().list || []);
+        localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+        rebuildTagCategoryMap(list);
+        return list;
+      }
+    } catch(e) { console.warn('Firestoreタグマスタ読込失敗', e); }
+  }
+  const list = normalizeTagList(JSON.parse(localStorage.getItem(TAGS_KEY) || '[]'));
+  rebuildTagCategoryMap(list);
+  return list;
+}
+
+function subscribeToTagMaster() {
+  if (_tagMasterUnsubscribe) { _tagMasterUnsubscribe(); _tagMasterUnsubscribe = null; }
+  if (!currentUser) return;
+  _tagMasterUnsubscribe = db.doc('users/' + currentUser.uid + '/meta/tags')
+    .onSnapshot(snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      const list = normalizeTagList(snap.data()?.list || []);
+      localStorage.setItem(TAGS_KEY, JSON.stringify(list));
+      rebuildTagCategoryMap(list);
+      // 一覧画面が開いていれば再描画
+      if (document.getElementById('screen-list')?.style.display !== 'none' &&
+          typeof showProblemList === 'function') {
+        showProblemList();
+      }
+    }, e => console.warn('Firestoreタグマスタ購読失敗', e));
+}
+
+function getTagCategory(name) {
+  return _tagCategoryMap.get(name)?.category || 'uncategorized';
+}
+
+// タグ配列をカテゴリ順 → マスタ登録順 で安定ソートして返す（元配列は破壊しない）
+function sortTagsByCategory(tags) {
+  const order = TAG_CATEGORY_KEYS;
+  return tags.slice().sort((a, b) => {
+    const ca = getTagCategory(a);
+    const cb = getTagCategory(b);
+    if (ca !== cb) return order.indexOf(ca) - order.indexOf(cb);
+    const oa = _tagCategoryMap.get(a)?.order ?? Infinity;
+    const ob = _tagCategoryMap.get(b)?.order ?? Infinity;
+    if (oa !== ob) return oa - ob;
+    return a.localeCompare(b, 'ja');
+  });
+}
+
 // ===== UTIL =====
 function shuffle(arr) {
   const a = [...arr];
@@ -1253,6 +1383,9 @@ function makeMeldGroupSmall(meld) {
 // ===== HOME =====
 async function initHome() {
   const problems = await loadProblems();
+  // タグマスタも一緒にロード（カテゴリ色付け / ソートに使用）
+  await loadTagMaster();
+  subscribeToTagMaster();
   document.getElementById('prob-count').textContent = problems.length;
   const noProblems = problems.length === 0;
   document.getElementById('btn-list').disabled   = noProblems;
@@ -1289,11 +1422,13 @@ async function showProblemList() {
     });
   }
 
-  // 全タグ一覧バー更新
+  // 全タグ一覧バー更新（カテゴリ順 → マスタ登録順 で安定ソート）
   const allTagsEl = document.getElementById('list-all-tags');
   const allTagsDetails = document.getElementById('list-all-tags-details');
   const allTagsCount = document.getElementById('list-all-tags-count');
-  const allTags = [...new Set(problems.flatMap(p => Array.isArray(p.tags) ? p.tags : []))];
+  const allTags = sortTagsByCategory(
+    [...new Set(problems.flatMap(p => Array.isArray(p.tags) ? p.tags : []))]
+  );
   allTagsEl.innerHTML = '';
   if (allTags.length) {
     allTagsDetails.style.display = '';
@@ -1303,6 +1438,7 @@ async function showProblemList() {
       chip.className = 'card-tag' + (listActiveTagFilter === tag ? ' active-filter' : '');
       chip.textContent = tag;
       chip.dataset.tag = tag;
+      chip.dataset.category = getTagCategory(tag);
       chip.title = 'このタグでフィルター';
       allTagsEl.appendChild(chip);
     });
@@ -1465,11 +1601,12 @@ async function showProblemList() {
       if (q.tags && q.tags.length) {
         const tagsDiv = document.createElement('div');
         tagsDiv.className = 'prob-list-tags';
-        q.tags.forEach(tag => {
+        sortTagsByCategory(q.tags).forEach(tag => {
           const chip = document.createElement('span');
           chip.className = 'card-tag' + (listActiveTagFilter === tag ? ' active-filter' : '');
           chip.textContent = tag;
           chip.dataset.tag = tag;
+          chip.dataset.category = getTagCategory(tag);
           chip.title = 'このタグでフィルター';
           tagsDiv.appendChild(chip);
         });
@@ -1714,10 +1851,11 @@ function showFeedbackArea(ok, q) {
   const tagsEl = document.getElementById('feedback-tags');
   if (ok && Array.isArray(q.tags) && q.tags.length) {
     tagsEl.innerHTML = '';
-    q.tags.forEach(tag => {
+    sortTagsByCategory(q.tags).forEach(tag => {
       const chip = document.createElement('span');
       chip.className = 'card-tag';
       chip.textContent = tag;
+      chip.dataset.category = getTagCategory(tag);
       tagsEl.appendChild(chip);
     });
     tagsEl.style.display = '';
