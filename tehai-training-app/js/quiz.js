@@ -10,6 +10,9 @@
     return;
   }
 
+  // 登録問題の連続出題を防ぐためのクールダウン窓サイズ
+  const RECENT_HISTORY_SIZE = 10;
+
   // ====== 状態 ======
   const state = {
     mode: null,               // 'shanten' | 'ukeire' | 'discard'
@@ -19,6 +22,9 @@
     questionNum: 0,
     streak: 0,
     answered: false,
+    // 直近に出題した登録問題のID (FIFO, 最大 RECENT_HISTORY_SIZE 件)。
+    // モード切替やクイズ再開でリセットしないことで、跨いだ重複も抑制する。
+    recentUserIds: [],
   };
 
   // ====== モード採点ロジック ======
@@ -55,6 +61,23 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
+  // 直近に出した登録問題ID群を除外してプールから1問選ぶ。
+  // プールが小さい場合は cooldown を「プールサイズ - 1」まで自動で縮め、
+  // それでも候補が残らない極小ケース (プール1件など) では除外を諦めて全体から引く。
+  function pickFromPoolExcludingRecent(pool, recentIds) {
+    if (pool.length === 0) return null;
+    const effectiveCooldown = Math.min(RECENT_HISTORY_SIZE, pool.length - 1);
+    if (effectiveCooldown <= 0) {
+      return pickRandomElement(pool);
+    }
+    const blocked = new Set(recentIds.slice(-effectiveCooldown));
+    const available = pool.filter(p => !blocked.has(p.id));
+    if (available.length === 0) {
+      return pickRandomElement(pool);
+    }
+    return pickRandomElement(available);
+  }
+
   // 出題元フィルタに従って問題を取得
   //   random: ランダム生成
   //   user:   登録問題から (なければランダムにフォールバック)
@@ -65,10 +88,10 @@
     const userPool = T.storage ? T.storage.byMode(mode) : [];
 
     if (source === 'user' && userPool.length > 0) {
-      return pickRandomElement(userPool);
+      return pickFromPoolExcludingRecent(userPool, state.recentUserIds);
     }
     if (source === 'both' && userPool.length > 0 && Math.random() < 0.5) {
-      return pickRandomElement(userPool);
+      return pickFromPoolExcludingRecent(userPool, state.recentUserIds);
     }
     return T.randomHand.generateProblem(mode);
   }
@@ -76,6 +99,12 @@
   function nextQuestion() {
     state.questionNum += 1;
     state.problem = fetchNextProblem(state.mode);
+    if (state.problem && state.problem.source === 'user' && state.problem.id) {
+      state.recentUserIds.push(state.problem.id);
+      if (state.recentUserIds.length > RECENT_HISTORY_SIZE) {
+        state.recentUserIds.shift();
+      }
+    }
     state.userAnswer = null;
     state.ukeireSelection = new Set();
     state.answered = false;
