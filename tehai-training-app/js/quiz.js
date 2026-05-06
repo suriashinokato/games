@@ -201,6 +201,8 @@
       document.getElementById('answer-area').classList.add('hidden');
     } else if (state.mode === 'discard') {
       T.ui.renderDiscardExplanation(explainEl, state.problem, state.userAnswer, isCorrect);
+      document.getElementById('prompt').classList.add('hidden');
+      document.getElementById('answer-area').classList.add('hidden');
     }
 
     document.getElementById('next-btn').classList.remove('hidden');

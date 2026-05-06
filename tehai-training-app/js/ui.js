@@ -209,23 +209,12 @@
       const isUser = opt.discard === userDiscard;
       const tr = document.createElement('tr');
       if (isBest) tr.classList.add('row-best');
+      if (isUser && !isBest) tr.classList.add('row-wrong');
 
-      // 打牌セル: 牌画像 + マーカー
+      // 打牌セル: 牌画像
       const tdDiscard = document.createElement('td');
       const discardCell = document.createElement('div');
       discardCell.className = 'discard-cell';
-      if (isUser) {
-        const m = document.createElement('span');
-        m.className = 'marker';
-        m.textContent = '👉';
-        discardCell.appendChild(m);
-      }
-      if (isBest) {
-        const m = document.createElement('span');
-        m.className = 'marker';
-        m.textContent = '★';
-        discardCell.appendChild(m);
-      }
       const dImg = document.createElement('img');
       dImg.className = 'tile tile-mini';
       dImg.src = T.tiles.imageUrl(opt.discard);

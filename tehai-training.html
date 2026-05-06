@@ -482,14 +482,20 @@
     }
     .discard-table th, .discard-table td {
       border-bottom: 1px solid var(--border-tile);
-      padding: 6px 6px;
+      padding: 6px 1em;
       text-align: left;
       vertical-align: middle;
+    }
+    .discard-table th:nth-child(1), .discard-table td:nth-child(1),
+    .discard-table th:nth-child(2), .discard-table td:nth-child(2) {
+      width: 1%;
+      white-space: nowrap;
     }
     .discard-table th {
       background: rgba(185,154,78,0.14);
       font-weight: 600;
       color: var(--text-main);
+      text-align: center;
     }
     .discard-table .col-count,
     .discard-table th:nth-child(2) {
@@ -497,18 +503,23 @@
       font-weight: 600;
       white-space: nowrap;
     }
+    .discard-table tbody td:first-child {
+      text-align: center;
+    }
     .discard-table tr.row-best td {
       background: var(--accent-success-bg);
       color: var(--accent-success);
+      font-weight: 600;
+    }
+    .discard-table tr.row-wrong td {
+      background: var(--accent-error-bg);
+      color: var(--accent-error);
       font-weight: 600;
     }
     .discard-cell {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-    }
-    .discard-cell .marker {
-      font-size: 0.95rem;
     }
     .ukeire-list {
       display: flex;
@@ -893,16 +904,16 @@
   <!-- ===== スクリプト読み込み =====
        ?v= はキャッシュバスター。JS を更新したら数字を上げる(例: 20260506 → 20260507) -->
   <!-- 既存ロジック (window.NankiruShanten を提供) -->
-  <script src="nankiru-app/nankiru-shanten.js?v=20260506"></script>
+  <script src="nankiru-app/nankiru-shanten.js?v=20260508"></script>
   <!-- 新規モジュール (依存関係順) -->
-  <script src="tehai-training-app/js/tiles.js?v=20260506"></script>
-  <script src="tehai-training-app/js/shanten-bridge.js?v=20260506"></script>
-  <script src="tehai-training-app/js/random-hand.js?v=20260506"></script>
-  <script src="tehai-training-app/js/ui.js?v=20260506"></script>
-  <script src="tehai-training-app/js/storage.js?v=20260506"></script>
-  <script src="tehai-training-app/js/quiz.js?v=20260506"></script>
-  <script src="tehai-training-app/js/manage.js?v=20260506"></script>
-  <script src="tehai-training-app/js/cloud-sync.js?v=20260506"></script>
+  <script src="tehai-training-app/js/tiles.js?v=20260508"></script>
+  <script src="tehai-training-app/js/shanten-bridge.js?v=20260508"></script>
+  <script src="tehai-training-app/js/random-hand.js?v=20260508"></script>
+  <script src="tehai-training-app/js/ui.js?v=20260508"></script>
+  <script src="tehai-training-app/js/storage.js?v=20260508"></script>
+  <script src="tehai-training-app/js/quiz.js?v=20260508"></script>
+  <script src="tehai-training-app/js/manage.js?v=20260508"></script>
+  <script src="tehai-training-app/js/cloud-sync.js?v=20260508"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       window.TehaiTraining.quiz.init();
