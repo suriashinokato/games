@@ -197,6 +197,18 @@
     div.appendChild(sub);
 
     const correctSet = new Set(problem.bestDiscards.map(d => d.discard));
+
+    // 上位2行 + (正解3件以上ならすべての正解行) + (誤答時はユーザーの選択行) を常時表示
+    const visibleSet = new Set();
+    problem.allDiscards.slice(0, 2).forEach(opt => visibleSet.add(opt.discard));
+    if (correctSet.size >= 3) {
+      correctSet.forEach(d => visibleSet.add(d));
+    }
+    if (userDiscard && !correctSet.has(userDiscard)) {
+      visibleSet.add(userDiscard);
+    }
+    const hiddenCount = problem.allDiscards.length - visibleSet.size;
+
     const table = document.createElement('table');
     table.className = 'discard-table';
     const thead = document.createElement('thead');
@@ -204,12 +216,39 @@
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
 
+    let toggleInserted = false;
+
     problem.allDiscards.forEach(opt => {
       const isBest = correctSet.has(opt.discard);
       const isUser = opt.discard === userDiscard;
+      const isVisible = visibleSet.has(opt.discard);
+
+      if (!isVisible && !toggleInserted) {
+        const toggleTr = document.createElement('tr');
+        toggleTr.className = 'row-toggle';
+        const toggleTd = document.createElement('td');
+        toggleTd.colSpan = 3;
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        const collapsedLabel = '残り' + hiddenCount + '件を表示';
+        const expandedLabel = '折りたたむ';
+        toggleBtn.textContent = collapsedLabel;
+        toggleBtn.addEventListener('click', () => {
+          const expanded = table.classList.toggle('expanded');
+          toggleBtn.textContent = expanded ? expandedLabel : collapsedLabel;
+          toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        });
+        toggleTd.appendChild(toggleBtn);
+        toggleTr.appendChild(toggleTd);
+        tbody.appendChild(toggleTr);
+        toggleInserted = true;
+      }
+
       const tr = document.createElement('tr');
       if (isBest) tr.classList.add('row-best');
       if (isUser && !isBest) tr.classList.add('row-wrong');
+      if (!isVisible) tr.classList.add('row-hidden');
 
       // 打牌セル: 牌画像
       const tdDiscard = document.createElement('td');

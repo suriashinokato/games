@@ -527,6 +527,38 @@
       gap: 3px;
       align-items: center;
     }
+    .discard-table tr.row-hidden {
+      display: none;
+    }
+    .discard-table.expanded tr.row-hidden {
+      display: table-row;
+    }
+    .discard-table tr.row-toggle td {
+      background: rgba(185,154,78,0.10);
+      text-align: center;
+      padding: 0;
+    }
+    .discard-table tr.row-toggle button {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .discard-table tr.row-toggle button:hover {
+      background: rgba(185,154,78,0.16);
+    }
+    .discard-table tr.row-toggle button::after {
+      content: ' ▼';
+      font-size: 0.75rem;
+    }
+    .discard-table.expanded tr.row-toggle button::after {
+      content: ' ▲';
+    }
 
     /* ===== ホーム画面: 出題元フィルタ ===== */
     .source-filter {
@@ -909,7 +941,7 @@
   <script src="tehai-training-app/js/tiles.js?v=20260508"></script>
   <script src="tehai-training-app/js/shanten-bridge.js?v=20260508"></script>
   <script src="tehai-training-app/js/random-hand.js?v=20260509"></script>
-  <script src="tehai-training-app/js/ui.js?v=20260508"></script>
+  <script src="tehai-training-app/js/ui.js?v=20260511"></script>
   <script src="tehai-training-app/js/storage.js?v=20260508"></script>
   <script src="tehai-training-app/js/quiz.js?v=20260508"></script>
   <script src="tehai-training-app/js/manage.js?v=20260508"></script>
