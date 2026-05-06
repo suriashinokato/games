@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>清一色 待ちあて</title>
+  <link rel="icon" type="image/svg+xml" href="../shared/brand/chinitsu-machi-logo.svg">
+  <link rel="apple-touch-icon" href="../shared/brand/chinitsu-machi-logo.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0a5d3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="待ちあて">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <h1 class="app-title">清一色 待ちあて</h1>
+      <nav class="app-nav">
+        <button class="nav-btn active" data-screen="quiz" id="nav-quiz">出題</button>
+        <button class="nav-btn" data-screen="bookmarks" id="nav-bookmarks">★ ブックマーク <span id="bookmark-count" class="nav-count">0</span></button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="quiz-section screen" id="screen-quiz">
+        <div class="quiz-header">
+          <h2 class="section-title">手牌（13枚）</h2>
+          <button class="bookmark-btn" id="bookmark-btn" title="ブックマーク">☆</button>
+        </div>
+        <div class="hand-row" id="hand-display"></div>
+
+        <h2 class="section-title">待ち牌は？（複数選択可、すべて選んで「判定する」）</h2>
+        <div class="answer-row" id="answer-buttons"></div>
+
+        <div class="judge-row">
+          <button class="judge-btn" id="judge-btn">判定する</button>
+        </div>
+
+        <div class="result-msg neutral" id="result-message">待ち牌をすべて選んで「判定する」を押してください</div>
+
+        <div class="explanation" id="explanation" style="display:none;">
+          <div id="explanation-body"></div>
+        </div>
+
+        <div class="actions">
+          <button class="next-btn" id="next-btn">次の問題</button>
+        </div>
+      </section>
+
+      <section class="bookmark-section screen" id="screen-bookmarks" style="display:none;">
+        <h2 class="section-title">ブックマーク一覧</h2>
+        <div id="bookmark-list" class="bookmark-list"></div>
+        <div id="bookmark-empty" class="bookmark-empty" style="display:none;">
+          まだブックマークがありません。出題画面の ☆ から保存できます。
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/tiles.js?v=20260506h"></script>
+  <script src="js/wait.js?v=20260506h"></script>
+  <script src="js/decompose.js?v=20260506h"></script>
+  <script src="data/problems.js?v=20260506h"></script>
+  <script src="js/explain.js?v=20260506h"></script>
+  <script src="js/bookmark.js?v=20260506h"></script>
+  <script src="js/main.js?v=20260506h"></script>
+</body>
+</html>

@@ -1,0 +1,597 @@
+/* style.css — 清一色 待ちあて */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: #f4f1ea;
+  color: #222;
+  /* iOS のノッチ・ホームインジケータ領域に対する余白 */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.app-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.app-nav {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #fff;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  background: #f0f0f0;
+}
+
+.nav-btn.active {
+  background: #0a5d3a;
+  color: #fff;
+  border-color: #0a5d3a;
+}
+
+.nav-count {
+  display: inline-block;
+  background: rgba(255,255,255,0.3);
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.nav-btn:not(.active) .nav-count {
+  background: #e0e0e0;
+}
+
+.quiz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bookmark-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.bookmark-btn:hover {
+  color: #d09020;
+}
+
+.bookmark-btn.saved {
+  color: #d09020;
+}
+
+.bookmark-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bookmark-item {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.bookmark-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: #d8e8d8;
+  border-radius: 3px;
+  padding: 4px;
+  margin-bottom: 8px;
+}
+
+.bookmark-hand img.tile {
+  height: 36px;
+}
+
+.bookmark-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.bookmark-waits {
+  color: #0a5d3a;
+  font-weight: bold;
+}
+
+.bookmark-date {
+  color: #888;
+  margin-left: auto;
+}
+
+.result-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.result-badge.ok {
+  background: #d4f0d8;
+  color: #1e6c33;
+}
+
+.result-badge.ng {
+  background: #f9d4d0;
+  color: #8b2418;
+}
+
+.bookmark-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.bookmark-solve, .bookmark-delete {
+  padding: 5px 12px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.bookmark-solve {
+  background: #0a5d3a;
+  color: #fff;
+  border-color: #0a5d3a;
+}
+
+.bookmark-solve:hover {
+  background: #0c7048;
+}
+
+.bookmark-delete:hover {
+  background: #fcebea;
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.bookmark-empty {
+  padding: 24px;
+  color: #999;
+  text-align: center;
+  font-size: 13px;
+}
+
+
+.section-title {
+  font-size: 14px;
+  margin: 16px 0 6px;
+  color: #555;
+  font-weight: normal;
+}
+
+.hand-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-items: center;
+  background: #d8e8d8;
+  border: 1px solid #b8c8b8;
+  border-radius: 4px;
+  padding: 6px;
+  min-height: 60px;
+}
+
+.tile {
+  height: 56px;
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.answer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.answer-btn {
+  padding: 4px;
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.05s, border-color 0.1s, background 0.1s;
+}
+
+.answer-btn:hover {
+  border-color: #888;
+}
+
+.answer-btn:active {
+  transform: scale(0.97);
+}
+
+.answer-btn:disabled {
+  cursor: default;
+}
+
+.answer-btn.picked {
+  border-color: #2a5fa0;
+  background: #d4e4f5;
+  box-shadow: 0 0 0 2px rgba(42, 95, 160, 0.2);
+}
+
+.answer-btn.correct-wait {
+  border-color: #2a8f4a;
+  background: #d4f0d8;
+  box-shadow: 0 0 0 2px rgba(42, 143, 74, 0.2);
+}
+
+.answer-btn.wrong-pick {
+  border-color: #c0392b;
+  background: #f9d4d0;
+}
+
+.answer-btn .tile {
+  height: 48px;
+  display: block;
+}
+
+.result-msg {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.result-msg.neutral {
+  background: #eee;
+  color: #555;
+  font-weight: normal;
+}
+
+.result-msg.correct {
+  background: #d4f0d8;
+  color: #1e6c33;
+}
+
+.result-msg.wrong {
+  background: #f9d4d0;
+  color: #8b2418;
+}
+
+.explanation {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.pattern-subtle {
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.wait-type-banner {
+  padding: 10px 12px;
+  background: #e8f4ec;
+  border-left: 4px solid #0a5d3a;
+  border-radius: 3px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wait-type-banner .banner-tile {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.wait-type-banner .banner-tile img.tile {
+  height: 28px;
+  vertical-align: middle;
+}
+
+.wait-type-banner .type-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: #0a5d3a;
+}
+
+.wait-type-banner .type-desc {
+  color: #335;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.explain-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.explain-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.block-label {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 5px;
+}
+
+.meld-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.meld-row-empty {
+  color: #999;
+  font-size: 12px;
+}
+
+.meld {
+  display: inline-flex;
+  gap: 1px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.meld-pair {
+  background: #fff5e0;
+  border-color: #f0c060;
+}
+
+.meld-partial {
+  background: #fde6c8;
+  border-color: #e8a050;
+  border-style: dashed;
+}
+
+.meld-tanki {
+  background: #fde4e4;
+  border-color: #c0392b;
+  border-style: dashed;
+}
+
+.meld img.tile {
+  height: 36px;
+}
+
+.meld-sep {
+  color: #888;
+  font-weight: bold;
+  margin: 0 2px;
+}
+
+.explain-wait-note {
+  font-size: 13px;
+  color: #444;
+  margin-top: 6px;
+  line-height: 1.55;
+}
+
+.decomp-text {
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 13px;
+  color: #555;
+  background: #f5f5f5;
+  padding: 6px 8px;
+  border-radius: 3px;
+  word-break: break-all;
+  margin-top: 6px;
+}
+
+.judge-row {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 4px;
+}
+
+.judge-btn {
+  padding: 8px 24px;
+  font-size: 14px;
+  background: #2a5fa0;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.judge-btn:hover:not(:disabled) {
+  background: #3a72b8;
+}
+
+.judge-btn:disabled {
+  background: #aaa;
+  cursor: default;
+}
+
+.all-waits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wait-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fafafa;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.wait-row .wait-tile img.tile {
+  height: 28px;
+  vertical-align: middle;
+}
+
+.wait-row .wait-num {
+  font-weight: bold;
+  color: #0a5d3a;
+  min-width: 18px;
+  text-align: center;
+}
+
+.wait-row .wait-type {
+  background: #e8f4ec;
+  color: #0a5d3a;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.wait-row .wait-desc {
+  color: #444;
+  flex: 1 1 200px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.next-btn {
+  padding: 10px 20px;
+  font-size: 15px;
+  background: #0a5d3a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.next-btn:hover {
+  background: #0c7048;
+}
+
+/* ---- モバイル（〜480px）レイアウト ---- */
+@media (max-width: 480px) {
+  #app {
+    padding: 10px;
+  }
+
+  .app-title {
+    font-size: 18px;
+  }
+
+  /* 13枚手牌は必ず1行に収める：横幅を13等分してタイルに配分 */
+  .hand-row {
+    padding: 3px;
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+  .hand-row .tile {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+  }
+
+  /* 解答ボタンはタップしやすい大きさを保つ */
+  .answer-row {
+    gap: 4px;
+    justify-content: center;
+  }
+  .answer-btn {
+    padding: 3px;
+    border-radius: 4px;
+    min-width: 38px;
+    min-height: 44px;   /* iOS の推奨タップサイズ */
+  }
+  .answer-btn .tile {
+    height: 36px;
+  }
+
+  /* 判定・次へ ボタンは画面幅近くまで広げて押しやすく */
+  .judge-btn,
+  .next-btn {
+    width: 100%;
+    max-width: 320px;
+    min-height: 44px;
+  }
+
+  /* 解説の牌は中サイズ */
+  .meld img.tile {
+    height: 28px;
+  }
+  .wait-row .wait-tile img.tile {
+    height: 26px;
+  }
+  .wait-row {
+    font-size: 12px;
+  }
+  .wait-row .wait-desc {
+    flex: 1 1 100%;   /* 説明文は折り返して全幅使う */
+    margin-top: 2px;
+  }
+
+  /* ブックマーク一覧の牌は小さめ */
+  .bookmark-hand img.tile {
+    height: 26px;
+  }
+  .bookmark-solve,
+  .bookmark-delete {
+    min-height: 40px;
+  }
+}
+
+/* ---- 極小画面（〜360px、初期 iPhone SE 等） ---- */
+@media (max-width: 360px) {
+  .answer-btn .tile {
+    height: 32px;
+  }
+  .answer-btn {
+    min-width: 32px;
+  }
+  /* 手牌は flex 1/13 配分のため height/width 指定不要 */
+}

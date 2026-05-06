@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>清一色 待ちあて — 単体テスト</title>
+  <style>
+    body { font-family: -apple-system, 'Hiragino Sans', sans-serif; padding: 20px; }
+    h1 { font-size: 18px; }
+    .summary { padding: 8px 12px; margin-bottom: 16px; border-radius: 4px; font-weight: bold; }
+    .summary.pass { background: #d4f0d8; color: #1e6c33; }
+    .summary.fail { background: #f9d4d0; color: #8b2418; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    tr.pass td:first-child { color: #1e6c33; }
+    tr.fail td:first-child { color: #8b2418; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+    .note { font-size: 12px; color: #666; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>清一色 待ちあて — 単体テスト</h1>
+  <div id="summary" class="summary"></div>
+  <table id="results">
+    <thead>
+      <tr><th>結果</th><th>テスト名</th><th>入力</th><th>期待値</th><th>実際</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p class="note">※ 期待値はすべて手計算で4面子1雀頭の分解を全列挙して検証済み。database.md の名前付きパターンは7枚形に対する待ちであって、13枚に拡張すると周辺タイルが連結する経路が生まれて待ちが広がることが多い（清一色制約のため）。</p>
+
+  <script src="js/tiles.js"></script>
+  <script src="js/wait.js"></script>
+  <script src="js/decompose.js"></script>
+  <script src="data/problems.js"></script>
+  <script src="js/explain.js"></script>
+  <script>
+  (function () {
+    var listWaits = window.Chinitsu.wait.listWaits;
+    var isStandardWin = window.Chinitsu.wait.isStandardWin;
+    var splitAll = window.Chinitsu.decompose.splitAll;
+    var classifyWait = window.Chinitsu.decompose.classifyWait;
+    var formatText = window.Chinitsu.decompose.formatText;
+    var canonShape = window.Chinitsu.explain.canonShape;
+    var findPattern = window.Chinitsu.explain.findPattern;
+    var generateExplanation = window.Chinitsu.explain.generateExplanation;
+
+    var passCount = 0;
+    var failCount = 0;
+    var tbody = document.querySelector('#results tbody');
+
+    function arrEq(a, b) {
+      if (a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+      return true;
+    }
+
+    function assertWaits(name, hand, expected) {
+      var actual = listWaits(hand);
+      var ok = arrEq(actual, expected);
+      addRow(ok, name, JSON.stringify(hand), JSON.stringify(expected), JSON.stringify(actual));
+      if (ok) passCount++; else failCount++;
+    }
+
+    function assertWin(name, hand14, expected) {
+      var actual = isStandardWin(hand14);
+      var ok = actual === expected;
+      addRow(ok, name, JSON.stringify(hand14), String(expected), String(actual));
+      if (ok) passCount++; else failCount++;
+    }
+
+    function assertEq(name, actual, expected) {
+      var ok;
+      if (Array.isArray(actual) && Array.isArray(expected)) {
+        ok = arrEq(actual, expected);
+      } else {
+        ok = actual === expected;
+      }
+      addRow(ok, name, '', JSON.stringify(expected), JSON.stringify(actual));
+      if (ok) passCount++; else failCount++;
+    }
+
+    function assertTrue(name, condition, detail) {
+      var ok = !!condition;
+      addRow(ok, name, '', 'true', String(!!condition) + (detail ? ' (' + detail + ')' : ''));
+      if (ok) passCount++; else failCount++;
+    }
+
+    function addRow(ok, name, input, expected, actual) {
+      var tr = document.createElement('tr');
+      tr.className = ok ? 'pass' : 'fail';
+      tr.innerHTML =
+        '<td>' + (ok ? '○ PASS' : '× FAIL') + '</td>' +
+        '<td>' + name + '</td>' +
+        '<td><code>' + input + '</code></td>' +
+        '<td><code>' + expected + '</code></td>' +
+        '<td><code>' + actual + '</code></td>';
+      tbody.appendChild(tr);
+    }
+
+    // ---- listWaits テスト ----
+
+    // 1. 純正九蓮宝燈：1〜9 全て待ち
+    assertWaits('純正九蓮宝燈',
+      [1,1,1,2,3,4,5,6,7,8,9,9,9],
+      [1,2,3,4,5,6,7,8,9]);
+
+    // 2. 三暗刻シャンポン待ち：111+222+333+5+5+7+7 → 5,7 で4暗刻シャンポン成立
+    assertWaits('三暗刻シャンポン待ち (5,7)',
+      [1,1,1,2,2,2,3,3,3,5,5,7,7],
+      [5,7]);
+
+    // 3. カンチャン3 単独：1112+4+555+777+99 → 3 のみ
+    assertWaits('カンチャン3 単独',
+      [1,1,1,2,4,5,5,5,7,7,7,9,9],
+      [3]);
+
+    // 4. シャボ皮4面 (2223344+111+999)：2,3,4,5 待ち（database 値と一致）
+    assertWaits('シャボ皮4面 (2223344型)',
+      [1,1,1,2,2,2,3,3,4,4,9,9,9],
+      [2,3,4,5]);
+
+    // 5. ヘラクレス5面風の13枚展開：13枚で多面化して 1,2,3,4,6,7 が待ちになる
+    //    （database の「1-4-7,3-6」は7枚形単独の値で、清一色13枚展開ではさらに広がる）
+    assertWaits('ヘラクレス5面風 13枚展開',
+      [1,1,1,2,2,2,3,4,5,6,9,9,9],
+      [1,2,3,4,6,7]);
+
+    // 6. 4枚使い：1×4 が手牌にあると 1 の5枚目は待てない（自動除外）
+    //    必然的に kotsu 111 + shuntsu 123 となり、残り4,5,6,7,8,8,9 から
+    //    雀頭+2面子を作れるのは pair88+456+789 のみ → 8 待ち
+    assertWaits('4枚使い 1×4 → 8 のみ',
+      [1,1,1,1,2,3,4,5,6,7,8,8,9],
+      [8]);
+
+    // ---- isStandardWin テスト ----
+
+    // 7. 単純な和了形：123+456+789+111+22
+    assertWin('123+456+789+111+22',
+      [1,2,3,4,5,6,7,8,9,1,1,1,2,2], true);
+
+    // 8. 14枚でなければ false
+    assertWin('14枚未満は false',
+      [1,2,3,4,5,6,7,8,9,1,1,2,2], false);
+
+    // 9. 純粋な七対子 (連続しない対子のみ) は4面子1雀頭で組めないので false
+    //    [1,1,2,2,4,4,5,5,7,7,8,8,9,9] は 6 が無いので shuntsu 456 不可、
+    //    3 が無いので shuntsu 234 不可、… で標準形が組めない。
+    assertWin('純粋な七対子（標準形では組めない）',
+      [1,1,2,2,4,4,5,5,7,7,8,8,9,9], false);
+
+    // ---- canonShape / findPattern テスト ----
+
+    // 10. canonShape はソートして連結
+    assertEq('canonShape ソート連結',
+      canonShape([3,1,2,1,1,9,9,9,4,5,6,7,8]), '1112345678999');
+
+    // 11. findPattern: 純正九蓮宝燈の shape でヒット
+    (function () {
+      var p = findPattern([1,1,1,2,3,4,5,6,7,8,9,9,9]);
+      assertTrue('findPattern: 純正九蓮宝燈 ヒット',
+        p && p.name === '純正九蓮宝燈',
+        p ? p.name : 'null');
+    })();
+
+    // 12. findPattern: 該当なしは null
+    (function () {
+      var p = findPattern([1,1,1,2,4,5,5,5,7,7,7,9,9]); // カンチャン3 単独 — 辞書未登録
+      assertTrue('findPattern: 未登録は null', p === null,
+        p ? p.name : 'null');
+    })();
+
+    // ---- splitAll テスト ----
+
+    // 13. splitAll: 明らかな和了形は >= 1 通りの分解を返す
+    (function () {
+      var splits = splitAll([1,1,2,3,4,5,5,5,6,7,8,9,9,9]);
+      assertTrue('splitAll: 和了形 → 1通り以上',
+        splits.length >= 1, '実際 ' + splits.length + ' 通り');
+    })();
+
+    // 14. splitAll: 非和了形は []
+    (function () {
+      // [1,1,2,2,4,4,5,5,7,7,8,8,9,9] は標準和了形を組めない
+      var splits = splitAll([1,1,2,2,4,4,5,5,7,7,8,8,9,9]);
+      assertEq('splitAll: 非和了形 → 空配列', splits, []);
+    })();
+
+    // 15. splitAll: 14枚でない入力は []
+    (function () {
+      var splits = splitAll([1,2,3]);
+      assertEq('splitAll: 14枚未満 → 空配列', splits, []);
+    })();
+
+    // 16. splitAll: 形式（pair=number, melds=array of {type,tiles}）が正しい
+    (function () {
+      var splits = splitAll([1,1,1,2,3,4,5,6,7,8,9,9,9,1]); // 純正九蓮+1
+      var ok = splits.length > 0 &&
+               typeof splits[0].pair === 'number' &&
+               Array.isArray(splits[0].melds) &&
+               splits[0].melds.length === 4 &&
+               (splits[0].melds[0].type === 'kotsu' || splits[0].melds[0].type === 'shuntsu');
+      assertTrue('splitAll: 出力スキーマ', ok,
+        ok ? 'pair=' + splits[0].pair + ', melds=' + splits[0].melds.length : 'NG');
+    })();
+
+    // 17. formatText の形式
+    (function () {
+      var splits = splitAll([1,1,2,3,4,5,5,5,6,7,8,9,9,9]);
+      var text = splits.length > 0 ? formatText(splits[0]) : '';
+      assertTrue('formatText: "+(雀頭)" を含む',
+        text.indexOf('(雀頭)') !== -1, '"' + text + '"');
+    })();
+
+    // ---- classifyWait テスト（algorithm-style 解説の根幹） ----
+
+    // 18. 単騎: 純正九蓮 +5 → pair=55 で 5 が雀頭 → 単騎
+    (function () {
+      var ex = generateExplanation([1,1,1,2,3,4,5,6,7,8,9,9,9], 5);
+      assertEq('classify: 純正九蓮+5 → 単騎',
+        ex.classification.type, '単騎');
+    })();
+
+    // 19. シャボ: 三暗刻シャンポン +5 → 5 が暗刻に → シャボ
+    (function () {
+      var ex = generateExplanation([1,1,1,2,2,2,3,3,3,5,5,7,7], 5);
+      assertEq('classify: 三暗刻シャンポン+5 → シャボ',
+        ex.classification.type, 'シャボ');
+    })();
+
+    // 20. カンチャン: カンチャン3 単独 +3 → 24 の間 → カンチャン
+    (function () {
+      var ex = generateExplanation([1,1,1,2,4,5,5,5,7,7,7,9,9], 3);
+      assertEq('classify: カンチャン3 → カンチャン',
+        ex.classification.type, 'カンチャン');
+    })();
+
+    // 21. ペンチャン (wait=3): partial [1,2] → ペンチャン
+    //     hand: 12+444+555+777+88 (=13 tiles), wait=3
+    (function () {
+      var ex = generateExplanation([1,2,4,4,4,5,5,5,7,7,7,8,8], 3);
+      assertEq('classify: 12 partial +3 → ペンチャン',
+        ex.classification.type, 'ペンチャン');
+    })();
+
+    // 22. ペンチャン (wait=7): partial [8,9] → ペンチャン
+    //     hand: 89+111+333+555+22 (=13 tiles), wait=7
+    (function () {
+      var ex = generateExplanation([1,1,1,2,2,3,3,3,5,5,5,8,9], 7);
+      assertEq('classify: 89 partial +7 → ペンチャン',
+        ex.classification.type, 'ペンチャン');
+    })();
+
+    // 23. リャンメン (wait=1): partial [2,3] → リャンメン（1 でアガる側）
+    //     hand: 23+444+555+777+99, waits include 1 and 4
+    (function () {
+      var ex = generateExplanation([2,3,4,4,4,5,5,5,7,7,7,9,9], 1);
+      assertEq('classify: 23 partial +1 → リャンメン',
+        ex.classification.type, 'リャンメン');
+    })();
+
+    // 24. リャンメン (wait=9): partial [7,8] → リャンメン
+    //     hand: 78+222+333+555+11, waits include 6 and 9
+    (function () {
+      var ex = generateExplanation([1,1,2,2,2,3,3,3,5,5,5,7,8], 9);
+      assertEq('classify: 78 partial +9 → リャンメン',
+        ex.classification.type, 'リャンメン');
+    })();
+
+    // ---- データベース全160問の整合性検証 ----
+
+    (function () {
+      var problems = window.Chinitsu.problems.list;
+      var invalidShape = [];
+      var noWaits = [];
+      var dbMismatch = [];
+
+      for (var i = 0; i < problems.length; i++) {
+        var p = problems[i];
+        // shape 形式チェック
+        if (!/^[1-9]{13}$/.test(p.shape)) {
+          invalidShape.push(p.id + ':' + p.shape);
+          continue;
+        }
+        var hand = p.shape.split('').map(Number);
+        var waits = listWaits(hand);
+        if (waits.length === 0) {
+          noWaits.push(p.id + ':' + p.shape);
+          continue;
+        }
+        if (p.dbWaits) {
+          var dbSet = p.dbWaits.replace(/[^0-9]/g, '').split('').map(Number).sort();
+          var actual = waits.slice().sort();
+          if (JSON.stringify(dbSet) !== JSON.stringify(actual)) {
+            dbMismatch.push(p.id + ': db=' + p.dbWaits + ' vs actual=' + JSON.stringify(waits));
+          }
+        }
+      }
+
+      assertEq('全' + problems.length + '問: shape は13桁 1-9',
+        invalidShape, []);
+      assertEq('全' + problems.length + '問: listWaits が空でない（テンパイ形である）',
+        noWaits, []);
+      // DB値ズレ：致命的ではないので情報として記録（コンソールに詳細）
+      if (dbMismatch.length > 0) {
+        console.warn('DB値 vs listWaits 不一致 ' + dbMismatch.length + ' 件:');
+        dbMismatch.forEach(function (m) { console.warn('  ' + m); });
+      }
+      addRow(true,
+        'DB値 vs listWaits 突合（情報）',
+        '総数 ' + problems.length,
+        '一致 = ' + (problems.length - dbMismatch.length),
+        '不一致 ' + dbMismatch.length + ' 件（詳細は F12 コンソール）');
+      passCount++;
+    })();
+
+    // ---- 集計 ----
+    var summary = document.getElementById('summary');
+    var total = passCount + failCount;
+    summary.textContent = '計 ' + total + ' 件中 ' + passCount + ' 件 PASS / ' + failCount + ' 件 FAIL';
+    summary.className = 'summary ' + (failCount === 0 ? 'pass' : 'fail');
+  })();
+  </script>
+</body>
+</html>

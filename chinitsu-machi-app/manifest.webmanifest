@@ -1,0 +1,19 @@
+{
+  "name": "清一色 待ちあて",
+  "short_name": "待ちあて",
+  "description": "清一色（チンイツ）の13枚手牌から待ち牌を当てる学習アプリ",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f1ea",
+  "theme_color": "#0a5d3a",
+  "icons": [
+    {
+      "src": "../shared/brand/chinitsu-machi-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
