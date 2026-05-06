@@ -1155,6 +1155,8 @@ const TAG_CATEGORIES = [
   { key: 'uncategorized', label: '未分類' },
 ];
 const TAG_CATEGORY_KEYS = TAG_CATEGORIES.map(c => c.key);
+// タグ表示順（タグ管理リスト・編集画面共通）: 未分類を先頭、その後 TAG_CATEGORIES の順
+const TAG_DISPLAY_CATEGORY_ORDER = ['uncategorized', ...TAG_CATEGORY_KEYS.filter(k => k !== 'uncategorized')];
 
 // マスタタグの表示順とカテゴリを引けるキャッシュ
 let _tagMasterCache = [];   // [{name, category}]
@@ -1301,12 +1303,11 @@ async function renderTagManagement() {
     c => `<option value="${c.key}"${c.key === sel ? ' selected' : ''}>${c.label}</option>`
   ).join('');
   // 表示順: 未分類を先頭、その後 TAG_CATEGORIES の順、同カテゴリ内はマスタ登録順
-  const displayCatOrder = ['uncategorized', ...TAG_CATEGORY_KEYS.filter(k => k !== 'uncategorized')];
   const sortedTags = tags
     .map((t, i) => ({ tag: t, storageIndex: i }))
     .sort((a, b) => {
-      const ca = displayCatOrder.indexOf(a.tag.category);
-      const cb = displayCatOrder.indexOf(b.tag.category);
+      const ca = TAG_DISPLAY_CATEGORY_ORDER.indexOf(a.tag.category);
+      const cb = TAG_DISPLAY_CATEGORY_ORDER.indexOf(b.tag.category);
       if (ca !== cb) return ca - cb;
       return a.storageIndex - b.storageIndex;
     });
@@ -2612,17 +2613,29 @@ function renderEditorTags() {
   const el = document.getElementById('editor-tag-chips');
   if (!el) return;
   el.innerHTML = '';
-  editState.tags.forEach((tag, i) => {
+  // カテゴリ順（未分類を先頭）→ マスタ登録順 でソートして表示。元 index は removeTag 用に保持。
+  const sorted = editState.tags
+    .map((tag, originalIndex) => ({ tag, originalIndex, category: getTagCategory(tag) }))
+    .sort((a, b) => {
+      const ca = TAG_DISPLAY_CATEGORY_ORDER.indexOf(a.category);
+      const cb = TAG_DISPLAY_CATEGORY_ORDER.indexOf(b.category);
+      if (ca !== cb) return ca - cb;
+      const oa = _tagCategoryMap.get(a.tag)?.order ?? Infinity;
+      const ob = _tagCategoryMap.get(b.tag)?.order ?? Infinity;
+      if (oa !== ob) return oa - ob;
+      return a.originalIndex - b.originalIndex;
+    });
+  sorted.forEach(({ tag, originalIndex, category }) => {
     const chip = document.createElement('span');
     chip.className = 'tag-chip';
     chip.dataset.tag = tag;
-    chip.dataset.category = getTagCategory(tag);
+    chip.dataset.category = category;
     chip.textContent = tag;
     const btn = document.createElement('button');
     btn.className = 'tag-chip-remove';
     btn.textContent = '×';
     btn.title = '削除';
-    btn.onclick = () => removeTag(i);
+    btn.onclick = () => removeTag(originalIndex);
     chip.appendChild(btn);
     el.appendChild(chip);
   });
@@ -2640,7 +2653,15 @@ async function renderTagSuggestions() {
       _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
     )].map(name => ({ name, category: 'uncategorized' }));
   }
-  const allTags = masterTags.filter(t => !editState.tags.includes(t.name));
+  const allTags = masterTags
+    .map((t, masterIndex) => ({ ...t, masterIndex }))
+    .filter(t => !editState.tags.includes(t.name))
+    .sort((a, b) => {
+      const ca = TAG_DISPLAY_CATEGORY_ORDER.indexOf(a.category);
+      const cb = TAG_DISPLAY_CATEGORY_ORDER.indexOf(b.category);
+      if (ca !== cb) return ca - cb;
+      return a.masterIndex - b.masterIndex;
+    });
   el.innerHTML = '';
   if (allTags.length) {
     el.style.display = 'flex';
