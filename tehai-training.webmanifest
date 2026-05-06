@@ -3,8 +3,8 @@
   "short_name": "手牌トレ",
   "start_url": "tehai-training.html",
   "display": "standalone",
-  "background_color": "#eef2f8",
-  "theme_color": "#2d3f9e",
+  "background_color": "#17191b",
+  "theme_color": "#17191b",
   "icons": [
     {
       "src": "shared/brand/tehai-training-logo-192.png",
