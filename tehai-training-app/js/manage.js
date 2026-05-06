@@ -329,6 +329,14 @@
         if (r.checked) T.storage.saveSettings({ source: r.value });
       });
     });
+
+    // cloud-sync からの上書き反映時に管理画面の一覧も再描画
+    document.addEventListener('tehai:storage-changed', () => {
+      const manageScreen = document.querySelector('section[data-screen="manage"]');
+      if (manageScreen && manageScreen.classList.contains('active')) {
+        renderProblemList();
+      }
+    });
   }
 
   T.manage = { init: init };

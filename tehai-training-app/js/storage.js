@@ -29,16 +29,35 @@
     }
   }
 
+  function emitChanged() {
+    try {
+      document.dispatchEvent(new CustomEvent('tehai:storage-changed'));
+    } catch (e) { /* IE 等の旧ブラウザ対策 */ }
+  }
+
   function upsert(problem) {
     const all = getAll();
     const idx = all.findIndex(p => p.id === problem.id);
+    problem._lastModified = Date.now();
     if (idx >= 0) all[idx] = problem;
     else all.push(problem);
     saveAll(all);
+    emitChanged();
+    const cs = window.TehaiTraining && window.TehaiTraining.cloudSync;
+    if (cs && cs.queuePush) cs.queuePush(problem);
   }
 
   function remove(id) {
     saveAll(getAll().filter(p => p.id !== id));
+    emitChanged();
+    const cs = window.TehaiTraining && window.TehaiTraining.cloudSync;
+    if (cs && cs.queueDelete) cs.queueDelete(id);
+  }
+
+  // cloud-sync からの一括上書き用 (snapshot 反映)
+  function _replaceAll(arr) {
+    saveAll(Array.isArray(arr) ? arr : []);
+    emitChanged();
   }
 
   function getById(id) {
@@ -83,5 +102,6 @@
     newId: newId,
     getSettings: getSettings,
     saveSettings: saveSettings,
+    _replaceAll: _replaceAll,
   };
 })();

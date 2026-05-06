@@ -9,6 +9,10 @@
   <link rel="icon" type="image/svg+xml" href="shared/brand/tehai-training-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="shared/brand/tehai-training-logo-180.png">
   <link rel="manifest" href="tehai-training.webmanifest">
+  <!-- Firebase compat SDK (Google ログイン + Firestore 同期) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
     /* ===== カスタムプロパティ (墨色・真鍮・翡翠で上質感を出す) ===== */
     :root {
@@ -730,6 +734,51 @@
       .form-label { min-width: 0; }
       .nav-row { gap: 8px; }
     }
+
+    /* ===== 認証バー (Google ログイン UI) ===== */
+    .auth-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 4px 0 18px;
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      border: 1px solid rgba(185,154,78,0.3);
+      border-radius: 999px;
+      color: var(--text-on-dark);
+      font-size: 0.85rem;
+      max-width: 560px;
+      width: 100%;
+    }
+    .auth-bar .auth-status {
+      flex: 1 1 auto;
+      min-width: 0;
+      color: var(--text-on-dark);
+      opacity: 0.9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .auth-bar button {
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--accent-gold);
+      background: transparent;
+      color: var(--text-on-dark);
+      font-weight: 500;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+      transition: background 0.15s, color 0.15s;
+    }
+    .auth-bar button:hover { background: var(--accent-gold-soft); }
+    .auth-bar .btn-primary {
+      background: var(--accent-gold);
+      color: #1c1a14;
+    }
+    .auth-bar .btn-primary:hover { background: #d2af5a; }
   </style>
 </head>
 <body>
@@ -737,6 +786,12 @@
     <h1>麻雀 手牌トレーニング</h1>
     <p>シャンテン・受け入れ・最大受け入れ打牌の3モード</p>
   </header>
+
+  <div class="auth-bar" id="auth-bar">
+    <span class="auth-status" id="auth-status">認証確認中…</span>
+    <button type="button" class="btn-primary" id="btn-signin" style="display:none">Googleでログイン</button>
+    <button type="button" id="btn-signout" style="display:none">ログアウト</button>
+  </div>
 
   <!-- ===== ホーム画面 ===== -->
   <section data-screen="home" class="active">
@@ -832,6 +887,7 @@
   <script src="tehai-training-app/js/storage.js"></script>
   <script src="tehai-training-app/js/quiz.js"></script>
   <script src="tehai-training-app/js/manage.js"></script>
+  <script src="tehai-training-app/js/cloud-sync.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       window.TehaiTraining.quiz.init();
