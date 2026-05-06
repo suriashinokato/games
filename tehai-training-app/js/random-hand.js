@@ -188,6 +188,7 @@
   // 14枚手牌が mode3 の出題条件を満たすか判定
   //   - 最良打牌と最悪打牌の枚数差が 4 以上 (採点紛糾を避ける)
   //   - 最良打牌に字牌の孤立牌が含まれない (簡単すぎるので除外)
+  //   - 字牌を4枚持つ手牌は除外 (出題として不自然)
   function passesDiscardFilters(hand) {
     const all = T.shanten.allDiscardOptions(hand);
     if (all.length < 2) return false;
@@ -196,6 +197,9 @@
     if (best - worst < 4) return false;
 
     const counts = NS.tilesToCounts(hand);
+    for (let n = 1; n <= 7; n++) {
+      if (counts[NS.tileToIndex(n + 'z')] === 4) return false;
+    }
     const bestDiscards = all.filter(o => o.totalCount === best);
     for (const opt of bestDiscards) {
       if (opt.discard[1] === 'z' && counts[NS.tileToIndex(opt.discard)] === 1) {
