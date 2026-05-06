@@ -144,13 +144,13 @@
     });
   }
 
-  // mode1 採点後の解説: 正解牌・ユーザー過剰選択・受け入れ枚数
-  function renderUkeireExplanation(container, problem, userSelected) {
+  // mode1 採点後の解説: 正解/不正解の見出しと、正解牌・ユーザー過剰選択・受け入れ枚数
+  function renderUkeireExplanation(container, problem, userSelected, isCorrect) {
     container.innerHTML = '';
     const correct = new Set(problem.ukeireTypes);
     const ukeire = T.shanten.ukeireWithCount(problem.hand);
     const div = document.createElement('div');
-    div.className = 'explanation';
+    div.className = 'explanation ' + (isCorrect ? 'correct' : 'wrong');
 
     const totalCount = ukeire.reduce((s, e) => s + e.count, 0);
     const correctList = T.tiles.sortTiles(Array.from(correct));
@@ -158,6 +158,7 @@
     const missed = T.tiles.sortTiles(correctList.filter(t => !userSelected.includes(t)));
 
     div.innerHTML =
+      '<p class="result-heading">' + (isCorrect ? '○ 正解' : '× 不正解') + '</p>' +
       '<p>シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong></p>' +
       '<p>正解の受け入れ牌 (合計 ' + totalCount + ' 枚):</p>' +
       '<div class="strip" data-name="correct"></div>';
@@ -177,11 +178,16 @@
     }
   }
 
-  // mode3 採点後の解説: 各打牌候補の受け入れ枚数を一覧 (牌画像つき)
-  function renderDiscardExplanation(container, problem, userDiscard) {
+  // mode3 採点後の解説: 結果見出し + 各打牌候補の受け入れ枚数一覧 (牌画像つき)
+  function renderDiscardExplanation(container, problem, userDiscard, isCorrect) {
     container.innerHTML = '';
     const div = document.createElement('div');
-    div.className = 'explanation';
+    div.className = 'explanation ' + (isCorrect ? 'correct' : 'wrong');
+
+    const heading = document.createElement('p');
+    heading.className = 'result-heading';
+    heading.textContent = isCorrect ? '○ 正解' : '× 不正解';
+    div.appendChild(heading);
 
     const head = document.createElement('p');
     head.innerHTML = 'シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
@@ -199,10 +205,10 @@
     const tbody = document.createElement('tbody');
 
     problem.allDiscards.forEach(opt => {
-      const isCorrect = correctSet.has(opt.discard);
+      const isBest = correctSet.has(opt.discard);
       const isUser = opt.discard === userDiscard;
       const tr = document.createElement('tr');
-      if (isCorrect) tr.classList.add('row-best');
+      if (isBest) tr.classList.add('row-best');
 
       // 打牌セル: 牌画像 + マーカー
       const tdDiscard = document.createElement('td');
@@ -214,7 +220,7 @@
         m.textContent = '👉';
         discardCell.appendChild(m);
       }
-      if (isCorrect) {
+      if (isBest) {
         const m = document.createElement('span');
         m.className = 'marker';
         m.textContent = '★';
@@ -260,25 +266,18 @@
     container.appendChild(div);
   }
 
-  // 結果バッジ ○/× を表示
-  function renderResultBadge(container, isCorrect) {
-    container.innerHTML = '';
-    const badge = document.createElement('div');
-    badge.className = 'result-badge ' + (isCorrect ? 'correct' : 'wrong');
-    badge.textContent = isCorrect ? '○ 正解' : '× 不正解';
-    container.appendChild(badge);
-  }
-
-  // mode2 の解説: 正解シャンテンと、必要なら受け入れ牌の参考表示
-  function renderShantenExplanation(container, problem, userAnswer) {
+  // mode2 (シャンテン判定) 用: 結果見出しのみを解説枠テイストで描画
+  // 「○ 正解  1シャンテン」「× 不正解  1シャンテン」の形
+  function renderShantenResult(container, problem, isCorrect) {
     container.innerHTML = '';
     const div = document.createElement('div');
-    div.className = 'explanation';
-    const correct = shantenLabel(problem.shanten);
-    const yours = shantenLabel(userAnswer);
-    div.innerHTML =
-      '<p>正解: <strong>' + correct + '</strong></p>' +
-      '<p>あなたの回答: ' + yours + '</p>';
+    div.className = 'explanation ' + (isCorrect ? 'correct' : 'wrong');
+    const heading = document.createElement('p');
+    heading.className = 'result-heading';
+    heading.innerHTML =
+      (isCorrect ? '○ 正解' : '× 不正解') +
+      '<span class="result-detail">' + shantenLabel(problem.shanten) + '</span>';
+    div.appendChild(heading);
     container.appendChild(div);
   }
 
@@ -293,8 +292,7 @@
     showScreen: showScreen,
     renderHand: renderHand,
     renderShantenChoices: renderShantenChoices,
-    renderResultBadge: renderResultBadge,
-    renderShantenExplanation: renderShantenExplanation,
+    renderShantenResult: renderShantenResult,
     renderUkeireExplanation: renderUkeireExplanation,
     renderDiscardExplanation: renderDiscardExplanation,
     renderTilePalette: renderTilePalette,

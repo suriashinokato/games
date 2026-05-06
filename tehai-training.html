@@ -266,7 +266,7 @@
     }
     .answer-area .palette { margin-bottom: 0; }
     .choice-btn {
-      flex: 1 1 auto;
+      flex: 1 1 0;
       min-width: 130px;
       min-height: 56px;
       padding: 12px 18px;
@@ -303,24 +303,6 @@
       color: var(--accent-error);
     }
 
-    .result-badge {
-      text-align: center;
-      font-size: 1.4rem;
-      font-weight: 600;
-      padding: 10px;
-      border-radius: var(--radius);
-      margin-bottom: 12px;
-      box-shadow: var(--shadow-card);
-    }
-    .result-badge.correct {
-      background: var(--accent-success-bg);
-      color: var(--accent-success);
-    }
-    .result-badge.wrong {
-      background: var(--accent-error-bg);
-      color: var(--accent-error);
-    }
-
     .explanation {
       background: linear-gradient(180deg, #fbfaf6, var(--bg-commentary));
       border: 1px solid rgba(185,154,78,0.34);
@@ -333,6 +315,27 @@
       box-shadow: var(--shadow-card);
     }
     .explanation p + p { margin-top: 4px; }
+    .explanation.correct { border-left-color: var(--accent-success); }
+    .explanation.wrong { border-left-color: var(--accent-error); }
+    .explanation .result-heading {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(185,154,78,0.28);
+    }
+    /* 解説本文を伴わない (シャンテン判定モード) ときは区切り線・余白を消す */
+    .explanation .result-heading:only-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .explanation.correct .result-heading { color: var(--accent-success); }
+    .explanation.wrong .result-heading { color: var(--accent-error); }
+    .result-heading .result-detail {
+      margin-left: 0.6em;
+      font-weight: 600;
+    }
 
     .nav-row {
       display: flex;

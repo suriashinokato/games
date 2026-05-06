@@ -178,11 +178,12 @@
     const isCorrect = judge(state.problem, state.userAnswer);
     state.streak = isCorrect ? state.streak + 1 : 0;
 
-    T.ui.renderResultBadge(document.getElementById('result-badge'), isCorrect);
+    const badgeEl = document.getElementById('result-badge');
     const explainEl = document.getElementById('explanation');
+    badgeEl.innerHTML = ''; // 単独バッジは廃止、解説枠の見出しに正解/不正解を統合表示
 
     if (state.mode === 'shanten') {
-      T.ui.renderShantenExplanation(explainEl, state.problem, state.userAnswer);
+      T.ui.renderShantenResult(explainEl, state.problem, isCorrect);
       // 選択肢ロック
       document.querySelectorAll('#answer-area .choice-btn').forEach(btn => {
         btn.disabled = true;
@@ -193,7 +194,7 @@
         }
       });
     } else if (state.mode === 'ukeire') {
-      T.ui.renderUkeireExplanation(explainEl, state.problem, state.userAnswer);
+      T.ui.renderUkeireExplanation(explainEl, state.problem, state.userAnswer, isCorrect);
       // パレットを採点モードで再描画 (正解=緑、ユーザー過剰=赤)
       const correctSet = new Set(state.problem.ukeireTypes);
       const userExtra = new Set(state.userAnswer.filter(t => !correctSet.has(t)));
@@ -206,7 +207,7 @@
       const submitBtn = document.getElementById('ukeire-submit');
       if (submitBtn) submitBtn.disabled = true;
     } else if (state.mode === 'discard') {
-      T.ui.renderDiscardExplanation(explainEl, state.problem, state.userAnswer);
+      T.ui.renderDiscardExplanation(explainEl, state.problem, state.userAnswer, isCorrect);
     }
 
     document.getElementById('next-btn').classList.remove('hidden');
