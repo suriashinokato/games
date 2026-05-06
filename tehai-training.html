@@ -41,8 +41,8 @@
       --shadow-card:   0 18px 44px rgba(0,0,0,0.24), 0 1px 0 rgba(255,255,255,0.55) inset;
       --shadow-tile:   0 4px 10px rgba(20,18,13,0.22);
       /* 14枚を必ず1行に収めるため、ビューポート幅に応じて自動縮小する
-         (画面側余白16px×2 + .hand内側余白10px×2 + 牌間gap4px×13 = 104px を差し引いて14分割) */
-      --tile-w:        min(40px, calc((100vw - 104px) / 14));
+         (画面側余白16px×2 + .hand内側余白12px×2 = 56px を差し引いて14分割。牌間gapは0) */
+      --tile-w:        min(48px, calc((100vw - 56px) / 14));
       --tile-h:        calc(var(--tile-w) * 1.4);
       --radius:        8px;
       --font:          'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', system-ui, sans-serif;
@@ -224,7 +224,7 @@
       padding: 16px 12px;
       display: flex;
       flex-wrap: nowrap;        /* スマホでも1行 (--tile-w が自動縮小) */
-      gap: 4px;
+      gap: 0;
       justify-content: center;
       box-shadow: var(--shadow-card);
       margin-bottom: 18px;
@@ -398,14 +398,14 @@
     .palette-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 0;
       justify-content: center;
       margin-bottom: 4px;
     }
     .palette-row:last-child { margin-bottom: 0; }
     .palette-tile {
-      width: 36px;
-      height: 50px;
+      width: 40px;
+      height: 56px;
       padding: 0;
       border: 2px solid #d8d0c2;
       border-radius: 4px;
@@ -457,12 +457,12 @@
     .strip {
       display: flex;
       flex-wrap: wrap;
-      gap: 3px;
+      gap: 0;
       margin-top: 4px;
     }
     .tile.tile-mini {
-      width: 26px;
-      height: 36px;
+      width: 30px;
+      height: 42px;
     }
 
     /* ===== mode3: 打牌候補一覧テーブル ===== */
@@ -685,7 +685,7 @@
     }
     .strip-card-hand {
       margin-bottom: 8px;
-      gap: 2px;
+      gap: 0;
     }
     .problem-actions {
       display: flex;
@@ -724,12 +724,18 @@
       .mode-card p { font-size: 0.82rem; }
       .hand { padding: 13px 8px; }
       .choice-btn { min-width: 100px; min-height: 48px; font-size: 0.9rem; }
-      .palette-tile { width: 30px; height: 42px; }
-      .tile.tile-mini { width: 22px; height: 30px; }
+      .palette-tile { width: 34px; height: 48px; }
+      .tile.tile-mini { width: 26px; height: 36px; }
       .discard-table { font-size: 0.78rem; }
       .source-filter { gap: 10px; padding: 12px; }
       .source-filter .filter-label { flex-basis: 100%; }
-      .submit-row .primary-btn { min-width: 0; width: 100%; }
+      .submit-row .primary-btn {
+        min-width: 0;
+        width: 100%;
+        min-height: 56px;
+        padding: 16px;
+        font-size: 1.05rem;
+      }
       .form-row { flex-wrap: wrap; }
       .form-label { min-width: 0; }
       .nav-row { gap: 8px; }
@@ -779,6 +785,9 @@
       color: #1c1a14;
     }
     .auth-bar .btn-primary:hover { background: #d2af5a; }
+
+    /* 認証バーはホーム画面のみ表示 */
+    body:not(:has([data-screen="home"].active)) .auth-bar { display: none; }
   </style>
 </head>
 <body>
