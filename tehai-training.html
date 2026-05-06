@@ -888,18 +888,19 @@
     </div>
   </section>
 
-  <!-- ===== スクリプト読み込み ===== -->
+  <!-- ===== スクリプト読み込み =====
+       ?v= はキャッシュバスター。JS を更新したら数字を上げる(例: 20260506 → 20260507) -->
   <!-- 既存ロジック (window.NankiruShanten を提供) -->
-  <script src="nankiru-app/nankiru-shanten.js"></script>
+  <script src="nankiru-app/nankiru-shanten.js?v=20260506"></script>
   <!-- 新規モジュール (依存関係順) -->
-  <script src="tehai-training-app/js/tiles.js"></script>
-  <script src="tehai-training-app/js/shanten-bridge.js"></script>
-  <script src="tehai-training-app/js/random-hand.js"></script>
-  <script src="tehai-training-app/js/ui.js"></script>
-  <script src="tehai-training-app/js/storage.js"></script>
-  <script src="tehai-training-app/js/quiz.js"></script>
-  <script src="tehai-training-app/js/manage.js"></script>
-  <script src="tehai-training-app/js/cloud-sync.js"></script>
+  <script src="tehai-training-app/js/tiles.js?v=20260506"></script>
+  <script src="tehai-training-app/js/shanten-bridge.js?v=20260506"></script>
+  <script src="tehai-training-app/js/random-hand.js?v=20260506"></script>
+  <script src="tehai-training-app/js/ui.js?v=20260506"></script>
+  <script src="tehai-training-app/js/storage.js?v=20260506"></script>
+  <script src="tehai-training-app/js/quiz.js?v=20260506"></script>
+  <script src="tehai-training-app/js/manage.js?v=20260506"></script>
+  <script src="tehai-training-app/js/cloud-sync.js?v=20260506"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       window.TehaiTraining.quiz.init();
