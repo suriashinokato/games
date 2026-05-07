@@ -740,10 +740,11 @@ button:focus-visible,
 
 @media (max-width: 600px) {
   /* 牌サイズを画面幅で自動算出。
-     14 枚 (手牌13 + ツモ1) + 暗槓1個分(4枚) ≒ 16〜18 タイル分が目安。
-     16 で割り、暗槓セットの隙間とパディング (50px) を引く。 */
+     ハンド最大14枚 (手牌13 + ツモ1) を基準。暗槓は flex-wrap で次行に落ちるため計算から除外。
+     非牌幅 ≒ #app padding 16 + player-area padding 12 + 牌間gap 13 + ツモ余白 4 = 約45px。
+     14.5 で割り、保守的に 40px を引いて少し余裕を持たせる。 */
   :root {
-    --tile-w: min(28px, calc((100vw - 50px) / 16));
+    --tile-w: min(38px, calc((100vw - 40px) / 14.5));
     --tile-h: calc(var(--tile-w) * 4 / 3);
   }
   #app { padding: 8px; }
@@ -780,10 +781,9 @@ button:focus-visible,
   .dialog.help-dialog h2 { font-size: 1.2rem; }
   .help-body { font-size: 0.85rem; }
 
-  /* 対局画面の手牌・暗槓は 1 列固定。横スクロールなし（牌サイズで吸収） */
+  /* 対局画面の手牌は 1 列、暗槓は次行に折り返して牌サイズを確保 */
   .hand-section {
-    flex-wrap: nowrap;
-    overflow: hidden;
+    flex-wrap: wrap;
     gap: 4px;
   }
   .hand-row {
@@ -801,10 +801,10 @@ button:focus-visible,
     padding: 2px;
   }
 
-  /* ダイアログ内の手牌・暗槓・待ち牌をさらに小さく */
-  .dialog-tile .tile { width: 22px; height: 31px; }
-  .dialog-meld .tile { width: 18px; height: 26px; }
+  /* ダイアログ内の手牌・暗槓・待ち牌（横スクロール可なので牌は大きめ） */
+  .dialog-tile .tile { width: 26px; height: 35px; }
+  .dialog-meld .tile { width: 22px; height: 30px; }
   .dialog-tile.drawn { margin-left: 6px; }
   .dialog-meld { margin-left: 4px; }
-  .waits-tiles .tile { width: 22px; height: 31px; }
+  .waits-tiles .tile { width: 26px; height: 35px; }
 }
