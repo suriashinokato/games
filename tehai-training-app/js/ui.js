@@ -309,11 +309,34 @@
     container.appendChild(div);
   }
 
-  // 進捗バー (現在問題数 / 連続正解数)
+  // 進捗バー (現在問題数 / セッション総数 / 連続正解数)
   function renderProgress(container, stats) {
+    const total = stats.total;
+    const numText = total
+      ? '第 ' + stats.questionNum + ' / ' + total + ' 問'
+      : '第 ' + stats.questionNum + ' 問';
     container.innerHTML =
-      '<span>第 ' + stats.questionNum + ' 問</span>' +
+      '<span>' + numText + '</span>' +
       '<span>連続正解: ' + stats.streak + '</span>';
+  }
+
+  // 結果画面: スコアと正答率 (満点時はお祝いメッセージ)
+  function renderResult(stats) {
+    const correct = stats.correct;
+    const total = stats.total;
+    const scoreEl = document.getElementById('result-score');
+    const msgEl = document.getElementById('result-message');
+    if (scoreEl) scoreEl.textContent = correct + ' / ' + total;
+    if (msgEl) {
+      msgEl.classList.remove('perfect');
+      if (correct === total) {
+        msgEl.textContent = '全問正解！おめでとう！';
+        msgEl.classList.add('perfect');
+      } else {
+        const rate = total > 0 ? Math.round((correct / total) * 100) : 0;
+        msgEl.textContent = '正答率 ' + rate + '%';
+      }
+    }
   }
 
   window.TehaiTraining.ui = {
@@ -326,6 +349,7 @@
     renderTilePalette: renderTilePalette,
     renderTileStrip: renderTileStrip,
     renderProgress: renderProgress,
+    renderResult: renderResult,
     shantenLabel: shantenLabel,
   };
 })();

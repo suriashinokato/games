@@ -13,6 +13,9 @@
   // 登録問題の連続出題を防ぐためのクールダウン窓サイズ
   const RECENT_HISTORY_SIZE = 10;
 
+  // 1セッションの問題数 (固定)。最終問で結果画面に切り替わる。
+  const QUESTIONS_PER_SESSION = 20;
+
   // ====== 状態 ======
   const state = {
     mode: null,               // 'shanten' | 'ukeire' | 'discard'
@@ -21,6 +24,7 @@
     ukeireSelection: null,    // mode1 用: Set<string> (回答前の選択中状態)
     questionNum: 0,
     streak: 0,
+    correct: 0,               // セッション中の正答数 (結果画面用)
     answered: false,
     // 直近に出題した登録問題のID (FIFO, 最大 RECENT_HISTORY_SIZE 件)。
     // モード切替やクイズ再開でリセットしないことで、跨いだ重複も抑制する。
@@ -54,6 +58,7 @@
     state.mode = mode;
     state.questionNum = 0;
     state.streak = 0;
+    state.correct = 0;
     nextQuestion();
   }
 
@@ -115,7 +120,7 @@
   function renderQuizScreen() {
     T.ui.renderProgress(
       document.getElementById('progress'),
-      { questionNum: state.questionNum, streak: state.streak }
+      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, streak: state.streak }
     );
 
     const handEl = document.getElementById('hand');
@@ -208,6 +213,7 @@
   function submitAnswer() {
     const isCorrect = judge(state.problem, state.userAnswer);
     state.streak = isCorrect ? state.streak + 1 : 0;
+    if (isCorrect) state.correct += 1;
 
     const badgeEl = document.getElementById('result-badge');
     const explainEl = document.getElementById('explanation');
@@ -234,11 +240,19 @@
       document.getElementById('answer-area').classList.add('hidden');
     }
 
-    document.getElementById('next-btn').classList.remove('hidden');
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.classList.remove('hidden');
+    // 最終問の解答後はラベルを切り替えて、結果画面への導線を明示する
+    nextBtn.textContent = (state.questionNum >= QUESTIONS_PER_SESSION) ? '結果を見る' : '次の問題へ';
     T.ui.renderProgress(
       document.getElementById('progress'),
-      { questionNum: state.questionNum, streak: state.streak }
+      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, streak: state.streak }
     );
+  }
+
+  function showResult() {
+    T.ui.renderResult({ correct: state.correct, total: QUESTIONS_PER_SESSION });
+    T.ui.showScreen('result');
   }
 
   // ====== 初期化 ======
@@ -249,9 +263,36 @@
         startQuiz(btn.dataset.startMode);
       });
     });
-    document.getElementById('next-btn').addEventListener('click', nextQuestion);
+    document.getElementById('next-btn').addEventListener('click', () => {
+      if (state.questionNum >= QUESTIONS_PER_SESSION) {
+        showResult();
+      } else {
+        nextQuestion();
+      }
+    });
     document.getElementById('home-btn').addEventListener('click', () => {
       T.ui.showScreen('home');
+    });
+    const resultRetryBtn = document.getElementById('result-retry-btn');
+    if (resultRetryBtn) {
+      resultRetryBtn.addEventListener('click', () => {
+        startQuiz(state.mode);
+      });
+    }
+    const resultHomeBtn = document.getElementById('result-home-btn');
+    if (resultHomeBtn) {
+      resultHomeBtn.addEventListener('click', () => {
+        T.ui.showScreen('home');
+      });
+    }
+    // 受け入れ種類モードでパレット外をタップした際、直前にタップした牌の
+    // 「金色枠 (sticky :hover/:focus 残り)」だけを解除する。.selected には触れない。
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.palette-tile')) return;
+      const active = document.activeElement;
+      if (active && active.classList && active.classList.contains('palette-tile')) {
+        active.blur();
+      }
     });
     T.ui.showScreen('home');
   }

@@ -393,6 +393,35 @@
     }
     .hidden { display: none !important; }
 
+    /* ===== 結果画面 ===== */
+    .result-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(241,236,226,0.97));
+      border: 1px solid rgba(185,154,78,0.40);
+      border-radius: var(--radius);
+      padding: 36px 24px 30px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 18px;
+    }
+    .result-label {
+      color: var(--text-sub);
+      letter-spacing: 0.06em;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    .result-score {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--accent-primary);
+      line-height: 1.05;
+    }
+    .result-message {
+      margin-top: 14px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    .result-message.perfect { color: var(--accent-success); }
+
     /* ===== mode1: 牌パレット ===== */
     .palette {
       background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(241,236,226,0.97));
@@ -937,6 +966,19 @@
     </div>
   </section>
 
+  <!-- ===== 結果画面 ===== -->
+  <section data-screen="result">
+    <div class="result-card">
+      <p class="result-label">スコア</p>
+      <div class="result-score" id="result-score">0 / 20</div>
+      <p class="result-message" id="result-message"></p>
+    </div>
+    <div class="nav-row">
+      <button type="button" class="secondary-btn" id="result-home-btn">ホームへ</button>
+      <button type="button" class="primary-btn" id="result-retry-btn">もう一度</button>
+    </div>
+  </section>
+
   <!-- ===== スクリプト読み込み =====
        ?v= はキャッシュバスター。JS を更新したら数字を上げる(例: 20260506 → 20260507) -->
   <!-- 既存ロジック (window.NankiruShanten を提供) -->
@@ -945,9 +987,9 @@
   <script src="tehai-training-app/js/tiles.js?v=20260508"></script>
   <script src="tehai-training-app/js/shanten-bridge.js?v=20260508"></script>
   <script src="tehai-training-app/js/random-hand.js?v=20260512"></script>
-  <script src="tehai-training-app/js/ui.js?v=20260511"></script>
+  <script src="tehai-training-app/js/ui.js?v=20260513"></script>
   <script src="tehai-training-app/js/storage.js?v=20260508"></script>
-  <script src="tehai-training-app/js/quiz.js?v=20260508"></script>
+  <script src="tehai-training-app/js/quiz.js?v=20260513"></script>
   <script src="tehai-training-app/js/manage.js?v=20260508"></script>
   <script src="tehai-training-app/js/cloud-sync.js?v=20260508"></script>
   <script>
