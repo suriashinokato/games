@@ -23,8 +23,7 @@
     userAnswer: null,         // ユーザー回答 (型はモード依存)
     ukeireSelection: null,    // mode1 用: Set<string> (回答前の選択中状態)
     questionNum: 0,
-    streak: 0,
-    correct: 0,               // セッション中の正答数 (結果画面用)
+    correct: 0,               // セッション中の正答数 (進捗バー・結果画面用)
     answered: false,
     // 直近に出題した登録問題のID (FIFO, 最大 RECENT_HISTORY_SIZE 件)。
     // モード切替やクイズ再開でリセットしないことで、跨いだ重複も抑制する。
@@ -57,7 +56,6 @@
   function startQuiz(mode) {
     state.mode = mode;
     state.questionNum = 0;
-    state.streak = 0;
     state.correct = 0;
     nextQuestion();
   }
@@ -120,7 +118,7 @@
   function renderQuizScreen() {
     T.ui.renderProgress(
       document.getElementById('progress'),
-      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, streak: state.streak }
+      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, correct: state.correct }
     );
 
     const handEl = document.getElementById('hand');
@@ -212,7 +210,6 @@
 
   function submitAnswer() {
     const isCorrect = judge(state.problem, state.userAnswer);
-    state.streak = isCorrect ? state.streak + 1 : 0;
     if (isCorrect) state.correct += 1;
 
     const badgeEl = document.getElementById('result-badge');
@@ -246,7 +243,7 @@
     nextBtn.textContent = (state.questionNum >= QUESTIONS_PER_SESSION) ? '結果を見る' : '次の問題へ';
     T.ui.renderProgress(
       document.getElementById('progress'),
-      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, streak: state.streak }
+      { questionNum: state.questionNum, total: QUESTIONS_PER_SESSION, correct: state.correct }
     );
   }
 

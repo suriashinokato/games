@@ -309,7 +309,7 @@
     container.appendChild(div);
   }
 
-  // 進捗バー (現在問題数 / セッション総数 / 連続正解数)
+  // 進捗バー (現在問題数 / セッション総数 / 正解数)
   function renderProgress(container, stats) {
     const total = stats.total;
     const numText = total
@@ -317,7 +317,7 @@
       : '第 ' + stats.questionNum + ' 問';
     container.innerHTML =
       '<span>' + numText + '</span>' +
-      '<span>連続正解: ' + stats.streak + '</span>';
+      '<span>正解: ' + stats.correct + '</span>';
   }
 
   // 結果画面: スコアと正答率 (満点時はお祝いメッセージ)
