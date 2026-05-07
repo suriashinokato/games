@@ -781,9 +781,13 @@ button:focus-visible,
   .dialog.help-dialog h2 { font-size: 1.2rem; }
   .help-body { font-size: 0.85rem; }
 
-  /* 対局画面の手牌は 1 列、暗槓は次行に折り返して牌サイズを確保 */
+  /* 対局画面の手牌は 1 列、暗槓は常に手牌の下に表示する。
+     横並びだと手牌の枚数（ツモ前/後）で暗槓の収まりが切り替わり、
+     ツモのたびに暗槓が左右に移動して見える不具合があった。 */
   .hand-section {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
     gap: 4px;
   }
   .hand-row {
