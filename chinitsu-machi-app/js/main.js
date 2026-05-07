@@ -51,6 +51,16 @@
     });
 
     if (name === 'bookmarks') renderBookmarkList();
+    if (name === 'home') updateHomeCounts();
+    // 出題画面に来たときに問題が未ロードなら最初の問題を出す
+    if (name === 'quiz' && !state.problem) showCurrentProblem();
+  }
+
+  function updateHomeCounts() {
+    var pc = document.getElementById('home-problem-count');
+    var bc = document.getElementById('home-bookmark-count');
+    if (pc) pc.textContent = problemList.length;
+    if (bc) bc.textContent = bookmark.load().length;
   }
 
   // ---------- 出題画面 ----------
@@ -204,6 +214,43 @@
       html += '<div class="decomp-text">' +
               escapeHtml(decompose.formatText(ex.primarySplit)) + '</div>';
       html += '</div>';
+
+      // algorithm.md のルール適用
+      var rules = decompose.describeRules(ex.primarySplit);
+      if (rules.length > 0) {
+        html += '<div class="explain-section">';
+        html += '<div class="block-label">algorithm.md のルール適用</div>';
+        html += '<ul class="rules-list">';
+        rules.forEach(function (r) {
+          html += '<li><span class="rule-name">' + escapeHtml(r.name) + '</span>' +
+                  '<span class="rule-desc">' + escapeHtml(r.desc) + '</span></li>';
+        });
+        html += '</ul>';
+        html += '</div>';
+      }
+
+      // 他の解釈（同じ手牌の別の分解）
+      var allSplits = decompose.splitAll(state.hand.concat([demoWait]));
+      var distinct = decompose.distinctSplits(allSplits, 4);  // 最大4つ
+      // primary を除いた残りを「他の分解」として表示（最大2つ）
+      var primaryKey = JSON.stringify(ex.primarySplit);
+      var alternatives = distinct.filter(function (s) {
+        return JSON.stringify(s) !== primaryKey;
+      }).slice(0, 2);
+      if (alternatives.length > 0) {
+        html += '<div class="explain-section">';
+        html += '<div class="block-label">他の分解（同じ手牌・同じ ' + demoWait + ' アガリの別解釈）</div>';
+        alternatives.forEach(function (alt, idx) {
+          html += '<div class="alt-split">';
+          html += '<div class="alt-label">解釈 ' + (idx + 2) + ':</div>';
+          html += '<div class="meld-row">' +
+                  decompose.formatTilesHtml(alt, state.suit) + '</div>';
+          html += '<div class="decomp-text">' +
+                  escapeHtml(decompose.formatText(alt)) + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
     }
 
     body.innerHTML = html;
@@ -431,7 +478,15 @@
       });
     });
 
-    showCurrentProblem();
+    // ホーム画面の START / ブックマークショートカット
+    document.getElementById('start-btn').addEventListener('click', function () {
+      showScreen('quiz');
+    });
+    document.getElementById('home-bookmark-btn').addEventListener('click', function () {
+      showScreen('bookmarks');
+    });
+
     updateBookmarkCount();
+    showScreen('home');
   });
 })();

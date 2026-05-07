@@ -18,13 +18,38 @@
     <header class="app-header">
       <h1 class="app-title">清一色 待ちあて</h1>
       <nav class="app-nav">
-        <button class="nav-btn active" data-screen="quiz" id="nav-quiz">出題</button>
+        <button class="nav-btn active" data-screen="home" id="nav-home">ホーム</button>
+        <button class="nav-btn" data-screen="quiz" id="nav-quiz">出題</button>
         <button class="nav-btn" data-screen="bookmarks" id="nav-bookmarks">★ ブックマーク <span id="bookmark-count" class="nav-count">0</span></button>
       </nav>
     </header>
 
     <main>
-      <section class="quiz-section screen" id="screen-quiz">
+      <section class="home-section screen" id="screen-home">
+        <p class="home-subtitle">13枚の手牌から待ち牌を当てる学習アプリ</p>
+
+        <div class="home-rules">
+          <h3>遊び方</h3>
+          <ol>
+            <li>清一色（萬子・筒子・索子のいずれか1スート）の13枚手牌が出題されます</li>
+            <li>待ち牌（テンパイ時に揃えればアガる牌）を <strong>すべて</strong> 選んで「判定する」</li>
+            <li>すべて当たれば <strong>○ 完答</strong>。1つでも漏れ・余分があれば不正解</li>
+            <li>解説で待ち型（単騎/シャボ/カンチャン/リャンメン/ペンチャン）と分解例を確認</li>
+            <li>気になる形は ☆ でブックマークして後から復習できます</li>
+          </ol>
+        </div>
+
+        <div class="home-actions">
+          <button class="big-btn primary" id="start-btn">
+            出題開始（全 <span id="home-problem-count">-</span> 問）
+          </button>
+          <button class="big-btn secondary" id="home-bookmark-btn">
+            ★ ブックマークを見る（<span id="home-bookmark-count">0</span> 件）
+          </button>
+        </div>
+      </section>
+
+      <section class="quiz-section screen" id="screen-quiz" style="display:none;">
         <div class="quiz-header">
           <h2 class="section-title">手牌（13枚）</h2>
           <button class="bookmark-btn" id="bookmark-btn" title="ブックマーク">☆</button>
@@ -59,12 +84,12 @@
     </main>
   </div>
 
-  <script src="js/tiles.js?v=20260506h"></script>
-  <script src="js/wait.js?v=20260506h"></script>
-  <script src="js/decompose.js?v=20260506h"></script>
-  <script src="data/problems.js?v=20260506h"></script>
-  <script src="js/explain.js?v=20260506h"></script>
-  <script src="js/bookmark.js?v=20260506h"></script>
-  <script src="js/main.js?v=20260506h"></script>
+  <script src="js/tiles.js?v=20260506j"></script>
+  <script src="js/wait.js?v=20260506j"></script>
+  <script src="js/decompose.js?v=20260506j"></script>
+  <script src="data/problems.js?v=20260506j"></script>
+  <script src="js/explain.js?v=20260506j"></script>
+  <script src="js/bookmark.js?v=20260506j"></script>
+  <script src="js/main.js?v=20260506j"></script>
 </body>
 </html>

@@ -192,6 +192,86 @@ body {
   font-size: 13px;
 }
 
+/* ---- ホーム画面 ---- */
+
+.home-section {
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.home-subtitle {
+  color: #555;
+  font-size: 14px;
+  margin: 8px 0 20px;
+}
+
+.home-rules {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.home-rules h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #555;
+  font-weight: bold;
+}
+
+.home-rules ol {
+  padding-left: 20px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.home-rules li {
+  margin-bottom: 4px;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.big-btn {
+  padding: 14px 24px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  width: 100%;
+  max-width: 320px;
+  font-weight: bold;
+}
+
+.big-btn.primary {
+  background: #0a5d3a;
+  color: #fff;
+  border-color: #0a5d3a;
+}
+
+.big-btn.primary:hover {
+  background: #0c7048;
+}
+
+.big-btn.secondary {
+  background: #fff;
+  color: #555;
+  border-color: #ccc;
+  font-weight: normal;
+}
+
+.big-btn.secondary:hover {
+  background: #f0f0f0;
+}
+
 
 .section-title {
   font-size: 14px;
@@ -425,6 +505,52 @@ body {
   margin-top: 6px;
 }
 
+.rules-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.rules-list li {
+  padding: 6px 8px;
+  background: #f8f4e6;
+  border-left: 3px solid #d09020;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.rules-list .rule-name {
+  display: block;
+  font-weight: bold;
+  color: #8a5a10;
+  margin-bottom: 3px;
+}
+
+.rules-list .rule-desc {
+  display: block;
+  color: #444;
+}
+
+.alt-split {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fafafa;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+}
+
+.alt-split:first-of-type {
+  margin-top: 0;
+}
+
+.alt-split .alt-label {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 4px;
+}
+
 .judge-row {
   display: flex;
   justify-content: center;
@@ -537,19 +663,22 @@ body {
     height: auto;
   }
 
-  /* 解答ボタンはタップしやすい大きさを保つ */
+  /* 解答ボタン9個も必ず1行に収める：横幅を9等分 */
   .answer-row {
-    gap: 4px;
-    justify-content: center;
+    gap: 3px;
+    flex-wrap: nowrap;
   }
   .answer-btn {
+    flex: 1 1 0;
+    min-width: 0;
     padding: 3px;
     border-radius: 4px;
-    min-width: 38px;
-    min-height: 44px;   /* iOS の推奨タップサイズ */
+    min-height: 44px;   /* iOS の推奨タップサイズ（縦方向は確保） */
   }
   .answer-btn .tile {
-    height: 36px;
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   /* 判定・次へ ボタンは画面幅近くまで広げて押しやすく */
@@ -585,13 +714,5 @@ body {
   }
 }
 
-/* ---- 極小画面（〜360px、初期 iPhone SE 等） ---- */
-@media (max-width: 360px) {
-  .answer-btn .tile {
-    height: 32px;
-  }
-  .answer-btn {
-    min-width: 32px;
-  }
-  /* 手牌は flex 1/13 配分のため height/width 指定不要 */
-}
+/* 手牌・解答ボタンはどちらも flex 等分配置のため、
+   極小画面用の追加メディアクエリは不要（横幅に応じて自動縮小される） */

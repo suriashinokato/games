@@ -179,6 +179,66 @@ window.Chinitsu = window.Chinitsu || {};
     return '分類できませんでした';
   }
 
+  // split に対して algorithm.md のどのルールが適用できるかを判定
+  // 返り値: [{ name: '糖質制限', desc: '...' }, ...]
+  function describeRules(split) {
+    var rules = [];
+
+    // 糖質制限（algorithm.md ⑧）: 暗刻があれば「抜いて考える」
+    var kotsus = split.melds.filter(function (m) { return m.type === 'kotsu'; });
+    if (kotsus.length > 0) {
+      var ktiles = kotsus.map(function (k) { return k.tiles.join(''); }).join(' / ');
+      rules.push({
+        name: '糖質制限（algorithm.md ⑧）',
+        desc: '暗刻 ' + ktiles + ' を抜くと、残りの構造が見えやすい。連続形の少ない方の暗刻から抜くのが基本。',
+      });
+    }
+
+    // 一盃口抜き（algorithm.md ① / FB法①）: 同じ順子が2つあれば一盃口
+    var shuntsus = split.melds.filter(function (m) { return m.type === 'shuntsu'; });
+    for (var i = 0; i < shuntsus.length; i++) {
+      for (var j = i + 1; j < shuntsus.length; j++) {
+        if (shuntsus[i].tiles[0] === shuntsus[j].tiles[0]) {
+          rules.push({
+            name: '一盃口抜き（algorithm.md ① / FB法①）',
+            desc: '同じ順子が2つ（' + shuntsus[i].tiles.join('') + ' + ' +
+                  shuntsus[j].tiles.join('') + '）あるので一盃口として抜くと、外側の核が見える。',
+          });
+          i = shuntsus.length;  // break outer
+          break;
+        }
+      }
+    }
+
+    // 端の順子抜き（algorithm.md ② ③ / FB法②③）: 1始まり or 9終わりの順子
+    var edges = shuntsus.filter(function (s) {
+      return s.tiles[0] === 1 || s.tiles[2] === 9;
+    });
+    if (edges.length > 0) {
+      var etiles = edges.map(function (e) { return e.tiles.join(''); }).join(' / ');
+      rules.push({
+        name: '端の順子抜き（algorithm.md ② ③ / FB法②③）',
+        desc: '端の順子 ' + etiles + ' を抜く。端から順子を消去すると連続形の核（基本多面構成）が露出する。',
+      });
+    }
+
+    return rules;
+  }
+
+  // splits の中から meld 構成が異なるものを最大 maxN 個返す
+  function distinctSplits(splits, maxN) {
+    var seen = {};
+    var result = [];
+    for (var i = 0; i < splits.length && result.length < maxN; i++) {
+      var key = JSON.stringify(splits[i]);
+      if (!seen[key]) {
+        seen[key] = true;
+        result.push(splits[i]);
+      }
+    }
+    return result;
+  }
+
   window.Chinitsu.decompose = {
     splitAll: splitAll,
     formatText: formatText,
@@ -186,5 +246,7 @@ window.Chinitsu = window.Chinitsu || {};
     classifyWait: classifyWait,
     allWaitTypes: allWaitTypes,
     describeWait: describeWait,
+    describeRules: describeRules,
+    distinctSplits: distinctSplits,
   };
 })();
