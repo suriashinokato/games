@@ -3,8 +3,8 @@
   "short_name": "メンチン",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0b3f2b",
-  "theme_color": "#0b3f2b",
+  "background_color": "#052d21",
+  "theme_color": "#052d21",
   "icons": [
     {
       "src": "../shared/brand/1suit-logo-192.png",

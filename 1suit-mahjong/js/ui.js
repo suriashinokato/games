@@ -32,15 +32,21 @@ window.Bamboo = window.Bamboo || {};
     // 親マーク
     setMark('dealer-player', state.dealer === 'player');
     setMark('dealer-cpu',    state.dealer === 'cpu');
-    // 立直マーク
-    setMark('riichi-player', state.player.isRiichi);
-    setMark('riichi-cpu',    state.cpu.isRiichi);
+    // 立直棒（スペースは常時確保し visibility で切り替え）
+    setVisible('riichi-bar-player', state.player.isRiichi);
+    setVisible('riichi-bar-cpu',    state.cpu.isRiichi);
   }
 
   function setMark(id, isOn) {
     var el = document.getElementById(id);
     if (!el) return;
     el.style.display = isOn ? '' : 'none';
+  }
+
+  function setVisible(id, isOn) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.visibility = isOn ? '' : 'hidden';
   }
 
   // who の手牌を描画。canClick=true のときだけクリック可能なボタンにする。
@@ -316,9 +322,7 @@ window.Bamboo = window.Bamboo || {};
 
     var winnerLabel = WHO_LABEL[w.winner];
     var winTypeLabel = w.winType === 'tsumo' ? 'ツモ' : 'ロン';
-    var yakuHtml = w.yakuList.map(function (y) {
-      return '<li>' + y.name + ' <b>' + y.han + '翻</b></li>';
-    }).join('');
+    var yakuHtml = w.yakuList.map(function (y) { return y.name; }).join('・');
     var hanLine = w.isYakuman
       ? '<div class="rank-line">' + w.rankLabel + '</div>'
       : '<div class="rank-line">' + w.totalHan + ' 翻 — ' + w.rankLabel + '</div>';
@@ -326,7 +330,7 @@ window.Bamboo = window.Bamboo || {};
 
     var winBody = ''
       + handsHtml
-      + '<ul class="yaku-list">' + yakuHtml + '</ul>'
+      + '<div class="yaku-list">' + yakuHtml + '</div>'
       + hanLine
       + '<div class="points-line"><b>' + pointsLabel + '</b> 点 移動</div>';
 
@@ -362,10 +366,10 @@ window.Bamboo = window.Bamboo || {};
       var m = p.melds[j];
       if (m.type === 'ankan') {
         handHtml += '<span class="dialog-meld">'
+          + T.renderTile(state.currentSuit, m.tile, { face: 'down' })
           + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
           + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
-          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
-          + T.renderTile(state.currentSuit, m.tile, { face: 'up' })
+          + T.renderTile(state.currentSuit, m.tile, { face: 'down' })
           + '</span>';
       }
     }

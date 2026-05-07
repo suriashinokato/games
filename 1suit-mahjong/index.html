@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="../shared/brand/1suit-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="../shared/brand/1suit-logo-180.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0b3f2b">
+  <meta name="theme-color" content="#052d21">
   <meta name="apple-mobile-web-app-title" content="メンチン">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -44,16 +44,17 @@
         <div class="player-name">
           相手 <span id="score-cpu">-</span> 点
           <span class="dealer-mark" id="dealer-cpu" style="display:none;">親</span>
-          <span class="riichi-mark" id="riichi-cpu" style="display:none;">立直</span>
         </div>
         <div class="hand-section">
           <div class="hand-row" id="hand-cpu"></div>
           <div class="meld-row" id="melds-cpu"></div>
         </div>
         <div class="discard" id="discard-cpu"></div>
+        <div class="riichi-bar" id="riichi-bar-cpu" style="visibility:hidden;"><img src="../shared/images_hai/tennbou-001.png" alt="立直" class="riichi-stick"></div>
       </div>
 
       <div class="player-area area-self">
+        <div class="riichi-bar" id="riichi-bar-player" style="visibility:hidden;"><img src="../shared/images_hai/tennbou-001.png" alt="立直" class="riichi-stick"></div>
         <div class="discard" id="discard-player"></div>
         <div class="hand-section">
           <div class="hand-row" id="hand-player"></div>
@@ -62,7 +63,6 @@
         <div class="player-name">
           自分 <span id="score-player">-</span> 点
           <span class="dealer-mark" id="dealer-player" style="display:none;">親</span>
-          <span class="riichi-mark" id="riichi-player" style="display:none;">立直</span>
         </div>
         <div class="action-bar" id="action-bar"></div>
       </div>
@@ -87,13 +87,13 @@
 
   </div>
 
-  <script src="js/tiles.js?v=20260505a"></script>
-  <script src="js/handEval.js?v=20260505a"></script>
-  <script src="js/yaku.js?v=20260505a"></script>
-  <script src="js/score.js?v=20260505a"></script>
-  <script src="js/cpu.js?v=20260505a"></script>
-  <script src="js/game.js?v=20260505a"></script>
-  <script src="js/ui.js?v=20260505a"></script>
-  <script src="js/main.js?v=20260505a"></script>
+  <script src="js/tiles.js?v=20260508d"></script>
+  <script src="js/handEval.js?v=20260508d"></script>
+  <script src="js/yaku.js?v=20260508d"></script>
+  <script src="js/score.js?v=20260508d"></script>
+  <script src="js/cpu.js?v=20260508d"></script>
+  <script src="js/game.js?v=20260508d"></script>
+  <script src="js/ui.js?v=20260508d"></script>
+  <script src="js/main.js?v=20260508d"></script>
 </body>
 </html>

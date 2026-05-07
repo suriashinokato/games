@@ -309,7 +309,7 @@ html, body {
 .hand-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 1px;
   align-items: flex-end;
   min-height: var(--tile-h);
   padding: 4px 0;
@@ -358,7 +358,7 @@ html, body {
 .discard {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 1px;
   margin-top: 8px;
   min-height: calc(var(--tile-h) * 0.8);
   padding: 4px;
@@ -370,6 +370,10 @@ html, body {
 .discard .tile {
   width: calc(var(--tile-w) * 0.8);
   height: calc(var(--tile-h) * 0.8);
+}
+
+#discard-cpu .tile {
+  transform: rotate(180deg);
 }
 
 /* ----- ダイアログ ----- */
@@ -536,16 +540,22 @@ html, body {
 
 /* ----- 立直マーク ----- */
 
-.riichi-mark {
-  display: inline-block;
-  margin-left: 10px;
-  padding: 1px 8px;
-  background: var(--accent-deep);
-  color: #fff8e8;
-  font-size: 0.75rem;
-  border-radius: 10px;
-  font-family: var(--serif-font);
-  font-weight: 600;
+/* 立直棒：捨て牌の上側（自分／相手それぞれの POV で discard の上側）に表示 */
+.riichi-bar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 4px;
+}
+
+.area-cpu .riichi-bar { margin-top: 2px; }
+.area-self .riichi-bar { margin-bottom: 2px; }
+
+.riichi-stick {
+  height: 14px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 
 /* ----- 親マーク ----- */
@@ -573,7 +583,7 @@ html, body {
 
 .meld-row {
   display: flex;
-  gap: 4px;
+  gap: 1px;
 }
 
 .meld-set {
@@ -592,22 +602,11 @@ html, body {
 /* ----- アガリダイアログ内 ----- */
 
 .yaku-list {
-  list-style: none;
-  padding: 0;
   margin: 4px 0 12px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 12px;
-}
-
-.yaku-list li {
-  padding: 2px 8px;
+  text-align: center;
   font-size: 0.95rem;
-  white-space: nowrap;
+  line-height: 1.5;
 }
-
-.yaku-list b { color: var(--accent-color); }
 
 .rank-line {
   font-size: 1.2rem;
@@ -646,7 +645,7 @@ html, body {
 
 .waits-tiles {
   display: inline-flex;
-  gap: 2px;
+  gap: 1px;
   align-items: center;
 }
 
@@ -681,12 +680,10 @@ html, body {
 
 .dialog-hand {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 1px;
   align-items: flex-end;
   margin-bottom: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
 }
 
 .dialog-tile {
