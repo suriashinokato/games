@@ -260,6 +260,17 @@ window.Bamboo = window.Bamboo || {};
     // 清一色: 数牌 1 種類しか使わないので必ず成立 (メンゼン 6 翻)
     bestYaku.push({ name: '清一色', han: 6 });
 
+    // 表示用の並び替え: 立直 → 一発 → 門前清自摸和 を先頭に固定し、残りは元順を保つ
+    var headOrder = ['立直', '一発', '門前清自摸和'];
+    var head = [];
+    var rest = [];
+    for (var i = 0; i < bestYaku.length; i++) {
+      var idx = headOrder.indexOf(bestYaku[i].name);
+      if (idx >= 0) head[idx] = bestYaku[i];
+      else rest.push(bestYaku[i]);
+    }
+    bestYaku = head.filter(Boolean).concat(rest);
+
     return {
       yakuList: bestYaku,
       isYakuman: false,

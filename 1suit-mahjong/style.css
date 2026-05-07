@@ -595,13 +595,16 @@ html, body {
   list-style: none;
   padding: 0;
   margin: 4px 0 12px;
-  text-align: left;
-  display: inline-block;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
 }
 
 .yaku-list li {
   padding: 2px 8px;
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .yaku-list b { color: var(--accent-color); }
