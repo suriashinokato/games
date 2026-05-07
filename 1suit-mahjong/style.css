@@ -680,10 +680,12 @@ html, body {
 
 .dialog-hand {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1px;
+  flex-wrap: nowrap;
+  gap: 2px;
   align-items: flex-end;
   margin-bottom: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .dialog-tile {
