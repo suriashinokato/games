@@ -552,8 +552,8 @@ html, body {
 .area-self .riichi-bar { margin-bottom: 2px; }
 
 .riichi-stick {
-  height: 14px;
-  width: auto;
+  width: calc(var(--tile-w) * 3.2); /* 河の牌4つ分（牌は0.8倍に縮小されているため） */
+  height: auto;
   display: block;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
