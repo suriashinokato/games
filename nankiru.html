@@ -128,6 +128,15 @@
       .tile-slot.wrong   { box-shadow: 0 0 16px rgba(224,112,112,0.55); }
     }
 
+    /* 初期描画時は transition / animation を抑止し、
+       JS による初期 class 変更で意図せずアニメが発火するのを防ぐ */
+    body.preload *,
+    body.preload *::before,
+    body.preload *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+
     /* 見出しの統一トラッキング */
     h1, h2, h3 { letter-spacing: 0.02em; }
 
@@ -593,7 +602,7 @@
 
   </style>
 </head>
-<body>
+<body class="preload">
 
 <!-- ===== HOME ===== -->
 <div id="screen-home" class="screen">
@@ -606,7 +615,7 @@
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
-    <button class="btn-mode primary" id="btn-list" onclick="showProblemList()" disabled>
+    <button class="btn-mode" id="btn-list" onclick="showProblemList()" disabled>
       問題一覧
       <span class="btn-mode-desc">タグで絞り込んで挑戦</span>
     </button>
@@ -2419,6 +2428,13 @@ document.getElementById('hand-tiles').addEventListener('click', e => {
 showScreen('home');
 // onAuthStateChanged が initHome() を呼ぶ。CDNブロック時のフォールバック:
 if (typeof firebase === 'undefined') initHome();
+
+// 初期描画完了後に preload クラスを外す（transition/animation の発火を再許可）
+window.addEventListener('load', () => {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.body.classList.remove('preload');
+  }));
+});
 </script>
 </body>
 </html>
