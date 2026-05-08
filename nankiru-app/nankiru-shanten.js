@@ -270,18 +270,21 @@
     return n;
   }
 
-  // 残り枚数 = 4 − 自手 − 副露 − ドラ表示牌 − 槓ドラ表示牌
-  function remainingTiles(tile, hand, melds, dora, kanDora) {
+  // 残り枚数 = 4 − 自手 − 副露 − ドラ表示牌 − 槓ドラ表示牌 − 場見え追加分
+  // extraVisible は「場(他家の河など)に追加で見えている枚数」の34要素配列(無指定可)
+  function remainingTiles(tile, hand, melds, dora, kanDora, extraVisible) {
     let used = 0;
     used += countSameTileIn(hand, tile);
     for (const m of (melds || [])) used += countSameTileIn(m.tiles, tile);
     used += countSameTileIn(dora || [], tile);
     used += countSameTileIn(kanDora || [], tile);
-    return 4 - used;
+    if (extraVisible) used += (extraVisible[tileToIndex(tile)] || 0);
+    const r = 4 - used;
+    return r > 0 ? r : 0;
   }
 
   // 13枚の手牌からの受け入れ計算 (テンパイ判定や単純なテストで使うシンプル版)
-  function countAcceptance(hand, melds, dora, kanDora) {
+  function countAcceptance(hand, melds, dora, kanDora, extraVisible) {
     const baseShanten = countShanten(hand, melds);
     const result = [];
 
@@ -290,7 +293,7 @@
       const newHand = hand.concat([tile]);
       const newShanten = countShanten(newHand, melds);
       if (newShanten < baseShanten) {
-        const remaining = remainingTiles(tile, hand, melds, dora, kanDora);
+        const remaining = remainingTiles(tile, hand, melds, dora, kanDora, extraVisible);
         if (remaining > 0) result.push({ tile, count: remaining });
       }
     }
@@ -306,7 +309,7 @@
   //     tiles        : [{tile, count}, ...] (有効牌の内訳)
   //     totalCount   : tiles の count 合計
   // 結果は totalCount 降順 (同点なら捨て牌のインデックス昇順) でソートして返す
-  function calcAllDiscardOptions(handBefore, melds, dora, kanDora) {
+  function calcAllDiscardOptions(handBefore, melds, dora, kanDora, extraVisible) {
     const meldsList = melds || [];
 
     // ユニークな捨て牌候補を列挙 (赤5は通常5として集約)
@@ -334,7 +337,7 @@
     const result = [];
     for (const cand of shantenByDiscard) {
       if (cand.shantenAfter !== bestShanten) continue;
-      const tiles = countAcceptanceForDiscard(handBefore, cand.discard, meldsList, dora, kanDora);
+      const tiles = countAcceptanceForDiscard(handBefore, cand.discard, meldsList, dora, kanDora, extraVisible);
       const totalCount = tiles.reduce((sum, e) => sum + e.count, 0);
       result.push({
         discard: cand.discard,
@@ -355,7 +358,7 @@
   // 「打牌前14枚」と「捨てる牌」を渡し、捨て牌後の受け入れ枚数を計算する。
   //   - シャンテン判定は 捨てた後の13枚 + 来た牌 で行う
   //   - 残り枚数の自手分は 打牌前の14枚 を使う (捨て牌も場に見えている扱い)
-  function countAcceptanceForDiscard(handBefore, discardTile, melds, dora, kanDora) {
+  function countAcceptanceForDiscard(handBefore, discardTile, melds, dora, kanDora, extraVisible) {
     const handAfter = removeOneTile(handBefore, discardTile);
     const baseShanten = countShanten(handAfter, melds);
     const result = [];
@@ -365,7 +368,7 @@
       const newHand = handAfter.concat([tile]);
       const newShanten = countShanten(newHand, melds);
       if (newShanten < baseShanten) {
-        const remaining = remainingTiles(tile, handBefore, melds, dora, kanDora);
+        const remaining = remainingTiles(tile, handBefore, melds, dora, kanDora, extraVisible);
         if (remaining > 0) result.push({ tile, count: remaining });
       }
     }
@@ -405,11 +408,25 @@
   //                   [{discard, shantenAfter, tiles, totalCount}, ...]
   // shantenAuto     : 最良の捨て牌を選んだ後のシャンテン値
   // ukeireruMirror  : 上記の反転盤面版
+  // visibleTilesExtra マップ {tileCode: count} を 34要素配列に変換 (mirror=true で反転キー)
+  function buildExtraVisible(map, mirror) {
+    const arr = new Int8Array(34);
+    if (!map) return arr;
+    for (const code of Object.keys(map)) {
+      const v = map[code] | 0;
+      if (v <= 0) continue;
+      const key = mirror ? mirrorTile(code) : code;
+      arr[tileToIndex(key)] += v;
+    }
+    return arr;
+  }
+
   function calcAndAttach(problem) {
     const handBefore = problem.hand;
     const meldsList = problem.melds || [];
     const baseDora = problem.dora || [];
     const baseKanDora = problem.kanDora || [];
+    const extraMap = problem.visibleTilesExtra || null;
 
     const mirrored = mirrorBoard({
       hand: handBefore,
@@ -418,8 +435,11 @@
       kanDora: baseKanDora,
     });
 
-    const optionsAuto = calcAllDiscardOptions(handBefore, meldsList, baseDora, baseKanDora);
-    const optionsMirror = calcAllDiscardOptions(mirrored.hand, mirrored.melds, mirrored.dora, mirrored.kanDora);
+    const extraAuto = buildExtraVisible(extraMap, false);
+    const extraMirror = buildExtraVisible(extraMap, true);
+
+    const optionsAuto = calcAllDiscardOptions(handBefore, meldsList, baseDora, baseKanDora, extraAuto);
+    const optionsMirror = calcAllDiscardOptions(mirrored.hand, mirrored.melds, mirrored.dora, mirrored.kanDora, extraMirror);
 
     return {
       ukeireruAuto: optionsAuto,

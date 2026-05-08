@@ -259,6 +259,54 @@
     .palette-tile:active:not(:disabled) { transform: translateY(-1px) scale(0.98); }
     .palette-tile:disabled { opacity: 0.3; cursor: default; transform: none; }
 
+    /* 手動枚数調整タブ */
+    .extra-hint {
+      font-size: 0.78rem; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5;
+    }
+    .extra-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+    }
+    .extra-cell {
+      width: 64px;
+      background: var(--card);
+      border: 1px solid #e6e1d6;
+      border-radius: 8px;
+      padding: 6px 4px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      flex-shrink: 0;
+    }
+    .extra-cell.has-override { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-shadow); }
+    .extra-cell.depleted { opacity: 0.5; }
+    .extra-cell .ec-tile {
+      width: 40px; height: 56px; background: #ffffff; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .extra-cell .ec-tile img { width: 100%; height: 100%; object-fit: contain; }
+    .extra-cell .ec-row {
+      display: flex; align-items: center; gap: 3px; width: 100%;
+      font-size: 0.7rem; color: var(--text-dim);
+    }
+    .extra-cell .ec-select {
+      flex: 1;
+      font-size: 0.75rem;
+      padding: 1px 0;
+      border: 1px solid #d8d2c5;
+      border-radius: 4px;
+      background: #fff;
+      color: #333;
+      text-align: center;
+      text-align-last: center;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      min-width: 0;
+    }
+    .extra-cell .ec-remain {
+      font-size: 0.7rem; color: var(--text-dim);
+    }
+    .extra-cell .ec-remain strong { color: var(--text); font-size: 0.8rem; }
+    .extra-cell.depleted .ec-remain strong { color: var(--wrong, #c94b4b); }
+
     /* 手牌エリア */
     .hand-count { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
     .hand-count strong { color: var(--text); }
@@ -596,6 +644,9 @@
       <button class="section-tab" id="tab-meld-btn" onclick="setActiveTab('melds')">
         副露<span class="tab-count" id="tab-meld-count">0</span>
       </button>
+      <button class="section-tab" id="tab-extra-btn" onclick="setActiveTab('extra')">
+        手動枚数調整<span class="tab-count" id="tab-extra-count">0</span>
+      </button>
     </div>
 
     <!-- 手牌パネル -->
@@ -643,6 +694,15 @@
 
       <!-- 副露追加ボタン -->
       <button class="btn btn-ghost btn-sm" id="add-meld-btn" onclick="startNewMeld()">＋ 副露を追加</button>
+    </div>
+
+    <!-- 手動枚数調整パネル -->
+    <div class="tab-panel" id="panel-extra">
+      <p class="extra-hint">他家が河に切っているなど、場に見えている枚数を入力すると、その分だけ受け入れ枚数から差し引かれます。<br>残り枚数 = 4 − 手牌・副露・ドラ表示牌での使用 − ここで入力した枚数（最低0）</p>
+      <div class="extra-grid" id="extra-man"></div>
+      <div class="extra-grid" id="extra-pin"></div>
+      <div class="extra-grid" id="extra-sou"></div>
+      <div class="extra-grid" id="extra-ji"></div>
     </div>
 
     <!-- 副露モード表示 -->
@@ -1453,6 +1513,7 @@ let editState = {
   id: null, hand: [], correctAnswer: [],
   dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
   melds: [], ukeireru: [], seat: '', memo: '',
+  visibleTilesExtra: {},   // 手動枚数調整: { tileCode: 場見え枚数 } 部分マップ
   paletteTarget: 'hand',  // 'hand' | 'dora' | 'meld'
   // チー/ポン/カン問題
   questionType: '',           // '' | 'meld'
@@ -1742,6 +1803,7 @@ async function openEditor(problem) {
     sourceMemo: problem.sourceMemo || '',
     melds: (problem.melds || []).map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru: (problem.ukeireru || []).map(e => ({ ...e })),
+    visibleTilesExtra: { ...(problem.visibleTilesExtra || {}) },
     seat: problem.seat || '',
     memo: problem.memo || '',
     riichiChoice: problem.riichiChoice || '',
@@ -1761,6 +1823,7 @@ async function openEditor(problem) {
     id: null, hand: [], correctAnswer: [],
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
     melds: [], ukeireru: [], seat: '', memo: '',
+    visibleTilesExtra: {},
     riichiChoice: '', mirror: false, paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
     availableActions: [], correctAction: '',
@@ -1813,7 +1876,7 @@ let activeTab = 'hand';
 
 function setActiveTab(tab) {
   activeTab = tab;
-  ['hand', 'dora', 'melds'].forEach(t => {
+  ['hand', 'dora', 'melds', 'extra'].forEach(t => {
     const tabId = t === 'melds' ? 'meld' : t;
     document.getElementById('tab-' + tabId + '-btn').classList.toggle('active', t === tab);
     document.getElementById('panel-' + t).classList.toggle('active', t === tab);
@@ -1822,6 +1885,9 @@ function setActiveTab(tab) {
     setPaletteTarget('hand');
   } else if (tab === 'dora') {
     setPaletteTarget('dora');
+  } else if (tab === 'extra') {
+    setPaletteTarget('none');
+    renderExtraPanel();
   } else {
     const builderOpen = document.getElementById('meld-builder').style.display !== 'none';
     setPaletteTarget(builderOpen ? 'meld' : 'none');
@@ -2009,6 +2075,7 @@ function renderEditorHand(quickUpdate = false) {
     if (editState.correctAction === 'chi') renderMqChiHand();
     if (editState.correctAction === 'chi' || editState.correctAction === 'pon') renderMqDiscardHand();
   }
+  refreshExtraPanelIfActive();
 }
 
 // ===== DORA =====
@@ -2038,6 +2105,7 @@ function renderEditorDora() {
   document.getElementById('dora-count').textContent = editState.dora.length;
   const dcBadge = document.getElementById('tab-dora-count');
   if (dcBadge) dcBadge.textContent = editState.dora.length;
+  refreshExtraPanelIfActive();
 }
 
 // ===== 副露 BUILDER =====
@@ -2191,6 +2259,122 @@ function renderMelds() {
     frag.appendChild(item);
   });
   el.appendChild(frag);
+  refreshExtraPanelIfActive();
+}
+
+// ===== 手動枚数調整パネル =====
+// 表示用の34コード (赤5は通常5に集約)
+const EXTRA_TILE_CODES = [
+  '1m','2m','3m','4m','5m','6m','7m','8m','9m',
+  '1p','2p','3p','4p','5p','6p','7p','8p','9p',
+  '1s','2s','3s','4s','5s','6s','7s','8s','9s',
+  '1z','2z','3z','4z','5z','6z','7z'
+];
+const EXTRA_GROUP_IDS = {
+  'extra-man': EXTRA_TILE_CODES.slice(0, 9),
+  'extra-pin': EXTRA_TILE_CODES.slice(9, 18),
+  'extra-sou': EXTRA_TILE_CODES.slice(18, 27),
+  'extra-ji':  EXTRA_TILE_CODES.slice(27, 34)
+};
+
+// 4 - (手牌・副露・ドラ表示牌での使用枚数)。赤5/通常5は同一インデックスで集約
+function autoRemainingFor(code) {
+  const NS = window.NankiruShanten;
+  if (!NS) return 4;
+  const targetIdx = NS.tileToIndex(code);
+  let used = 0;
+  const countIn = arr => { for (const t of arr) if (NS.tileToIndex(t) === targetIdx) used++; };
+  countIn(editState.hand);
+  countIn(editState.dora);
+  for (const m of editState.melds) countIn(m.tiles);
+  return Math.max(0, 4 - used);
+}
+
+function renderExtraPanel() {
+  Object.entries(EXTRA_GROUP_IDS).forEach(([id, codes]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    codes.forEach(code => frag.appendChild(buildExtraCell(code)));
+    el.appendChild(frag);
+  });
+  updateExtraTabBadge();
+}
+
+function buildExtraCell(code) {
+  const auto = autoRemainingFor(code);
+  const extra = (editState.visibleTilesExtra && editState.visibleTilesExtra[code]) | 0;
+  const remain = Math.max(0, auto - extra);
+
+  const cell = document.createElement('div');
+  cell.className = 'extra-cell'
+    + (extra > 0 ? ' has-override' : '')
+    + (remain === 0 ? ' depleted' : '');
+  cell.dataset.code = code;
+
+  const tileBox = document.createElement('div');
+  tileBox.className = 'ec-tile';
+  const img = document.createElement('img');
+  img.src = '../shared/images_hai/' + code + '.png';
+  img.alt = tileLabel(code);
+  img.onerror = function() { this.style.display = 'none'; tileBox.insertAdjacentText('beforeend', tileLabel(code)); };
+  tileBox.appendChild(img);
+  cell.appendChild(tileBox);
+
+  const row = document.createElement('div');
+  row.className = 'ec-row';
+  const lbl = document.createElement('span');
+  lbl.textContent = '見え';
+  row.appendChild(lbl);
+  const sel = document.createElement('select');
+  sel.className = 'ec-select';
+  sel.title = '場に見えている枚数';
+  for (let n = 0; n <= 4; n++) {
+    const opt = document.createElement('option');
+    opt.value = String(n);
+    opt.textContent = String(n);
+    if (n === extra) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', () => setVisibleExtra(code, parseInt(sel.value, 10) | 0));
+  row.appendChild(sel);
+  cell.appendChild(row);
+
+  const remainEl = document.createElement('div');
+  remainEl.className = 'ec-remain';
+  remainEl.innerHTML = '残り <strong>' + remain + '</strong>';
+  cell.appendChild(remainEl);
+
+  return cell;
+}
+
+function setVisibleExtra(code, n) {
+  if (!editState.visibleTilesExtra) editState.visibleTilesExtra = {};
+  if (n > 0) editState.visibleTilesExtra[code] = n;
+  else delete editState.visibleTilesExtra[code];
+
+  // 該当セルだけを差し替え
+  const panel = document.getElementById('panel-extra');
+  if (panel) {
+    const cell = panel.querySelector('.extra-cell[data-code="' + code + '"]');
+    if (cell) cell.replaceWith(buildExtraCell(code));
+  }
+  updateExtraTabBadge();
+}
+
+function updateExtraTabBadge() {
+  const badge = document.getElementById('tab-extra-count');
+  if (!badge) return;
+  const map = editState.visibleTilesExtra || {};
+  let n = 0;
+  for (const k of Object.keys(map)) if ((map[k] | 0) > 0) n++;
+  badge.textContent = n;
+}
+
+function refreshExtraPanelIfActive() {
+  if (activeTab === 'extra') renderExtraPanel();
+  else updateExtraTabBadge();
 }
 
 // 副露種別変更時にプレビューを更新
@@ -2429,6 +2613,7 @@ async function saveProblem() {
     dora:          [...editState.dora],
     melds:         editState.melds.map(m => ({ ...m, tiles: [...m.tiles] })),
     ukeireru:      editState.ukeireru.map(e => ({ ...e })),
+    visibleTilesExtra: { ...(editState.visibleTilesExtra || {}) },
     round:         document.getElementById('round-select').value,
     seat:          document.getElementById('seat-select').value,
     turn:          parseInt(document.getElementById('turn-input').value) || null,
