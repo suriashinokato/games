@@ -28,6 +28,7 @@
     // 直近に出題した登録問題のID (FIFO, 最大 RECENT_HISTORY_SIZE 件)。
     // モード切替やクイズ再開でリセットしないことで、跨いだ重複も抑制する。
     recentUserIds: [],
+    sessionUserIds: new Set(),
   };
 
   // ====== モード採点ロジック ======
@@ -57,6 +58,7 @@
     state.mode = mode;
     state.questionNum = 0;
     state.correct = 0;
+    state.sessionUserIds = new Set();
     nextQuestion();
   }
 
@@ -89,12 +91,13 @@
     const settings = T.storage ? T.storage.getSettings() : { source: 'random' };
     const source = settings.source || 'random';
     const userPool = T.storage ? T.storage.byMode(mode) : [];
+    const unusedUserPool = userPool.filter(p => !state.sessionUserIds.has(p.id));
 
     if (source === 'user' && userPool.length > 0) {
-      return pickFromPoolExcludingRecent(userPool, state.recentUserIds);
+      return pickFromPoolExcludingRecent(unusedUserPool.length > 0 ? unusedUserPool : userPool, state.recentUserIds);
     }
-    if (source === 'both' && userPool.length > 0 && Math.random() < 0.5) {
-      return pickFromPoolExcludingRecent(userPool, state.recentUserIds);
+    if (source === 'both' && unusedUserPool.length > 0 && Math.random() < 0.5) {
+      return pickFromPoolExcludingRecent(unusedUserPool, state.recentUserIds);
     }
     return T.randomHand.generateProblem(mode);
   }
@@ -103,6 +106,7 @@
     state.questionNum += 1;
     state.problem = fetchNextProblem(state.mode);
     if (state.problem && state.problem.source === 'user' && state.problem.id) {
+      state.sessionUserIds.add(state.problem.id);
       state.recentUserIds.push(state.problem.id);
       if (state.recentUserIds.length > RECENT_HISTORY_SIZE) {
         state.recentUserIds.shift();

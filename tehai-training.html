@@ -754,12 +754,31 @@
       flex-wrap: wrap;
     }
     .mode-tag {
-      background: linear-gradient(180deg, var(--accent-primary), var(--accent-primary-strong));
+      --mode-accent: var(--accent-primary);
+      --mode-accent-strong: var(--accent-primary-strong);
+      --mode-accent-soft: var(--accent-primary-soft);
+      background: linear-gradient(180deg, var(--mode-accent), var(--mode-accent-strong));
       color: white;
       font-size: 0.78rem;
       padding: 2px 10px;
       border-radius: 12px;
       font-weight: 600;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.32) inset, 0 4px 10px var(--mode-accent-soft);
+    }
+    .mode-tag[data-mode="shanten"] {
+      --mode-accent: var(--accent-indigo);
+      --mode-accent-strong: #344281;
+      --mode-accent-soft: var(--accent-indigo-soft);
+    }
+    .mode-tag[data-mode="ukeire"] {
+      --mode-accent: var(--accent-primary);
+      --mode-accent-strong: var(--accent-primary-strong);
+      --mode-accent-soft: var(--accent-primary-soft);
+    }
+    .mode-tag[data-mode="discard"] {
+      --mode-accent: var(--accent-brass);
+      --mode-accent-strong: #744818;
+      --mode-accent-soft: var(--accent-brass-soft);
     }
     .memo-tag {
       font-size: 0.85rem;
@@ -989,8 +1008,8 @@
   <script src="tehai-training-app/js/random-hand.js?v=20260512"></script>
   <script src="tehai-training-app/js/ui.js?v=20260513b"></script>
   <script src="tehai-training-app/js/storage.js?v=20260508"></script>
-  <script src="tehai-training-app/js/quiz.js?v=20260513b"></script>
-  <script src="tehai-training-app/js/manage.js?v=20260508"></script>
+  <script src="tehai-training-app/js/quiz.js?v=20260513c"></script>
+  <script src="tehai-training-app/js/manage.js?v=20260509"></script>
   <script src="tehai-training-app/js/cloud-sync.js?v=20260508"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {

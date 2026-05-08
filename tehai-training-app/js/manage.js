@@ -247,6 +247,7 @@
       head.className = 'problem-head';
       const tag = document.createElement('span');
       tag.className = 'mode-tag';
+      tag.dataset.mode = p.mode || '';
       tag.textContent = MODE_LABEL[p.mode] || p.mode;
       head.appendChild(tag);
       if (p.memo) {
