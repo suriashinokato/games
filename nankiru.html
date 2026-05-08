@@ -587,7 +587,7 @@
     /* 復習の副露表示 */
     .review-melds { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; }
 
-    .review-hand { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
+    .review-hand { display: flex; gap: 0; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; }
     .tile-slot.sm { width: calc(var(--tile-w) * 0.68); height: calc(var(--tile-h) * 0.68); font-size: 0.6rem; outline-width: 2px; border-radius: 4px; }
 
     .review-answer-label { display: inline-block; background: rgba(49,183,122,0.14); color: var(--correct); padding: 2px 10px; border-radius: 4px; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
@@ -2152,9 +2152,9 @@ function renderMeldReviewCard(card, q, entry) {
 
   // 手牌 + 副露
   const handRow = document.createElement('div');
-  handRow.style.cssText = 'display:flex;align-items:flex-end;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
+  handRow.style.cssText = 'display:flex;align-items:flex-end;gap:0;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
   const handDiv = document.createElement('div');
-  handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+  handDiv.style.cssText = 'display:flex;gap:0;flex-shrink:0;';
   let discardMarked = false;
   sortedHand(q.hand, q.hand.length === 14).forEach(c => {
     let extraClass = '';
@@ -2188,7 +2188,7 @@ function renderMeldReviewCard(card, q, entry) {
       (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
       (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
       (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
-    btn.textContent = (ACTION_LABELS[a] || a) + (isCorrect ? ' ✓' : '');
+    btn.textContent = ACTION_LABELS[a] || a;
     choiceRow.appendChild(btn);
   });
   card.appendChild(choiceRow);
@@ -2331,10 +2331,10 @@ async function showResult() {
 
       // 手牌 + 副露（同一行：手牌左・副露右）
       const handRow = document.createElement('div');
-      handRow.style.cssText = 'display:flex;align-items:flex-end;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
+      handRow.style.cssText = 'display:flex;align-items:flex-end;gap:0;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;';
 
       const handDiv = document.createElement('div');
-      handDiv.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+      handDiv.style.cssText = 'display:flex;gap:0;flex-shrink:0;';
       const reviewAnswers = getCorrectAnswers(q);
       sortedHand(q.hand, q.hand.length === 14).forEach(c => {
         const isOk = reviewAnswers.includes(c);
@@ -2364,7 +2364,7 @@ async function showResult() {
             (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
             (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
             (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
-          btn.textContent = (c === 'riichi' ? 'リーチ' : 'ダマ') + (isCorrect ? ' ✓' : '');
+          btn.textContent = c === 'riichi' ? 'リーチ' : 'ダマ';
           choiceRow.appendChild(btn);
         });
         card.appendChild(choiceRow);
@@ -2372,9 +2372,8 @@ async function showResult() {
 
       // 正解・解説
       const info = document.createElement('div');
-      const ans = document.createElement('span'); ans.className = 'review-answer-label'; ans.textContent = '正解: ' + getCorrectAnswers(q).map(tileLabel).join(' / ');
       const cmt = document.createElement('p'); cmt.className = 'review-commentary'; renderCommentary(q.commentary || '', cmt);
-      info.appendChild(ans); info.appendChild(cmt);
+      info.appendChild(cmt);
       const infoRow = document.createElement('div');
       infoRow.className = 'feedback-info-row';
       let urow = null;
@@ -2387,8 +2386,8 @@ async function showResult() {
         udet.appendChild(usum);
         urow = document.createElement('div');
         urow.className = 'ukeireru-row';
-        urow.style.display = 'none';
         renderUkeireru(q.ukeireru, urow);
+        urow.style.display = 'none';
         udet.addEventListener('toggle', () => {
           urow.style.display = udet.open ? '' : 'none';
         });
