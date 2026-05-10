@@ -328,8 +328,8 @@
     }
 
     U.showDialog(
-      '流局',
-      '<p>山がなくなりました。</p>' + handsHtml + tenpaiInfo + dealerInfo + chomboInfo,
+      '流局　山がなくなりました。',
+      handsHtml + tenpaiInfo + dealerInfo + chomboInfo,
       '次の局へ',
       function () {
         G.nextRound(state);

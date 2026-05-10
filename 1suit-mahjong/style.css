@@ -1017,4 +1017,115 @@ button:focus-visible,
     line-height: 1.15;
     border-radius: 4px;
   }
+
+  .dialog:not(.help-dialog) {
+    width: min(640px, 96vw);
+    max-width: 96vw;
+    max-height: 96vh;
+    max-height: 96dvh;
+    padding: 8px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .dialog:not(.help-dialog) h2 {
+    margin-bottom: 4px;
+    font-size: 1.08rem;
+    line-height: 1.15;
+  }
+
+  .dialog:not(.help-dialog) .dialog-body {
+    margin: 4px 0 6px;
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  .dialog:not(.help-dialog) .dialog-player-section {
+    margin: 3px 0;
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+
+  .dialog:not(.help-dialog) .dialog-player-label {
+    margin-bottom: 2px;
+    font-size: 0.7rem;
+    line-height: 1.1;
+  }
+
+  .dialog:not(.help-dialog) .dialog-hand {
+    gap: 1px;
+    margin-bottom: 2px;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .dialog:not(.help-dialog) .dialog-tile .tile {
+    width: calc(var(--tile-w) * 0.7);
+    height: calc(var(--tile-h) * 0.7);
+  }
+
+  .dialog:not(.help-dialog) .dialog-tile.drawn {
+    margin-left: 4px;
+  }
+
+  .dialog:not(.help-dialog) .dialog-meld {
+    margin-left: 3px;
+    padding: 1px;
+  }
+
+  .dialog:not(.help-dialog) .dialog-meld .tile {
+    width: calc(var(--tile-w) * 0.58);
+    height: calc(var(--tile-h) * 0.58);
+  }
+
+  .dialog:not(.help-dialog) .dialog-waits-line {
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 0.7rem;
+    line-height: 1.1;
+  }
+
+  .dialog:not(.help-dialog) .waits-tiles .tile {
+    width: calc(var(--tile-w) * 0.56);
+    height: calc(var(--tile-h) * 0.56);
+  }
+
+  .dialog:not(.help-dialog) .yaku-list {
+    margin: 3px 0 4px;
+    font-size: 0.82rem;
+    line-height: 1.2;
+  }
+
+  .dialog:not(.help-dialog) .rank-line {
+    margin: 3px 0;
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+
+  .dialog:not(.help-dialog) .points-line {
+    margin-top: 3px;
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+
+  .dialog:not(.help-dialog) .points-line b {
+    font-size: 1.16rem;
+  }
+
+  .dialog:not(.help-dialog) .chombo-msg {
+    margin: 4px 0 5px;
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .dialog:not(.help-dialog) button {
+    padding: 5px 18px;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    border-radius: 5px;
+  }
+
+  .dialog:not(.help-dialog) .dialog-actions {
+    gap: 8px;
+  }
 }
