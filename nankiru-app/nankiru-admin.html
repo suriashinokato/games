@@ -128,7 +128,7 @@
       font-variant-numeric: tabular-nums lining-nums;
     }
 
-    .screen { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+    .screen { width: 100%; max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; overflow-x: hidden; }
 
     .page-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -566,6 +566,79 @@
       cursor:pointer; transition:color 0.15s, border-color 0.15s;
     }
     .tag-filter-clear:hover { color:var(--wrong); border-color:var(--wrong); }
+
+    @media (max-width: 480px) {
+      body { overflow-x: hidden; }
+      .screen { padding: 20px 12px 48px; }
+      .section { padding: 14px 12px; border-radius: 10px; }
+      .page-header { align-items: flex-start; }
+
+      .section-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        border-bottom: 0;
+      }
+      .section-tab {
+        min-width: 0;
+        justify-content: center;
+        padding: 8px 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-bottom: 0;
+        font-size: 0.78rem;
+        white-space: normal;
+        line-height: 1.25;
+      }
+      .section-tab.active {
+        border-color: var(--accent);
+        background: var(--accent-dim);
+      }
+
+      .hand-count { line-height: 1.5; }
+      .editor-hand {
+        max-width: 100%;
+        overflow: hidden;
+      }
+      .editor-hand .e-tile {
+        width: min(40px, calc((100vw - 92px) / 14));
+        height: calc(min(40px, calc((100vw - 92px) / 14)) * 1.4);
+      }
+
+      .palette-row { gap: 3px; }
+      .palette-tile,
+      .editor-dora .d-tile,
+      .mb-preview .mb-tile,
+      .meld-q-tile {
+        width: 36px;
+        height: 50px;
+      }
+      .extra-grid { gap: 5px; }
+      .extra-cell {
+        width: calc((100% - 20px) / 5);
+        min-width: 0;
+        padding: 5px 3px 4px;
+      }
+      .extra-cell .ec-tile {
+        width: 36px;
+        max-width: 100%;
+        height: 50px;
+      }
+      .meld-list-item { align-items: flex-start; flex-direction: column; }
+      .meld-builder-actions,
+      .editor-actions,
+      .tag-input-row,
+      .mgmt-add-row {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .tag-input-row input,
+      .tag-input-row .btn,
+      .mgmt-add-row button {
+        width: 100%;
+        max-width: none !important;
+      }
+    }
   </style>
 </head>
 <body>
