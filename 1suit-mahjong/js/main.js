@@ -99,27 +99,17 @@
                                 && state.player.isRiichi
                                 && state.player.discard.length === state.player.riichiTurnIndex;
 
-    // ツモ・ロンボタンは「成立可否を問わず」常時表示（押せば誤ツモ／誤ロンチョンボの可能性）
-    // ただしリーチ宣言ターンの打牌前はツモボタンを出さない（牌を選ぶ操作優先）
-    state.canTsumo  = isMyTurnDrawPhase
-                      && state.player.drawn !== null
-                      && !state.isRiichiDeclareTurn;
-    state.canRon    = isOpponentDiscard;
-    state.canPass   = isOpponentDiscard;
-
-    state.canRiichi = isMyTurnDrawPhase
-                      && !state.player.isRiichi
-                      && G.canDeclareRiichi(state, 'player');
+    // ツモ・ロン・リーチ・ツモ切りは「成立可否を問わず」常時表示。
+    // 誤ツモはチョンボ、ノーテンリーチは流局時チョンボ、宣言不可なリーチ等はクリック側で握り潰す。
+    state.canTsumo     = isMyTurnDrawPhase && state.player.drawn !== null;
+    state.canRon       = isOpponentDiscard;
+    state.canPass      = isOpponentDiscard;
+    state.canRiichi    = isMyTurnDrawPhase;
+    state.canTsumogiri = isMyTurnDrawPhase && state.player.drawn !== null;
 
     state.canKan = isMyTurnDrawPhase
                    ? G.canDeclareKan(state, 'player')
                    : [];
-
-    // ツモ切りボタン: リーチ宣言ターンより後の自分の手番でのみ有効（手出し禁止状態）
-    state.canTsumogiri = isMyTurnDrawPhase
-                         && state.player.drawn !== null
-                         && state.player.isRiichi
-                         && state.player.discard.length > state.player.riichiTurnIndex;
 
     U.renderTable(state, {
       onTileClick: onTileClick,
@@ -168,8 +158,10 @@
 
   function onPlayerRiichi() {
     if (!state.canRiichi) return;
+    // 既にリーチ済み・点数不足など宣言不可な場合は無視（誤クリック扱い）
+    if (!G.canDeclareRiichi(state, 'player')) return;
     G.declareRiichi(state, 'player');
-    refresh();      // canRiichi が消え、手出し禁止モードに（宣言ターンは打牌自由）
+    refresh();      // 宣言ターンは打牌自由、以降の手番は強制ツモ切り
   }
 
   function onPlayerKan(tile) {
@@ -328,7 +320,7 @@
     }
 
     U.showDialog(
-      '流局　山がなくなりました。',
+      '流局',
       handsHtml + tenpaiInfo + dealerInfo + chomboInfo,
       '次の局へ',
       function () {
