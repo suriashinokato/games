@@ -833,74 +833,86 @@ button:focus-visible,
     overflow-x: hidden;
     overflow-y: auto;
   }
-
   .screen {
     padding: 0;
   }
 
   #screen-title {
+    position: relative;
     min-height: calc(100vh - 8px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     min-height: calc(100dvh - 8px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     justify-content: center;
-    overflow: hidden;
+    padding: 12px clamp(24px, 7vw, 72px);
+    overflow: visible;
+  }
+
+  #help-title-btn {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top));
+    right: calc(8px + env(safe-area-inset-right));
+    z-index: 1;
+    margin: 0;
+    padding: 6px 12px;
+    font-size: 0.82rem;
   }
 
   #screen-title .title {
-    margin: 0 0 6px;
-    font-size: 2rem;
-    line-height: 1.1;
+    margin: 0 0 10px;
+    font-size: clamp(2.15rem, 5.2vw, 3rem);
+    line-height: 1.08;
   }
 
   #screen-title .subtitle {
-    margin: 0 0 8px;
-    font-size: 0.92rem;
-    line-height: 1.35;
-  }
-
-  #screen-title .rule-summary {
-    max-width: min(760px, 94vw);
-    margin: 8px auto;
-    padding: 10px 16px 10px 34px;
-    font-size: 0.82rem;
+    margin: 0 0 12px;
+    font-size: clamp(0.98rem, 2vw, 1.18rem);
     line-height: 1.45;
   }
 
+  #screen-title .rule-summary {
+    max-width: min(920px, 94vw);
+    margin: 12px auto;
+    padding: 14px 24px 14px 42px;
+    font-size: clamp(0.9rem, 1.55vw, 1rem);
+    line-height: 1.58;
+  }
+
   #screen-title .rule-summary li {
-    margin: 2px 0;
+    margin: 3px 0;
   }
 
   #screen-title .title-actions {
-    margin-top: 10px;
+    margin-top: 16px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 14px;
+    flex-wrap: wrap;
   }
 
   #screen-title .big-btn {
     margin: 0;
-    padding: 9px 38px 8px;
-    font-size: 1.05rem;
+    padding: 12px 52px 11px;
+    font-size: 1.15rem;
     line-height: 1.15;
   }
 
   #screen-title .link-btn {
     margin: 0;
-    padding: 7px 16px;
-    font-size: 0.8rem;
+    padding: 6px 12px;
+    font-size: 0.82rem;
     line-height: 1.15;
   }
 
   #screen-table {
-    height: 100%;
-    min-height: 0;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    overflow: hidden;
+    overflow: visible;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
 
   .info-bar {
@@ -1079,8 +1091,8 @@ button:focus-visible,
   }
 
   .dialog:not(.help-dialog) {
-    width: min(640px, 96vw);
-    max-width: 96vw;
+    width: min(860px, 97vw);
+    max-width: 97vw;
     max-height: 96vh;
     max-height: 96dvh;
     padding: 8px 12px;
@@ -1089,39 +1101,43 @@ button:focus-visible,
   }
 
   .dialog:not(.help-dialog) h2 {
-    margin-bottom: 4px;
+    margin: 4px 0 10px;
     font-size: 1.08rem;
-    line-height: 1.15;
+    line-height: 1.35;
   }
 
   .dialog:not(.help-dialog) .dialog-body {
-    margin: 4px 0 6px;
+    margin: 6px 0 8px;
     font-size: 0.82rem;
-    line-height: 1.25;
+    line-height: 1.35;
   }
 
   .dialog:not(.help-dialog) .dialog-player-section {
-    margin: 3px 0;
-    padding: 4px 6px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 6px 0;
+    padding: 7px 9px;
     border-radius: 4px;
   }
 
   .dialog:not(.help-dialog) .dialog-player-label {
-    margin-bottom: 2px;
+    margin-bottom: 0;
     font-size: 0.7rem;
     line-height: 1.1;
   }
 
   .dialog:not(.help-dialog) .dialog-hand {
     gap: 1px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
     padding-bottom: 0;
-    overflow: hidden;
+    overflow-x: auto;
   }
 
   .dialog:not(.help-dialog) .dialog-tile .tile {
-    width: calc(var(--tile-w) * 0.7);
-    height: calc(var(--tile-h) * 0.7);
+    width: calc(var(--tile-w) * 0.82);
+    height: calc(var(--tile-h) * 0.82);
   }
 
   .dialog:not(.help-dialog) .dialog-tile.drawn {
@@ -1134,38 +1150,52 @@ button:focus-visible,
   }
 
   .dialog:not(.help-dialog) .dialog-meld .tile {
-    width: calc(var(--tile-w) * 0.58);
-    height: calc(var(--tile-h) * 0.58);
+    width: calc(var(--tile-w) * 0.68);
+    height: calc(var(--tile-h) * 0.68);
   }
 
   .dialog:not(.help-dialog) .dialog-waits-line {
+    display: grid;
+    grid-template-columns: 2.4em minmax(0, calc(var(--tile-w) * 0.68 * var(--dialog-waits-count, 1) + 8px));
+    justify-self: end;
+    justify-content: end;
+    align-items: center;
     gap: 4px;
-    margin-top: 2px;
+    margin-top: 0;
+    width: min(calc(2.4em + 4px + var(--tile-w) * 0.68 * var(--dialog-waits-count, 1) + 8px), 100%);
+    max-width: 100%;
     font-size: 0.7rem;
     line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .dialog:not(.help-dialog) .waits-tiles {
+    justify-content: flex-start;
+    min-width: 0;
+    overflow-x: auto;
   }
 
   .dialog:not(.help-dialog) .waits-tiles .tile {
-    width: calc(var(--tile-w) * 0.56);
-    height: calc(var(--tile-h) * 0.56);
+    width: calc(var(--tile-w) * 0.68);
+    height: calc(var(--tile-h) * 0.68);
   }
 
   .dialog:not(.help-dialog) .yaku-list {
-    margin: 3px 0 4px;
+    margin: 6px 0 7px;
     font-size: 0.82rem;
-    line-height: 1.2;
+    line-height: 1.3;
   }
 
   .dialog:not(.help-dialog) .rank-line {
-    margin: 3px 0;
+    margin: 5px 0;
     font-size: 1rem;
-    line-height: 1.15;
+    line-height: 1.25;
   }
 
   .dialog:not(.help-dialog) .points-line {
-    margin-top: 3px;
+    margin-top: 5px;
     font-size: 1rem;
-    line-height: 1.15;
+    line-height: 1.25;
   }
 
   .dialog:not(.help-dialog) .points-line b {

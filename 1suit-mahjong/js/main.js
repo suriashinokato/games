@@ -104,7 +104,7 @@
     state.canTsumo     = isMyTurnDrawPhase && state.player.drawn !== null;
     state.canRon       = isOpponentDiscard;
     state.canPass      = isOpponentDiscard;
-    state.canRiichi    = isMyTurnDrawPhase;
+    state.canRiichi    = isMyTurnDrawPhase && !state.player.isRiichi;
     state.canTsumogiri = isMyTurnDrawPhase && state.player.drawn !== null;
 
     state.canKan = isMyTurnDrawPhase

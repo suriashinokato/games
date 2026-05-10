@@ -280,6 +280,7 @@ window.Bamboo = window.Bamboo || {};
 
     var pWaits = computeWaits(state, 'player');
     var cWaits = computeWaits(state, 'cpu');
+    var maxDialogWaits = Math.max(pWaits.length, cWaits.length, 1);
     var handsHtml = ''
       + buildDialogPlayerSection(state, 'cpu',    cWaits, w)
       + buildDialogPlayerSection(state, 'player', pWaits, w);
@@ -317,6 +318,7 @@ window.Bamboo = window.Bamboo || {};
         + '<div class="points-line"><b>' + w.points.toLocaleString() + '</b> 点 → '
         + WHO_LABEL[w.winner] + ' へ</div>';
       showDialog(chomboBy + ' チョンボ（' + chomboTypeLabel + '）', body, '次の局へ', onContinue);
+      document.getElementById('result-dialog').style.setProperty('--dialog-waits-count', maxDialogWaits);
       return;
     }
 
@@ -334,6 +336,7 @@ window.Bamboo = window.Bamboo || {};
       + hanLine
       + '<div class="points-line"><b>' + pointsLabel + '</b> 点 移動</div>';
 
+    document.getElementById('result-dialog').style.setProperty('--dialog-waits-count', maxDialogWaits);
     showDialog(winnerLabel + ' ' + winTypeLabel + ' 和了', winBody, '次の局へ', onContinue);
   }
 
