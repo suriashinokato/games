@@ -825,7 +825,7 @@ button:focus-visible,
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
   :root {
-    --tile-w: clamp(22px, min(calc((100vw - 84px) / 14.5), calc((100dvh - 174px) / 5.4)), 34px);
+    --tile-w: clamp(22px, min(calc((100vw - 84px) / 14.5), calc((100dvh - 186px) / 5.4)), 34px);
     --tile-h: calc(var(--tile-w) * 4 / 3);
   }
 
@@ -997,6 +997,7 @@ button:focus-visible,
   .hand-section {
     flex: 0 0 auto;
     flex-direction: row;
+    justify-content: center;
     align-items: flex-end;
     flex-wrap: nowrap;
     gap: 5px;
@@ -1005,8 +1006,12 @@ button:focus-visible,
   }
 
   .hand-row {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     flex-wrap: nowrap;
+    justify-content: flex-start;
+    /* 手牌行の幅を最大手牌(13枚 + ツモ1枚)で固定し、ツモ時に位置がずれないようにする。
+       内訳: 14*牌幅 + 13個の1pxギャップ + ツモ牌の左マージン4px = 14*tile_w + 17px */
+    width: calc(var(--tile-w) * 14 + 17px);
     min-height: var(--tile-h);
     padding: 1px 0;
     gap: 1px;
@@ -1052,6 +1057,9 @@ button:focus-visible,
     height: calc(var(--tile-h) * 0.82 + 6px);
     min-height: 0;
     max-height: calc(var(--tile-h) * 0.82 + 6px);
+    /* 手牌行と同じ幅・中央寄せにすることで、捨て牌の左端が手牌の左端の牌と揃う */
+    width: calc(var(--tile-w) * 14 + 17px);
+    align-self: center;
     margin-top: 3px;
     padding: 2px;
     gap: 1px;
@@ -1067,6 +1075,9 @@ button:focus-visible,
 
   .riichi-bar {
     flex: 0 0 auto;
+    /* 捨て牌と同じ幅・中央配置にして、立直棒の位置を捨て牌の左端と揃える */
+    width: calc(var(--tile-w) * 14 + 17px);
+    align-self: center;
     min-height: 10px;
     max-height: 12px;
     padding: 1px 2px;
@@ -1087,26 +1098,28 @@ button:focus-visible,
 
   .action-bar {
     flex: 0 0 auto;
-    min-height: 24px;
-    margin-top: 3px;
-    gap: 4px;
+    min-height: 36px;
+    margin-top: 4px;
+    gap: 8px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
   }
 
   .action-btn {
-    padding: 3px 10px;
-    font-size: 0.72rem;
-    line-height: 1.15;
-    border-radius: 4px;
+    padding: 8px 20px;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    border-radius: 6px;
+    min-height: 36px;
   }
 
   .action-prompt {
     margin-left: 0;
-    padding: 2px 8px;
-    font-size: 0.72rem;
-    line-height: 1.15;
-    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    border-radius: 6px;
   }
 
   .dialog:not(.help-dialog) {

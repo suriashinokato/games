@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="shared/brand/nankiru-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="shared/brand/nankiru-logo-180.png">
   <link rel="manifest" href="nankiru.webmanifest">
-  <meta name="theme-color" content="#1f5a3c">
+  <meta name="theme-color" content="#0b2f68">
   <meta name="apple-mobile-web-app-title" content="何切る">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -817,21 +817,26 @@
       #screen-quiz.is-answered {
         --tile-w: min(44px, calc((100vw - 48px) / 14.4));
         height: 100dvh;
+        padding: 2px 10px 8px;
         justify-content: flex-start;
         overflow: hidden;
       }
+      #screen-quiz.is-answered #btn-quiz-back {
+        display: none;
+      }
       #screen-quiz.is-answered .quiz-header {
         flex-shrink: 0;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
       #screen-quiz.is-answered .progress-meta {
-        margin-bottom: 2px;
+        justify-content: flex-end;
+        margin-bottom: 1px;
       }
       #screen-quiz.is-answered .situation-bar {
         flex-shrink: 0;
         gap: 8px;
         padding: 4px 8px;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
       }
       #screen-quiz.is-answered .situation-round,
       #screen-quiz.is-answered .situation-memo {
@@ -843,8 +848,8 @@
       }
       #screen-quiz.is-answered .hand-wrap {
         flex-shrink: 0;
-        padding: 0 0 4px;
-        margin-bottom: 4px;
+        padding: 0 0 3px;
+        margin-bottom: 3px;
       }
       #screen-quiz.is-answered .hand-tiles {
         padding: 2px 4px;
@@ -852,6 +857,22 @@
       #screen-quiz.is-answered .tsumo-label {
         top: -11px;
         font-size: 0.56rem;
+      }
+      #screen-quiz.is-answered .tile-slot.correct,
+      #screen-quiz.is-answered .tile-slot.wrong {
+        box-shadow: 0 0 8px rgba(49,183,122,0.35);
+        animation: none;
+      }
+      #screen-quiz.is-answered .tile-slot.wrong {
+        box-shadow: 0 0 8px rgba(201,75,75,0.35);
+      }
+      #screen-quiz.is-answered .tile-slot.correct::after,
+      #screen-quiz.is-answered .tile-slot.wrong::after {
+        border-width: 2px;
+        border-radius: 5px;
+      }
+      #screen-quiz.is-answered .tile-slot.correct::before {
+        display: none;
       }
       #screen-quiz.is-answered .feedback-area {
         flex: 1 1 auto;
