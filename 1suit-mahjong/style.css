@@ -811,3 +811,208 @@ button:focus-visible,
   .dialog-meld { margin-left: 4px; }
   .waits-tiles .tile { width: 26px; height: 35px; }
 }
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  :root {
+    --tile-w: clamp(22px, min(calc((100vw - 84px) / 14.5), calc((100dvh - 174px) / 5.4)), 34px);
+    --tile-h: calc(var(--tile-w) * 4 / 3);
+  }
+
+  html,
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  #app {
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: 4px calc(6px + env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .screen {
+    padding: 0;
+  }
+
+  #screen-table {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .info-bar {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    padding: 4px 6px;
+    gap: 6px;
+    font-size: 0.68rem;
+    line-height: 1.15;
+    border-radius: 5px;
+  }
+
+  .info-bar-actions {
+    gap: 4px;
+  }
+
+  .info-help-btn {
+    padding: 2px 8px;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  .player-area {
+    flex: 1 1 0;
+    min-height: 0;
+    margin: 0;
+    padding: 4px 6px;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .area-cpu,
+  .area-self {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .area-cpu {
+    border-top-width: 2px;
+  }
+
+  .area-self {
+    border-top-width: 2px;
+  }
+
+  .player-name {
+    flex: 0 0 auto;
+    margin-bottom: 2px;
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+
+  .player-name span {
+    margin-left: 4px;
+  }
+
+  .dealer-mark {
+    padding: 0 6px;
+    font-size: 0.64rem;
+    border-radius: 8px;
+  }
+
+  .hand-section {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 2px;
+    min-height: 0;
+  }
+
+  .hand-row {
+    flex-wrap: nowrap;
+    min-height: var(--tile-h);
+    padding: 1px 0;
+    gap: 1px;
+    overflow: hidden;
+  }
+
+  .tile {
+    border-radius: 3px;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.32));
+  }
+
+  .tile-btn {
+    border-radius: 3px;
+  }
+
+  .tile-btn:not(:disabled):hover {
+    transform: translateY(-3px);
+  }
+
+  .tile-btn.drawn {
+    margin-left: 4px;
+  }
+
+  .meld-row {
+    flex-wrap: nowrap;
+    gap: 1px;
+  }
+
+  .meld-set {
+    padding: 1px;
+    border-radius: 3px;
+  }
+
+  .meld-set .tile {
+    width: calc(var(--tile-w) * 0.78);
+    height: calc(var(--tile-h) * 0.78);
+  }
+
+  .discard {
+    flex: 1 1 auto;
+    min-height: calc(var(--tile-h) * 0.56);
+    margin-top: 3px;
+    padding: 2px;
+    gap: 1px;
+    overflow: hidden;
+    border-radius: 3px;
+    align-content: flex-start;
+  }
+
+  .discard .tile {
+    width: calc(var(--tile-w) * 0.56);
+    height: calc(var(--tile-h) * 0.56);
+  }
+
+  .riichi-bar {
+    flex: 0 0 auto;
+    min-height: 10px;
+    max-height: 12px;
+    padding: 1px 2px;
+    overflow: hidden;
+  }
+
+  .area-cpu .riichi-bar {
+    margin-top: 1px;
+  }
+
+  .area-self .riichi-bar {
+    margin-bottom: 1px;
+  }
+
+  .riichi-stick {
+    width: calc(var(--tile-w) * 2.4);
+  }
+
+  .action-bar {
+    flex: 0 0 auto;
+    min-height: 24px;
+    margin-top: 3px;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .action-btn {
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    line-height: 1.15;
+    border-radius: 4px;
+  }
+
+  .action-prompt {
+    margin-left: 0;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    line-height: 1.15;
+    border-radius: 4px;
+  }
+}
