@@ -868,7 +868,7 @@ button:focus-visible,
   }
 
   .player-area {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-height: 0;
     margin: 0;
     padding: 4px 6px;
@@ -957,8 +957,10 @@ button:focus-visible,
   }
 
   .discard {
-    flex: 1 1 auto;
-    min-height: calc(var(--tile-h) * 0.56);
+    flex: 0 0 calc(var(--tile-h) * 0.82 + 6px);
+    height: calc(var(--tile-h) * 0.82 + 6px);
+    min-height: 0;
+    max-height: calc(var(--tile-h) * 0.82 + 6px);
     margin-top: 3px;
     padding: 2px;
     gap: 1px;
@@ -968,8 +970,8 @@ button:focus-visible,
   }
 
   .discard .tile {
-    width: calc(var(--tile-w) * 0.56);
-    height: calc(var(--tile-h) * 0.56);
+    width: calc(var(--tile-w) * 0.82);
+    height: calc(var(--tile-h) * 0.82);
   }
 
   .riichi-bar {
