@@ -2121,13 +2121,13 @@ function renderMeldReviewCard(card, q, entry) {
   const { selectedAction, selectedChiPair, selectedDiscard } = entry;
 
   // 局情報・ドラ
-  if (q.round || (q.dora && q.dora.length)) {
+  if (q.round || q.seat || q.turn || (q.dora && q.dora.length)) {
     const meta = document.createElement('div');
     meta.className = 'review-meta';
-    if (q.round || q.seat) {
+    if (q.round || q.seat || q.turn) {
       const rnd = document.createElement('span');
       rnd.className = 'review-meta-round';
-      rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' ');
+      rnd.textContent = [q.round, q.seat ? q.seat + '家' : '', q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' ');
       meta.appendChild(rnd);
     }
     if (q.dora && q.dora.length) {
@@ -2317,10 +2317,10 @@ async function showResult() {
       const { selectedCode, selectedRiichi } = entry;
 
       // 局情報・ドラ
-      if (q.round || (q.dora && q.dora.length)) {
+      if (q.round || q.seat || q.turn || (q.dora && q.dora.length)) {
         const meta = document.createElement('div');
         meta.className = 'review-meta';
-        if (q.round || q.seat) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = [q.round, q.seat ? q.seat + '家' : ''].filter(Boolean).join(' '); meta.appendChild(rnd); }
+        if (q.round || q.seat || q.turn) { const rnd = document.createElement('span'); rnd.className = 'review-meta-round'; rnd.textContent = [q.round, q.seat ? q.seat + '家' : '', q.turn ? q.turn + '巡目' : ''].filter(Boolean).join(' '); meta.appendChild(rnd); }
         if (q.dora && q.dora.length) {
           const dw = document.createElement('div'); dw.className = 'review-meta-dora';
           buildDoraStrip(q.dora, dw, true);

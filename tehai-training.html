@@ -447,7 +447,7 @@
       border-radius: 4px;
       background: white;
       cursor: pointer;
-      transition: transform 0.06s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      transition: transform 0.06s ease, box-shadow 0.12s ease;
     }
     .palette-tile img {
       width: 100%;
@@ -455,14 +455,18 @@
       object-fit: contain;
       pointer-events: none;
     }
-    .palette-tile:hover:not([disabled]) {
-      transform: translateY(-2px);
-      border-color: var(--accent-gold);
-      box-shadow: 0 8px 16px rgba(20,18,13,0.20);
+    /* 真のホバーが効くデバイス (マウス) のみホバー枠を表示。
+       タッチ端末で :hover が居座って選択状態が見えなくなる問題を防ぐ */
+    @media (hover: hover) {
+      .palette-tile:hover:not([disabled]):not(.selected) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(20,18,13,0.20);
+      }
     }
     .palette-tile.selected {
       border-color: var(--accent-primary);
-      box-shadow: 0 0 0 2px var(--accent-primary-soft), 0 8px 16px rgba(20,18,13,0.18);
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 0;
       background: #edf7f4;
     }
     .palette-tile.answer-correct {
