@@ -1156,13 +1156,13 @@ button:focus-visible,
 
   .dialog:not(.help-dialog) .dialog-waits-line {
     display: grid;
-    grid-template-columns: 2.4em minmax(0, calc(var(--tile-w) * 0.68 * var(--dialog-waits-count, 1) + 8px));
+    grid-template-columns: 2.4em minmax(0, calc(var(--wait-tile-w, calc(var(--tile-w) * 0.68)) * var(--dialog-waits-count, 1) + 10px));
     justify-self: end;
     justify-content: end;
     align-items: center;
     gap: 4px;
     margin-top: 0;
-    width: min(calc(2.4em + 4px + var(--tile-w) * 0.68 * var(--dialog-waits-count, 1) + 8px), 100%);
+    width: min(calc(2.4em + 4px + var(--wait-tile-w, calc(var(--tile-w) * 0.68)) * var(--dialog-waits-count, 1) + 10px), 100%);
     max-width: 100%;
     font-size: 0.7rem;
     line-height: 1.1;
@@ -1172,12 +1172,12 @@ button:focus-visible,
   .dialog:not(.help-dialog) .waits-tiles {
     justify-content: flex-start;
     min-width: 0;
-    overflow-x: auto;
+    overflow: visible;
   }
 
   .dialog:not(.help-dialog) .waits-tiles .tile {
-    width: calc(var(--tile-w) * 0.68);
-    height: calc(var(--tile-h) * 0.68);
+    width: var(--wait-tile-w, calc(var(--tile-w) * 0.68));
+    height: var(--wait-tile-h, calc(var(--tile-h) * 0.68));
   }
 
   .dialog:not(.help-dialog) .yaku-list {

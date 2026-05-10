@@ -281,6 +281,8 @@ window.Bamboo = window.Bamboo || {};
     var pWaits = computeWaits(state, 'player');
     var cWaits = computeWaits(state, 'cpu');
     var maxDialogWaits = Math.max(pWaits.length, cWaits.length, 1);
+    var dialogWaitTileW = Math.max(18, Math.min(24, Math.floor(168 / maxDialogWaits)));
+    var dialogWaitTileH = Math.round(dialogWaitTileW * 4 / 3);
     var handsHtml = ''
       + buildDialogPlayerSection(state, 'cpu',    cWaits, w)
       + buildDialogPlayerSection(state, 'player', pWaits, w);
@@ -318,7 +320,7 @@ window.Bamboo = window.Bamboo || {};
         + '<div class="points-line"><b>' + w.points.toLocaleString() + '</b> 点 → '
         + WHO_LABEL[w.winner] + ' へ</div>';
       showDialog(chomboBy + ' チョンボ（' + chomboTypeLabel + '）', body, '次の局へ', onContinue);
-      document.getElementById('result-dialog').style.setProperty('--dialog-waits-count', maxDialogWaits);
+      setDialogWaitsMetrics(maxDialogWaits, dialogWaitTileW, dialogWaitTileH);
       return;
     }
 
@@ -336,8 +338,15 @@ window.Bamboo = window.Bamboo || {};
       + hanLine
       + '<div class="points-line"><b>' + pointsLabel + '</b> 点 移動</div>';
 
-    document.getElementById('result-dialog').style.setProperty('--dialog-waits-count', maxDialogWaits);
     showDialog(winnerLabel + ' ' + winTypeLabel + ' 和了', winBody, '次の局へ', onContinue);
+    setDialogWaitsMetrics(maxDialogWaits, dialogWaitTileW, dialogWaitTileH);
+  }
+
+  function setDialogWaitsMetrics(count, tileW, tileH) {
+    var dlg = document.getElementById('result-dialog');
+    dlg.style.setProperty('--dialog-waits-count', count);
+    dlg.style.setProperty('--wait-tile-w', tileW + 'px');
+    dlg.style.setProperty('--wait-tile-h', tileH + 'px');
   }
 
   // ダイアログ内に表示するプレイヤー手牌+待ち牌セクション
