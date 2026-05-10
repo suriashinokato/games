@@ -911,6 +911,7 @@
 
     /* 認証バーはホーム画面のみ表示 */
     body:not(:has([data-screen="home"].active)) .auth-bar { display: none; }
+    body:has([data-screen="quiz"].active) > header { display: none; }
   </style>
 </head>
 <body>
