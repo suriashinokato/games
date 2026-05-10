@@ -170,6 +170,15 @@
     submitBtn.id = 'ukeire-submit';
     submitBtn.addEventListener('click', onUkeireSubmit);
     submitRow.appendChild(submitBtn);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'secondary-btn';
+    clearBtn.textContent = '選択をクリア';
+    clearBtn.id = 'ukeire-clear';
+    clearBtn.addEventListener('click', onUkeireClear);
+    submitRow.appendChild(clearBtn);
+
     container.appendChild(submitRow);
   }
 
@@ -184,6 +193,12 @@
     } else {
       state.ukeireSelection.add(tile);
     }
+    drawUkeirePalette(document.querySelector('#answer-area .palette'));
+  }
+
+  function onUkeireClear() {
+    if (state.answered) return;
+    state.ukeireSelection.clear();
     drawUkeirePalette(document.querySelector('#answer-area .palette'));
   }
 
