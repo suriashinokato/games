@@ -595,6 +595,13 @@ html, body {
   gap: 1px;
 }
 
+/* 暗槓が無いときは meld-row 自体を flex レイアウトから外す。
+   これがないと hand-section の gap (5px) が常に適用され、
+   ツモ有/無で hand-section の幅が変動して手牌位置が微妙にずれる。 */
+.meld-row:empty {
+  display: none;
+}
+
 .meld-set {
   display: inline-flex;
   gap: 1px;
@@ -641,6 +648,7 @@ html, body {
 
 .waits-line {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 8px;
   margin: 8px 0;
@@ -690,11 +698,19 @@ html, body {
 .dialog-hand {
   display: flex;
   flex-wrap: nowrap;
+  /* 中身は左揃え。dialog-hand ブロック自体は min-width で 14枚分の幅を確保したうえで
+     margin: 0 auto により中央寄せする。これにより:
+     - ブロックは中央寄せ (見た目は中央ぞろえ)
+     - 両プレイヤーの dialog-hand 幅が同じなので、中央寄せ後の左端 x も一致 */
+  justify-content: flex-start;
   gap: 2px;
   align-items: flex-end;
-  margin-bottom: 6px;
+  margin: 0 auto 6px;
   overflow-x: auto;
   padding-bottom: 4px;
+  /* 14枚分の幅を最低確保 (ツモ有/無で枚数が変わっても dialog-hand 幅は同じ)。
+     親幅 (ダイアログ内側幅) を超える場合は 100% にキャップし、はみ出しを防ぐ */
+  min-width: min(calc(var(--tile-w) * 12 + 36px), 100%);
 }
 
 .dialog-tile {
@@ -821,6 +837,12 @@ button:focus-visible,
   .dialog-tile.drawn { margin-left: 6px; }
   .dialog-meld { margin-left: 4px; }
   .waits-tiles .tile { width: 26px; height: 35px; }
+
+  /* ポートレートでは dialog-tile が固定 26px なので、min-width も固定値で上書き。
+     14*26 + 13*2 + 6 = 396px が 14枚 + ツモマージン分 */
+  .dialog-hand {
+    min-width: min(396px, 100%);
+  }
 }
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
@@ -997,11 +1019,17 @@ button:focus-visible,
   .hand-section {
     flex: 0 0 auto;
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-end;
     flex-wrap: nowrap;
     gap: 5px;
     min-height: 0;
+    /* 最大手牌(13枚 + ツモ1枚 = 14枚 + ギャップ・ツモマージン)分の最小幅を確保し、
+       align-self: center で player-area 内で中央寄せ。これにより:
+       - 自分/相手・ツモ有無に関わらず手牌の左端 x が一致
+       - 暗槓面子は手牌の直後 (5px gap) に表示され、間に空白ができない */
+    min-width: calc(var(--tile-w) * 14 + 17px);
+    align-self: center;
     overflow: hidden;
   }
 
@@ -1009,9 +1037,6 @@ button:focus-visible,
     flex: 0 0 auto;
     flex-wrap: nowrap;
     justify-content: flex-start;
-    /* 手牌行の幅を最大手牌(13枚 + ツモ1枚)で固定し、ツモ時に位置がずれないようにする。
-       内訳: 14*牌幅 + 13個の1pxギャップ + ツモ牌の左マージン4px = 14*tile_w + 17px */
-    width: calc(var(--tile-w) * 14 + 17px);
     min-height: var(--tile-h);
     padding: 1px 0;
     gap: 1px;
@@ -1191,8 +1216,8 @@ button:focus-visible,
     display: grid;
     grid-template-columns: 2.4em minmax(0, calc(var(--wait-tile-w, calc(var(--tile-w) * 0.68)) * var(--dialog-waits-count, 1) + 10px));
     grid-column: 1 / -1;
-    justify-self: end;
-    justify-content: end;
+    justify-self: center;
+    justify-content: center;
     align-items: center;
     gap: 4px;
     margin-top: 0;
