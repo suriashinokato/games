@@ -304,6 +304,14 @@ html, body {
   margin-left: 6px;
 }
 
+.area-cpu .player-name {
+  margin-bottom: 8px;
+}
+
+.area-self .player-name {
+  margin-top: 8px;
+}
+
 /* ----- 手牌 ----- */
 
 .hand-row {
@@ -473,6 +481,7 @@ html, body {
 .action-bar {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
   margin-top: 8px;
   min-height: 36px;
 }
@@ -752,6 +761,8 @@ button:focus-visible,
   .info-bar { font-size: 0.72rem; gap: 6px; padding: 6px 8px; }
   .player-area { padding: 6px; margin: 8px 0; }
   .player-name { font-size: 0.8rem; }
+  .area-cpu .player-name { margin-bottom: 6px; }
+  .area-self .player-name { margin-top: 6px; }
   .action-btn { padding: 5px 12px; font-size: 0.9rem; }
   .meld-set { padding: 1px; }
   .tile-btn.drawn { margin-left: 4px; }
@@ -965,6 +976,14 @@ button:focus-visible,
     line-height: 1.15;
   }
 
+  .area-cpu .player-name {
+    margin-bottom: 4px;
+  }
+
+  .area-self .player-name {
+    margin-top: 4px;
+  }
+
   .player-name span {
     margin-left: 4px;
   }
@@ -1114,7 +1133,7 @@ button:focus-visible,
 
   .dialog:not(.help-dialog) .dialog-player-section {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 6px 10px;
     margin: 6px 0;
@@ -1132,6 +1151,7 @@ button:focus-visible,
     gap: 1px;
     margin-bottom: 0;
     padding-bottom: 0;
+    min-width: 0;
     overflow-x: auto;
   }
 
@@ -1157,6 +1177,7 @@ button:focus-visible,
   .dialog:not(.help-dialog) .dialog-waits-line {
     display: grid;
     grid-template-columns: 2.4em minmax(0, calc(var(--wait-tile-w, calc(var(--tile-w) * 0.68)) * var(--dialog-waits-count, 1) + 10px));
+    grid-column: 1 / -1;
     justify-self: end;
     justify-content: end;
     align-items: center;
