@@ -573,11 +573,91 @@
         --tile-h: 130px;
       }
 
-      header h1 { font-size: 1.3rem; }
-      .card { padding: 20px 16px; }
+      body {
+        min-height: 100svh;
+        padding: 20px 14px 28px;
+      }
 
-      .mode-buttons { flex-direction: column; align-items: center; }
-      .btn-mode { max-width: 100%; width: 100%; }
+      header {
+        margin-bottom: 22px;
+      }
+      header h1 { font-size: 1.4rem; }
+      header p {
+        font-size: 0.82rem;
+        margin-top: 3px;
+      }
+      #screen-home .card { padding: 22px 16px; }
+
+      .home-subtitle {
+        font-size: 0.82rem;
+        line-height: 1.75;
+        margin-bottom: 20px;
+      }
+      .difficulty-toggle {
+        margin-bottom: 18px !important;
+      }
+      .difficulty-toggle button {
+        padding: 9px 22px !important;
+        font-size: 0.88rem !important;
+      }
+      #diff-desc {
+        font-size: 0.76rem !important;
+        line-height: 1.45;
+        margin-top: 6px !important;
+      }
+
+      .mode-buttons {
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .btn-mode {
+        max-width: none;
+        min-width: 0;
+        padding: 14px 8px;
+        font-size: 1.04rem;
+        letter-spacing: 0.06em;
+      }
+      .btn-mode span.mode-label {
+        font-size: 0.7rem;
+        line-height: 1.35;
+        letter-spacing: 0;
+        margin-top: 4px;
+      }
+
+      .score-summary {
+        padding-top: 18px;
+      }
+      .score-summary h3 {
+        font-size: 0.78rem;
+        margin-bottom: 12px;
+      }
+      .score-grid {
+        gap: 10px;
+      }
+      .score-item {
+        padding: 12px 6px;
+      }
+      .score-item .mode-name {
+        font-size: 0.68rem;
+        letter-spacing: 0.03em;
+        line-height: 1.35;
+      }
+      .score-item .best-val {
+        font-size: 1.2rem;
+        margin-top: 3px;
+      }
+      .score-item .best-label {
+        font-size: 0.64rem;
+        line-height: 1.3;
+      }
+      .home-ranking-link {
+        margin-top: 18px !important;
+        padding-top: 12px !important;
+      }
+      .home-ranking-link a {
+        font-size: 0.8rem !important;
+        letter-spacing: 0.05em !important;
+      }
 
       #tile-area { gap: 12px; }
 
@@ -587,6 +667,7 @@
 
       .review-tile { width: 72px; height: 100px; }
     }
+
   </style>
 </head>
 <body>
@@ -601,12 +682,12 @@
   <div id="screen-home" class="screen active">
     <div class="card">
       <p class="home-subtitle">
-        2枚の牌姿のうち、<strong>孤立牌を切るべき方</strong>を選んでください。<br>
+        2枚の牌姿のうち、<strong>孤立牌を切るべき方</strong>を選んでください。
         モードを選んでスタート。ランダムで30問を解く方式です。
       </p>
 
       <!-- 難易度トグル -->
-      <div style="text-align:center;margin-bottom:14px;">
+      <div class="difficulty-toggle" style="text-align:center;margin-bottom:14px;">
         <div style="display:inline-flex;border:2px solid var(--border-gold);border-radius:var(--radius);overflow:hidden;">
           <button id="btn-diff-normal" style="padding:8px 22px;border:none;background:var(--accent-gold);color:#fff;font-family:var(--font);font-size:0.88rem;cursor:pointer;font-weight:bold;">基礎</button>
           <button id="btn-diff-hard"   style="padding:8px 22px;border:none;background:var(--bg-card);color:var(--text-main);font-family:var(--font);font-size:0.88rem;cursor:pointer;">実践</button>
@@ -629,29 +710,29 @@
         <h3>ベストスコア</h3>
         <div class="score-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
           <div class="score-item">
-            <div class="mode-name">19牌 基礎</div>
+            <div class="mode-name">19牌<br>基礎</div>
             <div class="best-val" id="home-best-19">—</div>
             <div class="best-label" id="home-attempts-19"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">28牌 基礎</div>
+            <div class="mode-name">28牌<br>基礎</div>
             <div class="best-val" id="home-best-28">—</div>
             <div class="best-label" id="home-attempts-28"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">19牌 実践</div>
+            <div class="mode-name">19牌<br>実践</div>
             <div class="best-val" id="home-best-19-hard">—</div>
             <div class="best-label" id="home-attempts-19-hard"></div>
           </div>
           <div class="score-item">
-            <div class="mode-name">28牌 実践</div>
+            <div class="mode-name">28牌<br>実践</div>
             <div class="best-val" id="home-best-28-hard">—</div>
             <div class="best-label" id="home-attempts-28-hard"></div>
           </div>
         </div>
       </div>
 
-      <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #e0d8c8;">
+      <div class="home-ranking-link" style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid #e0d8c8;">
         <a href="koritsuhai-app/ranking.html" style="font-family:var(--font);font-size:0.85rem;color:var(--text-sub);text-decoration:none;letter-spacing:0.08em;">優先順位一覧を見る →</a>
       </div>
     </div>
