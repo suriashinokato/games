@@ -371,6 +371,17 @@
     }
 
     /* 副露牌の通常スロット */
+    #screen-quiz.is-answered .melds-area {
+      gap: 6px;
+    }
+    #screen-quiz.is-answered .meld-group {
+      padding: 4px 3px 0;
+      border-radius: 5px;
+      transform: scale(0.84);
+      transform-origin: bottom left;
+      margin-right: calc(var(--meld-w) * -0.48);
+    }
+
     .meld-slot {
       flex-shrink: 0;
       position: relative;
@@ -628,6 +639,7 @@
     /* ===== チー/ポン/カン アクション選択ボタン行 ===== */
     .meld-choice-row { display: none; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 8px 0 24px; }
     .meld-choice-row.visible { display: flex; }
+    .incoming-tile-row > .meld-choice-row { margin: 0 0 0 2px; }
     .meld-btn { padding: 14px 32px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s; }
     .meld-btn:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
     .meld-btn:disabled { cursor: default; transform: none; }
@@ -760,6 +772,9 @@
       #screen-quiz .meld-choice-row {
         gap: 8px;
         margin: 4px 0 8px;
+      }
+      #screen-quiz .incoming-tile-row > .meld-choice-row {
+        margin: 0 0 0 2px;
       }
       #screen-quiz .meld-btn {
         padding: 9px 24px;
@@ -2290,6 +2305,7 @@ function renderMeldQuestion(q) {
     btn.onclick = () => onMeldActionClick(action, q);
     mcRow.appendChild(btn);
   });
+  inRow.appendChild(mcRow);
   mcRow.classList.add('visible');
 
   document.getElementById('q-instruction').style.display = 'none';
