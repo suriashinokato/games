@@ -901,91 +901,6 @@
         padding: 7px 6px;
         font-size: 0.78rem;
       }
-      #screen-quiz.is-answered.is-meld-question {
-        --tile-w: min(40px, calc((100vw - 48px) / 13));
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
-        column-gap: 8px;
-        row-gap: 2px;
-        align-content: start;
-        align-items: start;
-      }
-      #screen-quiz.is-answered.is-meld-question .quiz-header,
-      #screen-quiz.is-answered.is-meld-question .situation-bar,
-      #screen-quiz.is-answered.is-meld-question .hand-wrap,
-      #screen-quiz.is-answered.is-meld-question .feedback-area,
-      #screen-quiz.is-answered.is-meld-question .quiz-actions {
-        grid-column: 1 / -1;
-      }
-      #screen-quiz.is-answered.is-meld-question .incoming-tile-row {
-        grid-column: 1;
-        grid-row: 3;
-        justify-content: flex-start;
-        gap: 6px;
-        margin-bottom: 1px;
-      }
-      #screen-quiz.is-answered.is-meld-question .incoming-tile-row .tile-slot {
-        width: calc(var(--tile-w) * 0.82);
-        height: calc(var(--tile-h) * 0.82);
-      }
-      #screen-quiz.is-answered.is-meld-question .incoming-label {
-        font-size: 0.74rem;
-      }
-      #screen-quiz.is-answered.is-meld-question .meld-choice-row {
-        grid-column: 2;
-        grid-row: 3;
-        justify-content: flex-start;
-        align-self: center;
-        gap: 5px;
-        margin: 0;
-      }
-      #screen-quiz.is-answered.is-meld-question .meld-btn {
-        padding: 5px 14px;
-        font-size: 0.76rem;
-        border-radius: 8px;
-      }
-      #screen-quiz.is-answered.is-meld-question .hand-wrap {
-        grid-row: 4;
-        min-width: 0;
-        margin-bottom: 0;
-      }
-      #screen-quiz.is-answered.is-meld-question .hand-row {
-        justify-content: center;
-        gap: 4px;
-      }
-      #screen-quiz.is-answered.is-meld-question .hand-tiles {
-        padding: 1px 0;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-area {
-        grid-row: 5;
-        min-height: 0;
-        max-height: none;
-        overflow: auto;
-        padding: 6px 8px;
-        margin-bottom: 0;
-        border-radius: 8px;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-result {
-        font-size: 0.84rem;
-        margin-bottom: 3px;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-commentary {
-        font-size: 0.69rem;
-        line-height: 1.24;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-info-row {
-        gap: 4px;
-        margin-top: 3px;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-tags {
-        gap: 3px;
-        margin-top: 3px;
-      }
-      #screen-quiz.is-answered.is-meld-question .feedback-tags .card-tag {
-        padding: 1px 6px;
-        font-size: 0.64rem;
-      }
     }
 
   </style>
@@ -2101,15 +2016,13 @@ function renderQ() {
   const rawQ = st.problems[st.idx];
   const doMirror = !!rawQ.mirror && Math.random() < 0.5;
   const q = transformQuestion(rawQ, generateSuitMapping(), doMirror);
-  const quizScreen = document.getElementById('screen-quiz');
-  quizScreen.classList.remove('is-answered', 'is-meld-question');
+  document.getElementById('screen-quiz').classList.remove('is-answered');
   st.answered = false;
   st.riichiSelected = null;
   st.meldStep = 0;
   st.meldActionSelected = null;
   st.chiSelectedTiles = [];
   const isMeldQ = !!q.questionType;
-  quizScreen.classList.toggle('is-meld-question', isMeldQ);
 
   // 副露がある場合はタイル幅を縮小して見切れを防ぐ
   document.documentElement.style.setProperty('--tile-w', calcTileWidth(q.hand, q.melds));
