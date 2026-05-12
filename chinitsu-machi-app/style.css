@@ -374,6 +374,26 @@ body {
   color: #8b2418;
 }
 
+.result-msg .result-text {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.result-msg .result-detail {
+  margin-left: 12px;
+}
+
+.result-msg .result-wait-tile {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+.result-msg .result-wait-tile img.tile {
+  height: 26px;
+  vertical-align: middle;
+}
+
 .explanation {
   margin: 16px 0;
   padding: 12px 14px;
@@ -533,22 +553,57 @@ body {
   color: #444;
 }
 
-.alt-split {
-  margin-top: 8px;
-  padding: 8px;
-  background: #fafafa;
-  border: 1px dashed #ccc;
-  border-radius: 4px;
+.wait-card {
+  border: 1px solid #d8e2d8;
+  border-radius: 6px;
+  background: #fafdfb;
+  padding: 8px 10px;
+  margin-top: 12px;
 }
 
-.alt-split:first-of-type {
+.wait-card:first-of-type {
   margin-top: 0;
 }
 
-.alt-split .alt-label {
+.wait-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e8efe8;
+}
+
+.wait-card-header .wait-tile img.tile {
+  height: 32px;
+  vertical-align: middle;
+}
+
+.wait-card-header .wait-type {
+  background: #e8f4ec;
+  color: #0a5d3a;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
   font-size: 12px;
-  color: #777;
-  margin-bottom: 4px;
+}
+
+.wait-card-header .wait-desc {
+  color: #444;
+  font-size: 13px;
+  flex: 1 1 200px;
+}
+
+.block-label .label-tile {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.block-label .label-tile img.tile {
+  height: 20px;
+  vertical-align: middle;
+  margin: 0 2px;
 }
 
 .judge-row {
@@ -574,49 +629,6 @@ body {
 .judge-btn:disabled {
   background: #aaa;
   cursor: default;
-}
-
-.all-waits-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wait-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: #fafafa;
-  border-radius: 4px;
-  font-size: 13px;
-  flex-wrap: wrap;
-}
-
-.wait-row .wait-tile img.tile {
-  height: 28px;
-  vertical-align: middle;
-}
-
-.wait-row .wait-num {
-  font-weight: bold;
-  color: #0a5d3a;
-  min-width: 18px;
-  text-align: center;
-}
-
-.wait-row .wait-type {
-  background: #e8f4ec;
-  color: #0a5d3a;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 12px;
-}
-
-.wait-row .wait-desc {
-  color: #444;
-  flex: 1 1 200px;
 }
 
 .actions {
@@ -693,15 +705,16 @@ body {
   .meld img.tile {
     height: 28px;
   }
-  .wait-row .wait-tile img.tile {
-    height: 26px;
+  .wait-card-header .wait-tile img.tile {
+    height: 28px;
   }
-  .wait-row {
-    font-size: 12px;
-  }
-  .wait-row .wait-desc {
+  .wait-card-header .wait-desc {
     flex: 1 1 100%;   /* 説明文は折り返して全幅使う */
     margin-top: 2px;
+    font-size: 12px;
+  }
+  .result-msg .result-wait-tile img.tile {
+    height: 22px;
   }
 
   /* ブックマーク一覧の牌は小さめ */

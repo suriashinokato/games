@@ -149,15 +149,21 @@
     });
 
     var msg = document.getElementById('result-message');
-    var waitsStr = waitSet.join(', ');
+    var waitsImg = renderWaitTilesInline(waitSet, state.suit);
     if (isCorrect) {
-      msg.textContent = '○ 完答！  待ち牌は ' + waitsStr;
+      msg.innerHTML = '<span class="result-text">○ 完答！　待ち牌は</span>' + waitsImg;
       msg.className = 'result-msg correct';
     } else {
       var detail = '';
-      if (missed.length > 0) detail += '  選び忘れ: ' + missed.join(', ');
-      if (extra.length > 0) detail += '  余分: ' + extra.join(', ');
-      msg.textContent = '× 不正解。  待ち牌は ' + waitsStr + detail;
+      if (missed.length > 0) {
+        detail += '<span class="result-text result-detail">選び忘れ:</span>' +
+                  renderWaitTilesInline(missed, state.suit);
+      }
+      if (extra.length > 0) {
+        detail += '<span class="result-text result-detail">余分:</span>' +
+                  renderWaitTilesInline(extra, state.suit);
+      }
+      msg.innerHTML = '<span class="result-text">× 不正解。　待ち牌は</span>' + waitsImg + detail;
       msg.className = 'result-msg wrong';
     }
 
@@ -165,93 +171,83 @@
     showExplanation();
   }
 
+  function renderWaitTilesInline(waitNums, suit) {
+    return waitNums.map(function (n) {
+      return '<span class="result-wait-tile">' + tiles.renderTile(suit, n) + '</span>';
+    }).join('');
+  }
+
+  function renderWaitCard(w) {
+    var ex = explain.generateExplanation(state.hand, w);
+    if (!ex || !ex.primarySplit) return '';
+
+    var tileImg = tiles.renderTile(state.suit, w);
+    var html = '<div class="wait-card">';
+
+    // カードヘッダー: 待ち牌画像 + 型バッジ + 説明
+    html += '<div class="wait-card-header">';
+    html += '<span class="wait-tile">' + tileImg + '</span>';
+    html += '<span class="wait-type">' + escapeHtml(ex.classification.type) + '</span>';
+    html += '<span class="wait-desc">' + escapeHtml(ex.description) + '</span>';
+    html += '</div>';
+
+    // 手牌から完全メンツを抜く
+    html += '<div class="explain-section">';
+    html += '<div class="block-label">手牌から完全メンツを抜く（' +
+            '<span class="label-tile">' + tileImg + '</span> でアガる場合の例）</div>';
+    if (ex.classification.completeMelds.length > 0) {
+      html += '<div class="meld-row">' +
+              renderMelds(ex.classification.completeMelds, state.suit) +
+              '</div>';
+    } else {
+      html += '<div class="meld-row meld-row-empty">（抜けるメンツなし）</div>';
+    }
+    html += '</div>';
+
+    // 残った形
+    html += '<div class="explain-section">';
+    html += '<div class="block-label">残った形（雀頭+待ち部分）</div>';
+    html += '<div class="meld-row">' +
+            renderCore(ex.classification, ex.primarySplit, w, state.suit) +
+            '</div>';
+    html += '<div class="explain-wait-note">' +
+            buildCoreNote(ex.classification, ex.primarySplit, w) + '</div>';
+    html += '</div>';
+
+    // 全体分解
+    html += '<div class="explain-section">';
+    html += '<div class="block-label">全体分解（雀頭1 + 面子4）</div>';
+    html += '<div class="meld-row">' +
+            decompose.formatTilesHtml(ex.primarySplit, state.suit) + '</div>';
+    html += '<div class="decomp-text">' +
+            escapeHtml(decompose.formatText(ex.primarySplit)) + '</div>';
+    html += '</div>';
+
+    // algorithm.md のルール適用
+    var rules = decompose.describeRules(ex.primarySplit);
+    if (rules.length > 0) {
+      html += '<div class="explain-section">';
+      html += '<div class="block-label">algorithm.md のルール適用</div>';
+      html += '<ul class="rules-list">';
+      rules.forEach(function (r) {
+        html += '<li><span class="rule-name">' + escapeHtml(r.name) + '</span>' +
+                '<span class="rule-desc">' + escapeHtml(r.desc) + '</span></li>';
+      });
+      html += '</ul>';
+      html += '</div>';
+    }
+
+    html += '</div>';  // /.wait-card
+    return html;
+  }
+
   function showExplanation() {
     var body = document.getElementById('explanation-body');
     var html = '';
 
-    html += '<div class="explain-section">';
-    html += '<div class="block-label">待ち牌の分類（algorithm.md ⇒ 待ち型）</div>';
-    html += '<div class="all-waits-list">';
     state.waits.forEach(function (w) {
-      var ex = explain.generateExplanation(state.hand, w);
-      html += '<div class="wait-row">';
-      html += '<span class="wait-tile">' + tiles.renderTile(state.suit, w) + '</span>';
-      html += '<span class="wait-num">' + w + '</span>';
-      html += '<span class="wait-type">' + escapeHtml(ex.classification.type) + '</span>';
-      html += '<span class="wait-desc">' + escapeHtml(ex.description) + '</span>';
-      html += '</div>';
+      html += renderWaitCard(w);
     });
-    html += '</div>';
-    html += '</div>';
-
-    var demoWait = state.waits[0];
-    var ex = explain.generateExplanation(state.hand, demoWait);
-    if (ex && ex.primarySplit) {
-      html += '<div class="explain-section">';
-      html += '<div class="block-label">手牌から完全メンツを抜く（' + demoWait + ' でアガる場合の例）</div>';
-      if (ex.classification.completeMelds.length > 0) {
-        html += '<div class="meld-row">' +
-                renderMelds(ex.classification.completeMelds, state.suit) +
-                '</div>';
-      } else {
-        html += '<div class="meld-row meld-row-empty">（抜けるメンツなし）</div>';
-      }
-      html += '</div>';
-
-      html += '<div class="explain-section">';
-      html += '<div class="block-label">残った形（雀頭+待ち部分）</div>';
-      html += '<div class="meld-row">' +
-              renderCore(ex.classification, ex.primarySplit, demoWait, state.suit) +
-              '</div>';
-      html += '<div class="explain-wait-note">' +
-              buildCoreNote(ex.classification, ex.primarySplit, demoWait) + '</div>';
-      html += '</div>';
-
-      html += '<div class="explain-section">';
-      html += '<div class="block-label">全体分解（雀頭1 + 面子4）</div>';
-      html += '<div class="meld-row">' +
-              decompose.formatTilesHtml(ex.primarySplit, state.suit) + '</div>';
-      html += '<div class="decomp-text">' +
-              escapeHtml(decompose.formatText(ex.primarySplit)) + '</div>';
-      html += '</div>';
-
-      // algorithm.md のルール適用
-      var rules = decompose.describeRules(ex.primarySplit);
-      if (rules.length > 0) {
-        html += '<div class="explain-section">';
-        html += '<div class="block-label">algorithm.md のルール適用</div>';
-        html += '<ul class="rules-list">';
-        rules.forEach(function (r) {
-          html += '<li><span class="rule-name">' + escapeHtml(r.name) + '</span>' +
-                  '<span class="rule-desc">' + escapeHtml(r.desc) + '</span></li>';
-        });
-        html += '</ul>';
-        html += '</div>';
-      }
-
-      // 他の解釈（同じ手牌の別の分解）
-      var allSplits = decompose.splitAll(state.hand.concat([demoWait]));
-      var distinct = decompose.distinctSplits(allSplits, 4);  // 最大4つ
-      // primary を除いた残りを「他の分解」として表示（最大2つ）
-      var primaryKey = JSON.stringify(ex.primarySplit);
-      var alternatives = distinct.filter(function (s) {
-        return JSON.stringify(s) !== primaryKey;
-      }).slice(0, 2);
-      if (alternatives.length > 0) {
-        html += '<div class="explain-section">';
-        html += '<div class="block-label">他の分解（同じ手牌・同じ ' + demoWait + ' アガリの別解釈）</div>';
-        alternatives.forEach(function (alt, idx) {
-          html += '<div class="alt-split">';
-          html += '<div class="alt-label">解釈 ' + (idx + 2) + ':</div>';
-          html += '<div class="meld-row">' +
-                  decompose.formatTilesHtml(alt, state.suit) + '</div>';
-          html += '<div class="decomp-text">' +
-                  escapeHtml(decompose.formatText(alt)) + '</div>';
-          html += '</div>';
-        });
-        html += '</div>';
-      }
-    }
 
     body.innerHTML = html;
     document.getElementById('explanation').style.display = '';
