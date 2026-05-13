@@ -1,0 +1,6 @@
+# Sensitive content - never commit
+電験三種/
+
+# Claude Code local state - per-machine, should not be committed
+.claude/worktrees/
+.claude/settings.local.json
