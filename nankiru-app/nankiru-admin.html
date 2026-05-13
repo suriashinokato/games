@@ -654,8 +654,10 @@
   </div>
   <div id="auth-bar" style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:8px;flex-wrap:wrap">
     <span id="auth-status" style="font-size:0.82rem;color:var(--text-dim)">認証確認中...</span>
-    <button id="btn-signin"  onclick="signIn()"  class="btn btn-accent" style="display:none">Googleでログイン</button>
-    <button id="btn-signout" onclick="signOut()" class="btn btn-ghost"  style="display:none">ログアウト</button>
+    <button id="btn-signin"     onclick="signIn()"           class="btn btn-accent" style="display:none">Googleでログイン</button>
+    <button id="btn-signout"    onclick="signOut()"          class="btn btn-ghost"  style="display:none">ログアウト</button>
+    <button id="btn-local-mode" onclick="enableLocalMode()"  class="btn btn-ghost"  style="display:none">ログインせずにこの端末だけで使う</button>
+    <button id="btn-cloud-mode" onclick="disableLocalMode()" class="btn btn-ghost"  style="display:none">Googleログインに切り替え</button>
   </div>
   <div id="admin-gate" style="display:none;padding:24px;text-align:center;color:var(--wrong)">
     管理者権限がありません。Firebaseコンソールで <code>admins/{uid}</code> ドキュメントを作成してください。
@@ -1011,25 +1013,45 @@ const db   = firebase.firestore();
 
 let currentUser = null;
 let isAdmin = false;
-const IS_LOCAL = location.protocol === 'file:';
+const LOCAL_ONLY_KEY = 'nankiru_local_only';
+const IS_FILE_PROTOCOL = (location.protocol === 'file:');
+const IS_LOCAL = IS_FILE_PROTOCOL || (localStorage.getItem(LOCAL_ONLY_KEY) === '1');
 
 function signIn() {
-  if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
+  if (IS_FILE_PROTOCOL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .catch(e => alert('ログインに失敗しました: ' + e.message));
 }
 function signOut() { auth.signOut(); }
 
+function enableLocalMode() {
+  localStorage.setItem(LOCAL_ONLY_KEY, '1');
+  if (auth.currentUser) {
+    auth.signOut().finally(() => location.reload());
+  } else {
+    location.reload();
+  }
+}
+function disableLocalMode() {
+  localStorage.removeItem(LOCAL_ONLY_KEY);
+  location.reload();
+}
+
 auth.onAuthStateChanged(async user => {
   const statusEl   = document.getElementById('auth-status');
   const signinBtn  = document.getElementById('btn-signin');
   const signoutBtn = document.getElementById('btn-signout');
+  const localBtn   = document.getElementById('btn-local-mode');
+  const cloudBtn   = document.getElementById('btn-cloud-mode');
   const gateEl     = document.getElementById('admin-gate');
   const actionsEl  = document.getElementById('list-actions');
 
   if (IS_LOCAL) {
-    statusEl.textContent = 'ローカルモード（localStorage）';
-    signinBtn.style.display = 'none'; signoutBtn.style.display = 'none';
+    statusEl.textContent = IS_FILE_PROTOCOL ? 'ローカルファイルモード（この端末のみ）' : 'ログインなしモード（この端末のみ）';
+    signinBtn.style.display = 'none';
+    signoutBtn.style.display = 'none';
+    localBtn.style.display = 'none';
+    cloudBtn.style.display = IS_FILE_PROTOCOL ? 'none' : '';
     gateEl.style.display = 'none';
     actionsEl.style.display = '';
     await openList();
@@ -1044,27 +1066,23 @@ auth.onAuthStateChanged(async user => {
     if (sourcesUnsubscribe) { sourcesUnsubscribe(); sourcesUnsubscribe = null; }
     if (tagsUnsubscribe)    { tagsUnsubscribe();    tagsUnsubscribe    = null; }
     statusEl.textContent = '未ログイン';
-    signinBtn.style.display = ''; signoutBtn.style.display = 'none';
+    signinBtn.style.display = '';
+    signoutBtn.style.display = 'none';
+    localBtn.style.display = '';
+    cloudBtn.style.display = 'none';
     gateEl.style.display = 'none';
     actionsEl.style.display = 'none';
-    document.getElementById('problem-list').innerHTML = '<div class="empty-msg">Googleでログインしてください。</div>';
+    document.getElementById('problem-list').innerHTML = '<div class="empty-msg">Googleでログインするか、「ログインせずにこの端末だけで使う」を選んでください。</div>';
     return;
   }
 
   statusEl.textContent = user.displayName || user.email;
-  signinBtn.style.display = 'none'; signoutBtn.style.display = '';
+  signinBtn.style.display = 'none';
+  signoutBtn.style.display = '';
+  localBtn.style.display = 'none';
+  cloudBtn.style.display = 'none';
 
-  try {
-    isAdmin = (await db.doc('admin/' + user.uid).get()).exists;
-  } catch(e) { isAdmin = false; }
-
-  if (!isAdmin) {
-    gateEl.style.display = '';
-    actionsEl.style.display = 'none';
-    document.getElementById('problem-list').innerHTML = '';
-    return;
-  }
-
+  isAdmin = true;
   gateEl.style.display = 'none';
   actionsEl.style.display = '';
   await openList();

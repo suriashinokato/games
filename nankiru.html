@@ -928,8 +928,10 @@
   <p class="home-subtitle">最善の一手を選ぶために</p>
   <div id="auth-bar" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;min-height:36px">
     <span id="auth-user" style="font-size:0.82rem;color:var(--text-dim)">未ログイン（ローカルモード）</span>
-    <button id="btn-signin"  onclick="signIn()"  class="btn-primary" style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;">Googleでログイン</button>
-    <button id="btn-signout" onclick="signOut()" class="btn-ghost"   style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;display:none">ログアウト</button>
+    <button id="btn-signin"     onclick="signIn()"           class="btn-primary" style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;">Googleでログイン</button>
+    <button id="btn-signout"    onclick="signOut()"          class="btn-ghost"   style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;display:none">ログアウト</button>
+    <button id="btn-local-mode" onclick="enableLocalMode()"  class="btn-ghost"   style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;display:none">ログインせずに使う</button>
+    <button id="btn-cloud-mode" onclick="disableLocalMode()" class="btn-ghost"   style="flex:0 0 auto;padding:8px 18px;font-size:0.88rem;display:none">Googleログインに切り替え</button>
   </div>
   <p class="problem-count"><strong id="prob-count">0</strong> 問登録済</p>
   <div class="home-mode-btns">
@@ -1384,7 +1386,9 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 
 let currentUser = null;
-const IS_LOCAL = location.protocol === 'file:';
+const LOCAL_ONLY_KEY = 'nankiru_local_only';
+const IS_FILE_PROTOCOL = (location.protocol === 'file:');
+const IS_LOCAL = IS_FILE_PROTOCOL || (localStorage.getItem(LOCAL_ONLY_KEY) === '1');
 let _currentQ = null;
 let _currentDisplayHand = [];
 let _problemsCache = null;
@@ -1398,11 +1402,45 @@ let listCurrentPage = 1;
 const LIST_PAGE_SIZE = 10;
 
 function signIn() {
-  if (IS_LOCAL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
+  if (IS_FILE_PROTOCOL) { alert('ローカルファイルでは Google ログインを使用できません。\nhttp/https で開くか、ローカルモードのままお使いください。'); return; }
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .catch(e => alert('ログインに失敗しました: ' + e.message));
 }
 function signOut() { auth.signOut(); }
+
+function enableLocalMode() {
+  localStorage.setItem(LOCAL_ONLY_KEY, '1');
+  if (auth && auth.currentUser) {
+    auth.signOut().finally(() => location.reload());
+  } else {
+    location.reload();
+  }
+}
+function disableLocalMode() {
+  localStorage.removeItem(LOCAL_ONLY_KEY);
+  location.reload();
+}
+
+function _updateAuthBar(user) {
+  const userEl    = document.getElementById('auth-user');
+  const signinBtn = document.getElementById('btn-signin');
+  const signoutBtn= document.getElementById('btn-signout');
+  const localBtn  = document.getElementById('btn-local-mode');
+  const cloudBtn  = document.getElementById('btn-cloud-mode');
+  if (IS_LOCAL) {
+    userEl.textContent = IS_FILE_PROTOCOL ? 'ローカルファイルモード（この端末のみ）' : 'ログインなしモード（この端末のみ）';
+    signinBtn.style.display = 'none';
+    signoutBtn.style.display = 'none';
+    localBtn.style.display = 'none';
+    cloudBtn.style.display = IS_FILE_PROTOCOL ? 'none' : '';
+    return;
+  }
+  userEl.textContent = user ? (user.displayName || user.email) : '未ログイン';
+  signinBtn.style.display  = user ? 'none' : '';
+  signoutBtn.style.display = user ? ''     : 'none';
+  localBtn.style.display   = user ? 'none' : '';
+  cloudBtn.style.display   = 'none';
+}
 
 auth.onAuthStateChanged(async user => {
   _problemsCache = null;
@@ -1410,14 +1448,14 @@ auth.onAuthStateChanged(async user => {
   _problemsLoadPromise = null;
   currentUser = user;
   _authReady = true;
-  document.getElementById('auth-user').textContent    = user ? (user.displayName || user.email) : '未ログイン（ローカルモード）';
-  document.getElementById('btn-signin').style.display  = (user || IS_LOCAL) ? 'none' : '';
-  document.getElementById('btn-signout').style.display = user ? '' : 'none';
+  _updateAuthBar(user);
   await initHome();
 });
 
-// ローカルファイルモードでは onAuthStateChanged が発火しないので明示的に初期化
-if (IS_LOCAL) {
+// file:// プロトコルでは Firebase CDN がブロックされて onAuthStateChanged が発火しない可能性があるため明示初期化
+// （HTTPS のローカル専用モードでは onAuthStateChanged が普通に発火するため不要）
+if (IS_FILE_PROTOCOL) {
+  _updateAuthBar(null);
   initHome();
 }
 
