@@ -1,6 +1,52 @@
-# Sensitive content - never commit
+# Sensitive / private content
 電験三種/
+private-docs/
+*.bundle
 
-# Claude Code local state - per-machine, should not be committed
-.claude/worktrees/
-.claude/settings.local.json
+# Claude Code / AI agent assets (kept in OneDrive\claude-assets)
+.agents/
+.claude/
+AGENTS.md
+CLAUDE.md
+.codex/
+.aider*
+.cursor*
+
+# Secrets and credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*
+*secret*
+.npmrc
+.netrc
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Node / build (将来用)
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# OneDrive sync conflicts
+*-conflicted copy*
+*-競合コピー*
+
+# Backup / temp
+*.bak
+*.tmp
