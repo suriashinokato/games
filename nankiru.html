@@ -28,9 +28,9 @@
       --line: #e6e1d6;
       --on-accent: #ffffff;
       /* 14枚+スペーサー(0.4w)が画面内に収まるよう自動計算:
-         14w + spacer(0.4w) + hand-padding(16px) + screen-padding(32px) ≤ 100vw
-         14.4w ≤ 100vw - 48px → w ≤ (100vw - 48px) / 14.4 */
-      --tile-w: min(68px, calc((100vw - 48px) / 14.4));
+         14w + spacer(0.4w) + hand-padding(16px) + screen-padding(32px) ≤ コンテナ幅
+         .screen は max-width:800px のため、viewport が広い場合は 800px を使う */
+      --tile-w: min(68px, calc((min(100vw, 800px) - 48px) / 14.4));
       --tile-h: calc(var(--tile-w) * 1.4);
       --meld-w: var(--tile-w);
       --meld-h: var(--tile-h);
@@ -123,9 +123,6 @@
       .prob-list-item:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
       /* hover シャドウを暗背景でも視認可能に（accent-shadow がダーク用に切替済） */
       .btn-ghost:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
-      /* 正解／不正解時の発光 */
-      .tile-slot.correct { box-shadow: 0 0 16px rgba(74,214,179,0.55); }
-      .tile-slot.wrong   { box-shadow: 0 0 16px rgba(224,112,112,0.55); }
     }
 
     /* 初期描画時は transition / animation を抑止し、
@@ -468,15 +465,17 @@
 
     .tile-slot.correct { box-shadow: none; animation: pulse-correct 0.45s ease; }
     .tile-slot.wrong   { box-shadow: none; animation: shake-wrong 0.4s ease; }
+    /* ダークモードでは発光を追加（アニメと併用） */
+    @media (prefers-color-scheme: dark) {
+      .tile-slot.correct { box-shadow: 0 0 16px rgba(74,214,179,0.55); }
+      .tile-slot.wrong   { box-shadow: 0 0 16px rgba(224,112,112,0.55); }
+    }
     .tile-slot.correct::after, .tile-slot.wrong::after {
       content: ''; position: absolute; inset: 1px;
       border-radius: 4px; z-index: 2; pointer-events: none;
     }
     .tile-slot.correct::after { border: 3px solid var(--correct); }
     .tile-slot.wrong::after   { border: 3px solid var(--wrong); }
-    .tile-slot.correct::before {
-      display: none;
-    }
 
     @keyframes pulse-correct { 0% { transform: scale(1) translateY(0); } 40% { transform: scale(1.1) translateY(-8px); } 100% { transform: scale(1) translateY(0); } }
     @keyframes shake-wrong   { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 60% { transform: translateX(6px); } }
@@ -1203,12 +1202,6 @@ function transformQuestion(q, mapping, doMirror) {
   const mt = doMirror ? mirrorTile : (c => c);
   const mtt = doMirror ? mirrorText : (t => t);
   const answers = getCorrectAnswers(q);
-  // 旧バグ（配列の correctAnswer を applyTileMapping に直接渡して "3mundefined" 等に化けるケース）の
-  // 残骸データが将来混入した場合に DevTools で気付けるよう、形式が壊れた要素を検知して警告する。
-  const badAnswers = answers.filter(c => !/^[0-9][mpsz]$/.test(c));
-  if (badAnswers.length) {
-    console.warn('[nankiru] 不正な correctAnswer を検知', { id: q.id, raw: q.correctAnswer, bad: badAnswers });
-  }
   return {
     ...q,
     hand: q.hand.map(c => mt(applyTileMapping(c, mapping))),
@@ -1369,7 +1362,8 @@ function calcTileWidth(hand, melds) {
 
   const totalTileEq = tileEqHand + meldTileEq;
   const totalPx = 48 + meldPx; // 16px(hand内padding) + 32px(screen padding) + 副露分
-  return 'min(68px, calc((100vw - ' + totalPx + 'px) / ' + totalTileEq + '))';
+  // .screen は max-width:800px のため、viewport が広い場合は 800px を使う
+  return 'min(68px, calc((min(100vw, 800px) - ' + totalPx + 'px) / ' + totalTileEq + '))';
 }
 
 // ===== FIREBASE =====
@@ -1667,13 +1661,8 @@ function buildDoraStrip(doras, container, small) {
   container.appendChild(makeBackTile(small));
 }
 
-// 副露グループ要素（回転あり）
-function makeMeldGroup(meld) {
-  const group = document.createElement('div');
-  group.className = 'meld-group';
-  group.title = MELD_TYPE_NAMES[meld.type] || meld.type;
-
-  // チーは鳴いた牌を常に左端へ
+// 副露描画の共通前処理: チーは鳴いた牌を左端へ寄せ、各牌に isCalled/isBack フラグを付与する
+function arrangeMeldTiles(meld) {
   let tiles = meld.tiles;
   let calledIndex = meld.calledIndex;
   if (meld.type === 'chi' && calledIndex !== 0) {
@@ -1681,24 +1670,43 @@ function makeMeldGroup(meld) {
     tiles = [called, ...tiles.filter((_, i) => i !== calledIndex)];
     calledIndex = 0;
   }
+  return tiles.map((code, ti) => ({
+    code,
+    isCalled: ti === calledIndex,
+    isBack: meld.type === 'ankan' && (ti === 0 || ti === tiles.length - 1),
+  }));
+}
 
-  tiles.forEach((code, ti) => {
-    const isCalled = ti === calledIndex;
-    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === tiles.length - 1);
+// 牌画像の src/alt 設定と onerror 文字フォールバックを共通化
+function setMeldTileImg(img, info, parentEl) {
+  if (info.isBack) {
+    img.src = 'shared/images_hai/back.png';
+    img.alt = '伏せ牌';
+  } else {
+    img.src = 'shared/images_hai/' + info.code + '.png';
+    img.alt = tileLabel(info.code);
+    img.onerror = function() {
+      this.style.display = 'none';
+      parentEl.insertAdjacentText('beforeend', tileLabel(info.code));
+    };
+  }
+}
 
+// 副露グループ要素（回転あり）
+function makeMeldGroup(meld) {
+  const group = document.createElement('div');
+  group.className = 'meld-group';
+  group.title = MELD_TYPE_NAMES[meld.type] || meld.type;
+
+  arrangeMeldTiles(meld).forEach(info => {
     const slot = document.createElement('div');
-    slot.className = 'meld-slot' + (isCalled ? ' called' : '') + (isBack ? ' back' : '');
+    slot.className = 'meld-slot' + (info.isCalled ? ' called' : '') + (info.isBack ? ' back' : '');
 
     const tile = document.createElement('div');
     tile.className = 'm-tile';
 
     const img = document.createElement('img');
-    if (isBack) {
-      img.src = 'shared/images_hai/back.png'; img.alt = '伏せ牌';
-    } else {
-      img.src = 'shared/images_hai/' + code + '.png'; img.alt = tileLabel(code);
-      img.onerror = function() { this.style.display = 'none'; tile.insertAdjacentText('beforeend', tileLabel(code)); };
-    }
+    setMeldTileImg(img, info, tile);
     tile.appendChild(img);
     slot.appendChild(tile);
     group.appendChild(slot);
@@ -1710,7 +1718,7 @@ function makeMeldGroup(meld) {
 // 副露グループ（復習用・小サイズ）
 function makeMeldGroupSmall(meld) {
   const group = document.createElement('div');
-  group.style.cssText = 'display:flex;align-items:flex-end;gap:2px;background:var(--card);padding:3px 4px;border-radius:4px;flex-shrink:0';
+  group.style.cssText = 'display:flex;align-items:flex-end;gap:0;background:var(--card);padding:3px 4px;border-radius:4px;flex-shrink:0';
 
   const lbl = document.createElement('span');
   lbl.style.cssText = 'font-size:0.65rem;color:var(--accent);font-weight:700;margin-right:2px;align-self:center';
@@ -1720,29 +1728,26 @@ function makeMeldGroupSmall(meld) {
   const smMeldW = 'calc(var(--meld-w) * 0.75)';
   const smMeldH = 'calc(var(--meld-h) * 0.75)';
 
-  // チーは鳴いた牌を常に左端へ
-  let tiles2 = meld.tiles;
-  let calledIndex2 = meld.calledIndex;
-  if (meld.type === 'chi' && calledIndex2 !== 0) {
-    const called2 = tiles2[calledIndex2];
-    tiles2 = [called2, ...tiles2.filter((_, i) => i !== calledIndex2)];
-    calledIndex2 = 0;
-  }
-
-  tiles2.forEach((code, ti) => {
-    const isCalled = ti === calledIndex2;
-    const isBack   = meld.type === 'ankan' && (ti === 0 || ti === tiles2.length - 1);
+  arrangeMeldTiles(meld).forEach(info => {
     const t = document.createElement('div');
-    t.style.cssText = 'width:' + (isCalled ? smMeldH : smMeldW) + ';height:' + (isCalled ? smMeldW : smMeldH) + ';background:#f5f0e8;border-radius:3px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#333;overflow:hidden;flex-shrink:0';
-    const img2 = document.createElement('img');
-    if (isBack) {
-      img2.src = 'shared/images_hai/back.png'; img2.alt = '伏せ牌';
+    if (info.isCalled) {
+      // 鳴き牌: スロットを横長(smMeldH × smMeldW)にし、内部画像を 270° 回転してピッタリ充填。
+      // 背景/枠線は画像側に付与（スロット側に置くと回転タイルの上下に余白が見える）。
+      // smMeldH = 1.05*tile-w, smMeldW = 0.75*tile-w なので、画像を中央寄せするためのオフセットは
+      //   left = (H-W)/2 =  0.15 * tile-w
+      //   top  = (W-H)/2 = -0.15 * tile-w
+      t.style.cssText = 'width:' + smMeldH + ';height:' + smMeldW + ';position:relative;font-size:0.5rem;color:#333;overflow:visible;flex-shrink:0';
+      const img = document.createElement('img');
+      setMeldTileImg(img, info, t);
+      img.style.cssText = 'position:absolute;width:' + smMeldW + ';height:' + smMeldH + ';left:calc(var(--meld-w) * 0.15);top:calc(var(--meld-w) * -0.15);object-fit:contain;border-radius:3px;border:1px solid var(--line);background:#f5f0e8;transform:rotate(270deg)';
+      t.appendChild(img);
     } else {
-      img2.src = 'shared/images_hai/' + code + '.png'; img2.alt = tileLabel(code);
-      img2.onerror = function() { this.style.display = 'none'; t.insertAdjacentText('beforeend', tileLabel(code)); };
+      t.style.cssText = 'width:' + smMeldW + ';height:' + smMeldH + ';background:#f5f0e8;border-radius:3px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#333;overflow:hidden;flex-shrink:0';
+      const img = document.createElement('img');
+      setMeldTileImg(img, info, t);
+      img.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:3px';
+      t.appendChild(img);
     }
-    img2.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:3px';
-    t.appendChild(img2);
     group.appendChild(t);
   });
   return group;
@@ -2541,7 +2546,7 @@ function renderMeldReviewCard(card, q, entry) {
   handRow.appendChild(handDiv);
   if (q.melds && q.melds.length) {
     const mr = document.createElement('div');
-    mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;';
+    mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;margin-left:10px;';
     q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
     handRow.appendChild(mr);
   }
@@ -2714,7 +2719,7 @@ async function showResult() {
 
       if (q.melds && q.melds.length) {
         const mr = document.createElement('div');
-        mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;';
+        mr.style.cssText = 'display:flex;gap:6px;align-items:flex-end;flex-shrink:0;margin-left:10px;';
         q.melds.forEach(meld => mr.appendChild(makeMeldGroupSmall(meld)));
         handRow.appendChild(mr);
       }
