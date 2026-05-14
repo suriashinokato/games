@@ -14,7 +14,7 @@
   const RECENT_HISTORY_SIZE = 10;
 
   // 1セッションの問題数 (固定)。最終問で結果画面に切り替わる。
-  const QUESTIONS_PER_SESSION = 20;
+  const QUESTIONS_PER_SESSION = 10;
 
   // ====== 状態 ======
   const state = {
