@@ -966,6 +966,7 @@ const TILE_GROUPS = {
   ji:  ['1z','2z','3z','4z','5z','6z','7z']
 };
 const RED_TILES = new Set(['0m','0p','0s']);
+function maxAllowedFor(code) { return RED_TILES.has(code) ? 1 : 4; }
 const TILE_LABELS = {
   '1z':'東','2z':'南','3z':'西','4z':'北','5z':'白','6z':'發','7z':'中',
   '0m':'赤5m','0p':'赤5p','0s':'赤5s'
@@ -2061,11 +2062,17 @@ function updatePaletteState() {
   if (addMeldBtn) addMeldBtn.disabled = (maxTiles - totalTileCount()) < 3;
 }
 
+function tileLimitMessage(code) {
+  return RED_TILES.has(code)
+    ? tileLabel(code) + ' は最大1枚までしか使えません'
+    : tileLabel(code) + ' はすでに4枚使用されています';
+}
+
 function addTile(code) {
   if (editState.paletteTarget === 'none') return;
   if (editState.paletteTarget === 'dora') {
     if (editState.dora.length >= 4) return;
-    if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
+    if (tileCount(code) >= maxAllowedFor(code)) { alert(tileLimitMessage(code)); return; }
     editState.dora.push(code);
     renderEditorDora();
   } else if (editState.paletteTarget === 'meld') {
@@ -2073,7 +2080,7 @@ function addTile(code) {
     if (meldType === 'pon' || meldType === 'ankan' || meldType === 'minkan') {
       if (meldDraft.tiles.length > 0) return; // 既に設定済み
       const need = meldType === 'pon' ? 3 : 4;
-      const avail = 4 - tileCount(code);
+      const avail = maxAllowedFor(code) - tileCount(code);
       if (avail < need) {
         alert(tileLabel(code) + ' の残り枚数は ' + avail + ' 枚のため、' + MELD_TYPE_NAMES[meldType] + ' には使用できません');
         return;
@@ -2083,13 +2090,13 @@ function addTile(code) {
     } else {
       // チー: 1枚ずつ追加
       if (meldDraft.tiles.length >= 3) return;
-      if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
+      if (tileCount(code) >= maxAllowedFor(code)) { alert(tileLimitMessage(code)); return; }
       meldDraft.tiles.push(code);
     }
     renderMeldPreview();
   } else {
     if (totalTileCount() >= 14) return;
-    if (tileCount(code) >= 4) { alert(tileLabel(code) + ' はすでに4枚使用されています'); return; }
+    if (tileCount(code) >= maxAllowedFor(code)) { alert(tileLimitMessage(code)); return; }
     editState.hand.push(code);
     renderEditorHand();
   }
