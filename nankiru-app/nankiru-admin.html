@@ -861,6 +861,14 @@
       </select>
     </div>
     <div style="margin-top:14px">
+      <label class="field-label" for="kan-choice-select">カン/スルー選択（任意）— 手牌に4枚同一がある場合のみ。リーチ判断とは排他</label>
+      <select class="select-input" id="kan-choice-select" style="max-width:200px">
+        <option value="">（設定なし）</option>
+        <option value="kan">正解: カン</option>
+        <option value="skip">正解: スルー</option>
+      </select>
+    </div>
+    <div style="margin-top:14px">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem">
         <input type="checkbox" id="mirror-toggle">
         上下入れ替えて出題する（1⇔9, 2⇔8, 3⇔7, 4⇔6 を数牌に対してランダム適用）
@@ -1909,6 +1917,7 @@ async function openEditor(problem) {
     seat: problem.seat || '',
     memo: problem.memo || '',
     riichiChoice: problem.riichiChoice || '',
+    kanChoice:    problem.kanChoice || '',
     mirror: !!problem.mirror,
     paletteTarget: 'hand',
     questionType: problem.questionType || '',
@@ -1926,7 +1935,7 @@ async function openEditor(problem) {
     dora: [], round: '', turn: '', commentary: '', source: '', sourceMemo: '',
     melds: [], ukeireru: [], seat: '', memo: '',
     visibleTilesExtra: {},
-    riichiChoice: '', mirror: false, paletteTarget: 'hand',
+    riichiChoice: '', kanChoice: '', mirror: false, paletteTarget: 'hand',
     questionType: '', incomingTile: '', incomingFrom: '',
     availableActions: [], correctAction: '',
     correctChiPairIndices: [], correctDiscardIndex: null,
@@ -1941,6 +1950,7 @@ async function openEditor(problem) {
   document.getElementById('turn-input').value = editState.turn;
   document.getElementById('seat-select').value = editState.seat;
   document.getElementById('riichi-choice-select').value = editState.riichiChoice;
+  document.getElementById('kan-choice-select').value    = editState.kanChoice;
   document.getElementById('memo-input').value = editState.memo;
   document.getElementById('mirror-toggle').checked = editState.mirror;
 
@@ -2701,6 +2711,22 @@ async function saveProblem() {
     }
     if (editState.correctAnswer.length === 0) { alert('正解牌を1枚以上選択してください\n（手牌の牌をクリックして選択。複数選択可）'); return; }
     if (editState.correctAnswer.some(c => !editState.hand.includes(c))) { alert('正解牌は手牌に含まれている必要があります'); return; }
+
+    // リーチ判断とカン判断の排他・4枚同一チェック
+    const riichiVal = document.getElementById('riichi-choice-select').value;
+    const kanVal    = document.getElementById('kan-choice-select').value;
+    if (riichiVal && kanVal) {
+      alert('リーチ判断とカン判断は同時に設定できません'); return;
+    }
+    if (kanVal) {
+      const norm = c => (c && c[0] === '0') ? ('5' + c[1]) : c;
+      const counts = {};
+      editState.hand.forEach(t => { const n = norm(t); counts[n] = (counts[n] || 0) + 1; });
+      const hasQuad = Object.values(counts).some(c => c >= 4);
+      if (!hasQuad) {
+        alert('カン/スルー選択を設定するには手牌に4枚同一の牌が必要です'); return;
+      }
+    }
   }
 
   const problem = {
@@ -2708,6 +2734,7 @@ async function saveProblem() {
     hand:          [...editState.hand],
     correctAnswer: editState.questionType === 'meld' ? null : [...editState.correctAnswer],
     riichiChoice:  editState.questionType === 'meld' ? null : (document.getElementById('riichi-choice-select').value || null),
+    kanChoice:     editState.questionType === 'meld' ? null : (document.getElementById('kan-choice-select').value || null),
     mirror:        document.getElementById('mirror-toggle').checked,
     questionType:  editState.questionType || null,
     incomingTile:  editState.questionType === 'meld' ? editState.incomingTile : null,

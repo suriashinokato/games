@@ -628,6 +628,33 @@
     .riichi-btn.correct { background: rgba(49,183,122,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
     .riichi-btn.wrong   { background: rgba(201,75,75,0.12); color: var(--wrong);   border-color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
 
+    /* カン/スルー選択ボタン（リーチと同じセグメントコントロール風） */
+    .kan-choice-row {
+      display: none; gap: 4px; justify-content: center; margin: 8px auto 24px;
+      background: var(--card); padding: 4px; border-radius: 14px;
+      width: fit-content;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .kan-choice-row.visible { display: flex; }
+    .kan-btn {
+      min-width: 120px; padding: 12px 32px; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 700;
+      border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .kan-btn:hover:not(:disabled):not(.selected):not(.correct):not(.wrong) { color: var(--accent); background: var(--accent-dim); border-color: var(--accent); }
+    .kan-btn:disabled { cursor: default; }
+    .kan-btn.selected { background: var(--accent-strong); color: var(--on-accent); border-color: var(--accent-strong); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .kan-btn.correct { background: rgba(49,183,122,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
+    .kan-btn.wrong   { background: rgba(201,75,75,0.12); color: var(--wrong);   border-color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
+
+    /* カン宣言後にカン対象（4枚同一）の牌を打牌不可で表示 */
+    .hand-tiles .tile-slot.kan-locked {
+      opacity: 0.35;
+      pointer-events: none;
+      filter: grayscale(60%);
+    }
+
     /* ===== 来牌エリア ===== */
     .incoming-tile-row { display: none; align-items: center; gap: 12px; justify-content: center; margin-bottom: 16px; }
     .incoming-tile-row.visible { display: flex; }
@@ -1016,6 +1043,12 @@
     <button class="riichi-btn" id="riichi-btn-dama">ダマ</button>
   </div>
 
+  <!-- カン/スルー選択（4枚同一カン判断問題のみ表示） -->
+  <div class="kan-choice-row" id="kan-choice-row">
+    <button class="kan-btn" id="kan-btn-kan">カン</button>
+    <button class="kan-btn" id="kan-btn-skip">スルー</button>
+  </div>
+
   <div class="feedback-area" id="feedback-area" style="display:none">
     <div class="feedback-result" id="feedback-result"></div>
     <div class="feedback-commentary" id="feedback-commentary"></div>
@@ -1093,6 +1126,22 @@ function sortedHand(hand, keepTsumo) {
   const sorted = [...hand.slice(0, -1)].sort(compareTiles);
   sorted.push(hand[hand.length - 1]);
   return sorted;
+}
+
+// 赤5（0p/0s/0m）は通常5と同一視するための正規化
+function normalizeRedFive(code) {
+  return (code && code[0] === '0') ? ('5' + code[1]) : code;
+}
+
+// 手牌中で「カン候補（4枚同一）」となる位置インデックスを返す
+// 複数組の4枚同一がある場合は全インデックスを返す
+function getKanCandidateIndices(hand) {
+  const counts = {};
+  hand.forEach(t => { const n = normalizeRedFive(t); counts[n] = (counts[n] || 0) + 1; });
+  const quadKeys = new Set(Object.entries(counts).filter(([, c]) => c >= 4).map(([k]) => k));
+  const indices = [];
+  hand.forEach((t, i) => { if (quadKeys.has(normalizeRedFive(t))) indices.push(i); });
+  return { indices, quadKeys };
 }
 
 // ===== SUIT RANDOMIZATION =====
@@ -1457,7 +1506,7 @@ if (IS_FILE_PROTOCOL) {
 }
 
 // ===== STATE =====
-const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null, meldStep: 0, meldActionSelected: null, chiSelectedTiles: [], mode: 'random' };
+const st = { problems: [], idx: 0, correct: 0, wrongs: [], answered: false, riichiSelected: null, kanSelected: null, meldStep: 0, meldActionSelected: null, chiSelectedTiles: [], mode: 'random' };
 
 // ===== STORAGE =====
 const PROB_KEY = 'nankiru_problems';
@@ -2080,6 +2129,7 @@ function renderQ() {
   document.getElementById('screen-quiz').classList.remove('is-answered');
   st.answered = false;
   st.riichiSelected = null;
+  st.kanSelected = null;
   st.meldStep = 0;
   st.meldActionSelected = null;
   st.chiSelectedTiles = [];
@@ -2168,12 +2218,15 @@ function renderQ() {
     handEl.appendChild(slot);
   });
 
-  // 鳴き/リーチ/ダマ選択オプションの設定
+  // 鳴き/リーチ/ダマ/カン選択オプションの設定
   const hasRiichiStep = !!q.riichiChoice;
+  const hasKanStep    = !!q.kanChoice && !hasRiichiStep; // 排他: 両方設定時は riichi 優先
   const rcRow = document.getElementById('riichi-choice-row');
+  const kcRow = document.getElementById('kan-choice-row');
   const mcRow = document.getElementById('meld-choice-row');
   const inRow = document.getElementById('incoming-tile-row');
   rcRow.classList.toggle('visible', hasRiichiStep && !isMeldQ);
+  kcRow.classList.toggle('visible', hasKanStep && !isMeldQ);
   mcRow.classList.remove('visible');
   inRow.classList.remove('visible');
   if (isMeldQ) {
@@ -2187,6 +2240,22 @@ function renderQ() {
     rBtn.onclick = () => onRiichiChoice('riichi', q);
     dBtn.onclick = () => onRiichiChoice('dama', q);
     document.getElementById('q-instruction').textContent = 'リーチしますか？';
+  } else if (hasKanStep) {
+    // slot.dataset.index は displayHand のインデックスなので、displayHand で検出する
+    const { indices: kanIndices, quadKeys } = getKanCandidateIndices(displayHand);
+    if (kanIndices.length === 0) {
+      console.warn('[nankiru] kanChoice 設定されているが手牌に4枚同一なし', { id: q.id });
+    } else if (quadKeys.size > 1) {
+      console.warn('[nankiru] 手牌に複数組の4枚同一', { id: q.id, quadKeys: [...quadKeys] });
+    }
+    handEl.classList.add('answered'); // カン/スルー選択前は牌を選べない
+    const kBtn = document.getElementById('kan-btn-kan');
+    const sBtn = document.getElementById('kan-btn-skip');
+    kBtn.disabled = false; sBtn.disabled = false;
+    kBtn.className = 'kan-btn'; sBtn.className = 'kan-btn';
+    kBtn.onclick = () => onKanChoice('kan',  q, kanIndices);
+    sBtn.onclick = () => onKanChoice('skip', q, kanIndices);
+    document.getElementById('q-instruction').textContent = 'カンしますか？';
   } else {
     document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
   }
@@ -2280,9 +2349,15 @@ function onTileClick(idx, code, q) {
 
   const tileOk = isCorrectAnswer(q, code);
   const riichiOk = !q.riichiChoice || st.riichiSelected === q.riichiChoice;
-  const ok = tileOk && riichiOk;
+  const kanOk    = !q.kanChoice    || st.kanSelected    === q.kanChoice;
+  const ok = tileOk && riichiOk && kanOk;
   if (ok) st.correct++;
-  else st.wrongs.push({ question: q, selectedCode: code, selectedRiichi: st.riichiSelected || null });
+  else st.wrongs.push({
+    question: q,
+    selectedCode: code,
+    selectedRiichi: st.riichiSelected || null,
+    selectedKan:    st.kanSelected    || null
+  });
 
   // リーチ/ダマボタンの正誤を表示
   if (q.riichiChoice) {
@@ -2292,6 +2367,19 @@ function onTileClick(idx, code, q) {
     correctBtn.classList.add('correct');
     if (!riichiOk) {
       const selectedBtn = st.riichiSelected === 'riichi' ? rBtn : dBtn;
+      selectedBtn.classList.remove('selected');
+      selectedBtn.classList.add('wrong');
+    }
+  }
+
+  // カン/スルーボタンの正誤を表示
+  if (q.kanChoice) {
+    const kBtn = document.getElementById('kan-btn-kan');
+    const sBtn = document.getElementById('kan-btn-skip');
+    const correctBtn = q.kanChoice === 'kan' ? kBtn : sBtn;
+    correctBtn.classList.add('correct');
+    if (!kanOk) {
+      const selectedBtn = st.kanSelected === 'kan' ? kBtn : sBtn;
       selectedBtn.classList.remove('selected');
       selectedBtn.classList.add('wrong');
     }
@@ -2322,6 +2410,57 @@ function onRiichiChoice(choice, q) {
 
   // ステップ2: 牌選択を有効化
   const handEl = document.getElementById('hand-tiles');
+  handEl.classList.remove('answered');
+  document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
+}
+
+function onKanChoice(choice, q, kanIndices) {
+  // ボタンをロックして選択を視覚表示
+  const kBtn = document.getElementById('kan-btn-kan');
+  const sBtn = document.getElementById('kan-btn-skip');
+  kBtn.disabled = true; sBtn.disabled = true;
+  const selectedBtn = choice === 'kan' ? kBtn : sBtn;
+  selectedBtn.classList.add('selected');
+
+  // カン/スルー選択を state に記録
+  st.kanSelected = choice;
+
+  const handEl = document.getElementById('hand-tiles');
+
+  // カン宣言時は4枚同一の牌を視覚的に副露化（グレーアウト）
+  if (choice === 'kan' && kanIndices && kanIndices.length) {
+    const kanIdxSet = new Set(kanIndices);
+    handEl.querySelectorAll('.tile-slot').forEach(slot => {
+      const idx = +slot.dataset.index;
+      if (kanIdxSet.has(idx)) slot.classList.add('kan-locked');
+    });
+  }
+
+  if (choice === 'kan') {
+    // カン宣言後は嶺上牌が不明のため、即座に正誤判定（打牌選択をスキップ）
+    st.answered = true;
+    const ok = q.kanChoice === 'kan';
+    if (ok) st.correct++;
+    else st.wrongs.push({
+      question: q,
+      selectedCode: null,
+      selectedRiichi: null,
+      selectedKan:    'kan'
+    });
+
+    // カン/スルーボタンの正誤を表示
+    const correctBtn = q.kanChoice === 'kan' ? kBtn : sBtn;
+    correctBtn.classList.add('correct');
+    if (!ok) {
+      kBtn.classList.remove('selected');
+      kBtn.classList.add('wrong');
+    }
+
+    showFeedbackArea(ok, q);
+    return;
+  }
+
+  // スルー選択時のみ: 牌選択を有効化（通常の打牌フロー）
   handEl.classList.remove('answered');
   document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
 }
@@ -2622,6 +2761,7 @@ async function nextQ() {
     st.wrongs = [];
     st.answered = false;
     st.riichiSelected = null;
+    st.kanSelected = null;
     st.meldStep = 0;
     st.meldActionSelected = null;
     st.chiSelectedTiles = [];
@@ -2634,6 +2774,7 @@ async function nextQ() {
 function retryCurrentQ() {
   st.answered = false;
   st.riichiSelected = null;
+  st.kanSelected = null;
   st.meldStep = 0;
   st.meldActionSelected = null;
   st.chiSelectedTiles = [];
@@ -2646,6 +2787,7 @@ function retryAgain() {
   st.wrongs = [];
   st.answered = false;
   st.riichiSelected = null;
+  st.kanSelected = null;
   st.meldStep = 0;
   st.meldActionSelected = null;
   st.chiSelectedTiles = [];
@@ -2691,7 +2833,7 @@ async function showResult() {
         revEl.appendChild(card);
         return;
       }
-      const { selectedCode, selectedRiichi } = entry;
+      const { selectedCode, selectedRiichi, selectedKan } = entry;
 
       // 局情報・ドラ
       if (q.round || q.seat || q.turn || (q.dora && q.dora.length)) {
@@ -2742,6 +2884,24 @@ async function showResult() {
             (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
             (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
           btn.textContent = c === 'riichi' ? 'リーチ' : 'ダマ';
+          choiceRow.appendChild(btn);
+        });
+        card.appendChild(choiceRow);
+      }
+
+      // カン/スルー選択あり問題：選択結果を表示
+      if (q.kanChoice) {
+        const choiceRow = document.createElement('div');
+        choiceRow.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+        ['kan', 'skip'].forEach(c => {
+          const btn = document.createElement('span');
+          const isSelected = c === selectedKan;
+          const isCorrect  = c === q.kanChoice;
+          btn.style.cssText = 'padding:5px 18px;border-radius:8px;font-weight:700;font-size:0.88rem;border:2px solid ' +
+            (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';color:' +
+            (isCorrect ? 'var(--correct)' : isSelected ? 'var(--wrong)' : 'var(--text-dim)') + ';background:' +
+            (isCorrect ? 'rgba(49,183,122,0.12)' : isSelected ? 'rgba(201,75,75,0.12)' : 'transparent');
+          btn.textContent = c === 'kan' ? 'カン' : 'スルー';
           choiceRow.appendChild(btn);
         });
         card.appendChild(choiceRow);
