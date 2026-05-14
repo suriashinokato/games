@@ -219,7 +219,9 @@
   //   - 最良打牌に 1/9 の孤立牌が含まれない (簡単すぎるので除外)
   //   - 字牌を4枚持つ手牌は除外 (出題として不自然)
   //   - 同点最良打牌が 5 種類以上ある手牌は除外 (全部当てるのが現実的でない)
-  function passesDiscardFilters(hand) {
+  //   - 2シャンテン手で最良と次善の枚数差が 1 枚しかない手牌は除外 (実戦的に同価値)
+  //   - 他の13枚と異なる色の数牌が1枚だけ・孤立しているケースは除外 (簡単すぎる)
+  function passesDiscardFilters(hand, targetShanten) {
     const all = T.shanten.allDiscardOptions(hand);
     if (all.length < 2) return false;
     const best = all[0].totalCount;
@@ -240,6 +242,29 @@
       if (isIsolatedTerminal(opt.discard, counts)) {
         return false;
       }
+    }
+
+    // 2シャンテン手で最良と次善の枚数差が1枚しかない問題は除外
+    // (どちらを切っても実戦的に同価値なので訓練価値が低い)
+    if (targetShanten === 2) {
+      const second = all.find(o => o.totalCount < best);
+      if (second && best - second.totalCount === 1) return false;
+    }
+
+    // 他の13枚と異なる色の数牌が1枚だけ・孤立しているケースを除外
+    // (例: 萬子13枚 + 五索1枚 → 索の5を切るのが明らかすぎる)
+    for (const suit of ['m', 'p', 's']) {
+      const inSuit = hand.filter(t => t[1] === suit);
+      if (inSuit.length !== 1) continue;
+      const otherSuitsHaveNumeral = ['m', 'p', 's']
+        .filter(s => s !== suit)
+        .some(s => hand.some(t => t[1] === s));
+      if (!otherSuitsHaveNumeral) continue;
+      const tile = inSuit[0];
+      const rank = parseInt(tile[0], 10);
+      const neighbors = [rank - 2, rank - 1, rank + 1, rank + 2].filter(n => n >= 1 && n <= 9);
+      const hasNeighbor = neighbors.some(n => counts[NS.tileToIndex(n + suit)] > 0);
+      if (!hasNeighbor) return false;
     }
     return true;
   }
@@ -275,7 +300,7 @@
       const hand = tryBuildDiscardHandAt(target);
       if (!hand) continue;
       if (T.shanten.shantenCount(hand) !== target) continue;
-      if (!passesDiscardFilters(hand)) continue;
+      if (!passesDiscardFilters(hand, target)) continue;
       return T.tiles.sortTiles(hand);
     }
 
@@ -283,7 +308,7 @@
     for (let i = 0; i < 200; i++) {
       const hand = drawRandomHand(14);
       if (T.shanten.shantenCount(hand) !== target) continue;
-      if (!passesDiscardFilters(hand)) continue;
+      if (!passesDiscardFilters(hand, target)) continue;
       return T.tiles.sortTiles(hand);
     }
 
@@ -292,7 +317,7 @@
       const hand = drawRandomHand(14);
       const s = T.shanten.shantenCount(hand);
       if (s < 0 || s > 2) continue;
-      if (!passesDiscardFilters(hand)) continue;
+      if (!passesDiscardFilters(hand, s)) continue;
       return T.tiles.sortTiles(hand);
     }
 
