@@ -192,9 +192,6 @@
     const head = document.createElement('p');
     head.innerHTML = '・シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
     div.appendChild(head);
-    const sub = document.createElement('p');
-    sub.textContent = '・各打牌候補の受け入れ:';
-    div.appendChild(sub);
 
     const correctSet = new Set(problem.bestDiscards.map(d => d.discard));
 

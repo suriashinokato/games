@@ -218,6 +218,7 @@
   //   - 最良打牌に字牌の孤立牌が含まれない (簡単すぎるので除外)
   //   - 最良打牌に 1/9 の孤立牌が含まれない (簡単すぎるので除外)
   //   - 字牌を4枚持つ手牌は除外 (出題として不自然)
+  //   - 同点最良打牌が 5 種類以上ある手牌は除外 (全部当てるのが現実的でない)
   function passesDiscardFilters(hand) {
     const all = T.shanten.allDiscardOptions(hand);
     if (all.length < 2) return false;
@@ -231,6 +232,7 @@
     }
     if (hasIsolatedTerminalKan(counts)) return false;
     const bestDiscards = all.filter(o => o.totalCount === best);
+    if (bestDiscards.length >= 5) return false;
     for (const opt of bestDiscards) {
       if (opt.discard[1] === 'z' && counts[NS.tileToIndex(opt.discard)] === 1) {
         return false;
