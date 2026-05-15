@@ -2248,7 +2248,7 @@ function renderQ() {
     } else if (quadKeys.size > 1) {
       console.warn('[nankiru] 手牌に複数組の4枚同一', { id: q.id, quadKeys: [...quadKeys] });
     }
-    handEl.classList.add('answered'); // カン/スルー選択前は牌を選べない
+    // 手牌は初期からクリック可能。打牌を直接選んだ場合は暗黙的に「スルー」扱い。
     const kBtn = document.getElementById('kan-btn-kan');
     const sBtn = document.getElementById('kan-btn-skip');
     kBtn.disabled = false; sBtn.disabled = false;
@@ -2347,6 +2347,13 @@ function onTileClick(idx, code, q) {
     console.warn('[nankiru] correctAnswer が空の通常問題', { id: q.id });
   }
 
+  // カン/スルー判断問題で、ボタン未選択のまま打牌した場合は暗黙的に「スルー」を選んだとみなす
+  if (q.kanChoice && st.kanSelected === null) {
+    st.kanSelected = 'skip';
+    const sBtn = document.getElementById('kan-btn-skip');
+    sBtn.classList.add('selected');
+  }
+
   const tileOk = isCorrectAnswer(q, code);
   const riichiOk = !q.riichiChoice || st.riichiSelected === q.riichiChoice;
   const kanOk    = !q.kanChoice    || st.kanSelected    === q.kanChoice;
@@ -2376,6 +2383,7 @@ function onTileClick(idx, code, q) {
   if (q.kanChoice) {
     const kBtn = document.getElementById('kan-btn-kan');
     const sBtn = document.getElementById('kan-btn-skip');
+    kBtn.disabled = true; sBtn.disabled = true;
     const correctBtn = q.kanChoice === 'kan' ? kBtn : sBtn;
     correctBtn.classList.add('correct');
     if (!kanOk) {
