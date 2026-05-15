@@ -9,6 +9,7 @@ private-docs/
 AGENTS.md
 CLAUDE.md
 .codex/
+.codex_tmp/
 .aider*
 .cursor*
 
