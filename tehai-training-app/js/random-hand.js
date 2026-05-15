@@ -175,14 +175,123 @@
   }
 
   // mode1 (受け入れ種類): shanten が 0〜2 かつ受け入れ種類が 1〜8 の手牌
+  // ただし以下の「簡単すぎるが頻出する」構造は除外する:
+  //   (1) 4対子+5孤立牌 (七対子の受け入れしか存在しない)
+  //   (2) 1面子+3ターツ(両面/カンチャン)+1雀頭+2孤立牌 の2シャンテン (順子手の典型形)
   function generateForUkeireMode() {
     const hand = generateUntil(13, (h) => {
       const s = T.shanten.shantenCount(h);
       if (s < 0 || s > 2) return false;
       const types = T.shanten.ukeireTypes(h);
-      return types.length >= 1 && types.length <= 8;
+      if (types.length < 1 || types.length > 8) return false;
+      if (isTrivialUkeireShape(h)) return false;
+      return true;
     });
     return T.tiles.sortTiles(hand);
+  }
+
+  // 除外パターン (1): 4対子 + 5孤立牌の13枚で、七対子の受け入れしか存在しない形
+  // (標準形シャンテンが七対子シャンテンより悪い場合、受け入れは七対子方向のみ)
+  function isFourPairChiitoiOnly(counts) {
+    let pairs = 0, singles = 0;
+    for (let i = 0; i < 34; i++) {
+      if (counts[i] === 2) pairs++;
+      else if (counts[i] === 1) singles++;
+      else if (counts[i] >= 3) return false;
+    }
+    if (pairs !== 4 || singles !== 5) return false;
+    return NS.countChiitoiShanten(counts) < NS.countStandardShanten(counts, 0);
+  }
+
+  // 除外パターン (2): 1面子 + 3ターツ(両面/カンチャン) + 1雀頭 + 2孤立牌 の標準2シャンテン
+  function isEasyTwoShantenStandard(counts) {
+    if (NS.countStandardShanten(counts, 0) !== 2) return false;
+    const c = new Int8Array(counts);
+    for (let i = 0; i < 34; i++) {
+      // 刻子を面子として取り出す
+      if (c[i] >= 3) {
+        c[i] -= 3;
+        if (tryHeadAndThreeTatsus(c)) return true;
+        c[i] += 3;
+      }
+      // 順子を面子として取り出す (数牌のみ、開始ランク1〜7)
+      if (i < 27 && (i % 9) <= 6 && c[i] >= 1 && c[i + 1] >= 1 && c[i + 2] >= 1) {
+        c[i]--; c[i + 1]--; c[i + 2]--;
+        if (tryHeadAndThreeTatsus(c)) return true;
+        c[i]++; c[i + 1]++; c[i + 2]++;
+      }
+    }
+    return false;
+  }
+
+  function tryHeadAndThreeTatsus(counts) {
+    for (let h = 0; h < 34; h++) {
+      if (counts[h] >= 2) {
+        counts[h] -= 2;
+        if (findTatsusRecursive(counts, 3, 2)) {
+          counts[h] += 2;
+          return true;
+        }
+        counts[h] += 2;
+      }
+    }
+    return false;
+  }
+
+  // 残り牌から「両面/カンチャンのタツ」を neededTatsu 個と、孤立牌 isolatedLeft 枚だけ取り出せるか
+  function findTatsusRecursive(counts, neededTatsu, isolatedLeft) {
+    if (neededTatsu === 0) {
+      let total = 0;
+      for (let i = 0; i < 34; i++) {
+        if (counts[i] >= 2) return false;
+        total += counts[i];
+      }
+      return total === isolatedLeft;
+    }
+    let start = -1;
+    for (let i = 0; i < 34; i++) {
+      if (counts[i] > 0) { start = i; break; }
+    }
+    if (start === -1) return false;
+    const suit = Math.floor(start / 9);
+    if (suit < 3) {
+      const rank = (start % 9) + 1;
+      // 両面: (start, start+1), 両端を埋められるランク 2〜7
+      if (rank >= 2 && rank <= 7 && counts[start + 1] > 0) {
+        counts[start]--; counts[start + 1]--;
+        if (findTatsusRecursive(counts, neededTatsu - 1, isolatedLeft)) {
+          counts[start]++; counts[start + 1]++;
+          return true;
+        }
+        counts[start]++; counts[start + 1]++;
+      }
+      // カンチャン: (start, start+2)
+      if (rank <= 7 && counts[start + 2] > 0) {
+        counts[start]--; counts[start + 2]--;
+        if (findTatsusRecursive(counts, neededTatsu - 1, isolatedLeft)) {
+          counts[start]++; counts[start + 2]++;
+          return true;
+        }
+        counts[start]++; counts[start + 2]++;
+      }
+    }
+    // 孤立牌として置く (残り孤立枠を1つ消費)
+    if (counts[start] === 1 && isolatedLeft > 0) {
+      counts[start]--;
+      if (findTatsusRecursive(counts, neededTatsu, isolatedLeft - 1)) {
+        counts[start]++;
+        return true;
+      }
+      counts[start]++;
+    }
+    return false;
+  }
+
+  function isTrivialUkeireShape(hand) {
+    const counts = NS.tilesToCounts(hand);
+    if (isFourPairChiitoiOnly(counts)) return true;
+    if (isEasyTwoShantenStandard(counts)) return true;
+    return false;
   }
 
   // 1 または 9 の数牌が孤立しているか (自身1枚のみ、かつ隣接±2 が0枚)
