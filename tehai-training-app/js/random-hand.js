@@ -322,6 +322,70 @@
     return false;
   }
 
+  // 9枚 counts がちょうど n 個の面子に分解できるか (再帰)
+  function canFormNMentsu(counts, n) {
+    if (n === 0) {
+      for (let i = 0; i < 34; i++) if (counts[i] !== 0) return false;
+      return true;
+    }
+    let start = -1;
+    for (let i = 0; i < 34; i++) {
+      if (counts[i] > 0) { start = i; break; }
+    }
+    if (start === -1) return false;
+    if (counts[start] >= 3) {
+      counts[start] -= 3;
+      if (canFormNMentsu(counts, n - 1)) {
+        counts[start] += 3;
+        return true;
+      }
+      counts[start] += 3;
+    }
+    if (start < 27 && (start % 9) <= 6 && counts[start + 1] > 0 && counts[start + 2] > 0) {
+      counts[start]--; counts[start + 1]--; counts[start + 2]--;
+      if (canFormNMentsu(counts, n - 1)) {
+        counts[start]++; counts[start + 1]++; counts[start + 2]++;
+        return true;
+      }
+      counts[start]++; counts[start + 1]++; counts[start + 2]++;
+    }
+    return false;
+  }
+
+  // 11枚 counts が「3面子+1雀頭」に分解できるか
+  function isElevenComplete(counts) {
+    let total = 0;
+    for (let i = 0; i < 34; i++) total += counts[i];
+    if (total !== 11) return false;
+    const c = new Int8Array(counts);
+    for (let p = 0; p < 34; p++) {
+      if (c[p] < 2) continue;
+      c[p] -= 2;
+      if (canFormNMentsu(c, 3)) return true;
+      c[p] += 2;
+    }
+    return false;
+  }
+
+  // 「3面子+1雀頭(11枚) + 同色 (X, X+3, X+6) 3枚」の形か
+  // (X+1, X+2 の中央を切ると両カンチャン化する「147/258/369」典型形)
+  function hasSujiTrioWithCompleteRest(counts) {
+    const c = new Int8Array(counts);
+    for (let suit = 0; suit < 3; suit++) {
+      for (let x = 0; x < 3; x++) {
+        const i1 = suit * 9 + x;
+        const i2 = suit * 9 + x + 3;
+        const i3 = suit * 9 + x + 6;
+        if (c[i1] < 1 || c[i2] < 1 || c[i3] < 1) continue;
+        c[i1]--; c[i2]--; c[i3]--;
+        const ok = isElevenComplete(c);
+        c[i1]++; c[i2]++; c[i3]++;
+        if (ok) return true;
+      }
+    }
+    return false;
+  }
+
   // 14枚手牌が mode3 の出題条件を満たすか判定
   //   - 最良打牌と最悪打牌の枚数差が 4 以上 (採点紛糾を避ける)
   //   - 最良打牌に字牌の孤立牌が含まれない (簡単すぎるので除外)
@@ -330,6 +394,7 @@
   //   - 同点最良打牌が 5 種類以上ある手牌は除外 (全部当てるのが現実的でない)
   //   - 2シャンテン手で最良と次善の枚数差が 1 枚しかない手牌は除外 (実戦的に同価値)
   //   - 他の13枚と異なる色の数牌が1枚だけ・孤立しているケースは除外 (簡単すぎる)
+  //   - 「3面子+雀頭+147/258/369同色3枚」の典型形は除外 (5切りが自明)
   function passesDiscardFilters(hand, targetShanten) {
     const all = T.shanten.allDiscardOptions(hand);
     if (all.length < 2) return false;
@@ -375,6 +440,11 @@
       const hasNeighbor = neighbors.some(n => counts[NS.tileToIndex(n + suit)] > 0);
       if (!hasNeighbor) return false;
     }
+
+    // 「11枚が3面子+雀頭で完成」+「残り3枚が同色147/258/369」の典型形を除外
+    // (中央の5を切れば残り両端が両カンチャン化するのが自明で、訓練価値が低い)
+    if (hasSujiTrioWithCompleteRest(counts)) return false;
+
     return true;
   }
 
