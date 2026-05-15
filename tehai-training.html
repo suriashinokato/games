@@ -1221,6 +1221,12 @@
         width: 100%;
         table-layout: fixed;
       }
+      [data-screen="quiz"].active .discard-table tr.row-hidden {
+        display: none;
+      }
+      [data-screen="quiz"].active .discard-table.expanded tr.row-hidden {
+        display: table;
+      }
       [data-screen="quiz"].active .discard-table th,
       [data-screen="quiz"].active .discard-table td {
         padding: 3px 0.45em;
