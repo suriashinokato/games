@@ -158,8 +158,10 @@
     const missed = T.tiles.sortTiles(correctList.filter(t => !userSelected.includes(t)));
 
     div.innerHTML =
-      '<p class="result-heading">' + (isCorrect ? '○ 正解' : '× 不正解') + '</p>' +
-      '<p>・シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong></p>' +
+      '<p class="result-heading">' +
+        (isCorrect ? '○ 正解' : '× 不正解') +
+        '<span class="result-detail">（' + shantenLabel(problem.shanten) + '）</span>' +
+      '</p>' +
       '<p>・正解の受け入れ牌 (合計 ' + totalCount + ' 枚):</p>' +
       '<div class="strip" data-name="correct"></div>';
     if (missed.length > 0) {
@@ -186,12 +188,10 @@
 
     const heading = document.createElement('p');
     heading.className = 'result-heading';
-    heading.textContent = isCorrect ? '○ 正解' : '× 不正解';
+    heading.innerHTML =
+      (isCorrect ? '○ 正解' : '× 不正解') +
+      '<span class="result-detail">（' + shantenLabel(problem.shanten) + '）</span>';
     div.appendChild(heading);
-
-    const head = document.createElement('p');
-    head.innerHTML = '・シャンテン数: <strong>' + shantenLabel(problem.shanten) + '</strong>';
-    div.appendChild(head);
 
     const correctSet = new Set(problem.bestDiscards.map(d => d.discard));
 
