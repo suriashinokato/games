@@ -2,13 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>麻雀 手牌トレーニング</title>
   <meta name="theme-color" content="#090a0b">
   <meta name="apple-mobile-web-app-title" content="手牌トレ">
   <link rel="icon" type="image/svg+xml" href="shared/brand/tehai-training-logo.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="shared/brand/tehai-training-logo-180.png">
   <link rel="manifest" href="tehai-training.webmanifest">
+  <script src="shared/js/viewport-orient-fix.js" defer></script>
   <!-- Firebase compat SDK (Google ログイン + Firestore 同期) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1255,6 +1256,53 @@
         font-size: 0.86rem;
         border-radius: 6px;
         box-shadow: 0 10px 22px rgba(0,0,0,0.20);
+      }
+
+      /* --- ホームボタンを左上、進捗を右上に --- */
+      body:has([data-screen="quiz"].active) {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      [data-screen="quiz"].active #home-btn {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
+        flex: 0 0 auto;
+        width: auto;
+        min-height: 28px;
+        padding: 5px 14px;
+        font-size: 0.74rem;
+        border-radius: 6px;
+        box-shadow: none;
+      }
+      [data-screen="quiz"].active .quiz-progress {
+        justify-content: flex-end;
+        align-items: center;
+        min-height: 28px;
+        padding-left: 88px;
+        text-align: right;
+      }
+      [data-screen="quiz"].active .nav-row {
+        justify-content: flex-end;
+      }
+
+      /* --- 結果表示時のみ #explanation をスクロール可能に --- */
+      [data-screen="quiz"].active:has(#explanation .explanation) {
+        grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+      }
+      [data-screen="quiz"].active:has(#explanation .explanation) .answer-area {
+        max-height: 38dvh;
+        overflow: hidden;
+      }
+      [data-screen="quiz"].active #explanation {
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+      [data-screen="quiz"].active .explanation {
+        max-height: none;
+        overflow: visible;
       }
     }
   </style>
