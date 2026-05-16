@@ -1,7 +1,11 @@
 # Sensitive / private content
 電験三種/
 private-docs/
+_backups/
 *.bundle
+*.wpress
+*.sql
+*.sql.gz
 
 # Claude Code / AI agent assets (kept in OneDrive\claude-assets)
 .agents/
