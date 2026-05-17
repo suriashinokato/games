@@ -884,7 +884,7 @@ button:focus-visible,
   #help-title-btn {
     position: absolute;
     top: calc(8px + env(safe-area-inset-top));
-    right: calc(8px + env(safe-area-inset-right));
+    right: 4px;
     z-index: 1;
     margin: 0;
     padding: 6px 12px;
