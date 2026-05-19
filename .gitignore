@@ -1,6 +1,7 @@
 # Sensitive / private content
 電験三種/
 private-docs/
+tools/
 _backups/
 *.bundle
 *.wpress
