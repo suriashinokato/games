@@ -57,3 +57,6 @@ npm-debug.log*
 # Backup / temp
 *.bak
 *.tmp
+
+# Local utility scripts
+disk_cleanup_admin.ps1
