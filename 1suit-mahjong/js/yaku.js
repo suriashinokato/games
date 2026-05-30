@@ -113,6 +113,11 @@ window.Bamboo = window.Bamboo || {};
     return has1 && has4 && has7;
   }
 
+  // 断么九 (タンヤオ): 14 枚すべてが 2〜8 (么九牌 1・9 を含まない)
+  function isTanyao(counts14) {
+    return counts14[1] === 0 && counts14[9] === 0;
+  }
+
   // 対々和: 全部刻子 (暗槓含む)
   function isToitoi(split, melds) {
     for (var i = 0; i < split.sets.length; i++) {
@@ -241,6 +246,10 @@ window.Bamboo = window.Bamboo || {};
 
     // 3) split 非依存の追加役を加算
 
+    // 断么九 (タンヤオ): 1・9 を含まなければ成立 (1 翻、鳴き可)
+    if (isTanyao(args.winningCounts)) {
+      bestYaku.push({ name: '断么九', han: 1 });
+    }
     // 立直
     if (args.isRiichi) {
       bestYaku.push({ name: '立直', han: 1 });
@@ -283,6 +292,7 @@ window.Bamboo = window.Bamboo || {};
     detectYaku: detectYaku,
     isRyuiisou: isRyuiisou,
     isPinfu: isPinfu,
+    isTanyao: isTanyao,
     countIipeikouPairs: countIipeikouPairs,
     hasItsu: hasItsu,
     isToitoi: isToitoi,
