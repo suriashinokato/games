@@ -13,7 +13,14 @@ window.Bamboo = window.Bamboo || {};
 
   // ---- 画面切替 ----
 
+  function blurActiveElement() {
+    var active = document.activeElement;
+    if (!active || active === document.body) return;
+    if (typeof active.blur === 'function') active.blur();
+  }
+
   function showScreen(name) {
+    blurActiveElement();
     var screens = document.querySelectorAll('.screen');
     for (var i = 0; i < screens.length; i++) {
       screens[i].style.display = 'none';
