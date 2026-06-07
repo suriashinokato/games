@@ -629,9 +629,19 @@
     .riichi-btn.correct { background: rgba(49,183,122,0.12); color: var(--correct); border-color: var(--correct); box-shadow: 0 1px 3px rgba(49,183,122,0.18); }
     .riichi-btn.wrong   { background: rgba(201,75,75,0.12); color: var(--wrong);   border-color: var(--wrong);   box-shadow: 0 1px 3px rgba(201,75,75,0.18); }
 
+    /* カン/スルー判断問題の見出し行（「カンしますか？」＋ボタンを手牌の上に横並び） */
+    .kan-prompt-row {
+      display: none; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 16px; margin: 8px 0 16px;
+    }
+    .kan-prompt-row.visible { display: flex; }
+    .kan-prompt-label {
+      font-size: 1.15rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text);
+    }
+
     /* カン/スルー選択ボタン（リーチと同じセグメントコントロール風） */
     .kan-choice-row {
-      display: none; gap: 4px; justify-content: center; margin: 8px auto 24px;
+      display: none; gap: 4px; justify-content: center; margin: 0;
       background: var(--card); padding: 4px; border-radius: 14px;
       width: fit-content;
       box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
@@ -793,6 +803,23 @@
       #screen-quiz .riichi-btn {
         min-width: 108px;
         padding: 8px 24px;
+        font-size: 0.96rem;
+        border-radius: 9px;
+      }
+      #screen-quiz .kan-prompt-row {
+        gap: 10px;
+        margin: 4px 0 8px;
+      }
+      #screen-quiz .kan-prompt-label {
+        font-size: 0.96rem;
+      }
+      #screen-quiz .kan-choice-row {
+        padding: 3px;
+        border-radius: 12px;
+      }
+      #screen-quiz .kan-btn {
+        min-width: 92px;
+        padding: 8px 18px;
         font-size: 0.96rem;
         border-radius: 9px;
       }
@@ -1030,6 +1057,15 @@
   <!-- チー/ポン/カン アクション選択ボタン行 -->
   <div class="meld-choice-row" id="meld-choice-row"></div>
 
+  <!-- カン/スルー選択（4枚同一カン判断問題のみ表示）— 手牌の上に「カンしますか？」と並べて配置 -->
+  <div class="kan-prompt-row" id="kan-prompt-row">
+    <span class="kan-prompt-label">カンしますか？</span>
+    <div class="kan-choice-row" id="kan-choice-row">
+      <button class="kan-btn" id="kan-btn-kan">カン</button>
+      <button class="kan-btn" id="kan-btn-skip">スルー</button>
+    </div>
+  </div>
+
   <div class="hand-wrap">
     <div class="hand-row">
       <div class="hand-tiles" id="hand-tiles"></div>
@@ -1042,12 +1078,6 @@
   <div class="riichi-choice-row" id="riichi-choice-row">
     <button class="riichi-btn" id="riichi-btn-riichi">リーチ</button>
     <button class="riichi-btn" id="riichi-btn-dama">ダマ</button>
-  </div>
-
-  <!-- カン/スルー選択（4枚同一カン判断問題のみ表示） -->
-  <div class="kan-choice-row" id="kan-choice-row">
-    <button class="kan-btn" id="kan-btn-kan">カン</button>
-    <button class="kan-btn" id="kan-btn-skip">スルー</button>
   </div>
 
   <div class="feedback-area" id="feedback-area" style="display:none">
@@ -2265,10 +2295,12 @@ function renderQ() {
   const hasKanStep    = !!q.kanChoice && !hasRiichiStep; // 排他: 両方設定時は riichi 優先
   const rcRow = document.getElementById('riichi-choice-row');
   const kcRow = document.getElementById('kan-choice-row');
+  const kpRow = document.getElementById('kan-prompt-row');
   const mcRow = document.getElementById('meld-choice-row');
   const inRow = document.getElementById('incoming-tile-row');
   rcRow.classList.toggle('visible', hasRiichiStep && !isMeldQ);
   kcRow.classList.toggle('visible', hasKanStep && !isMeldQ);
+  kpRow.classList.toggle('visible', hasKanStep && !isMeldQ);
   mcRow.classList.remove('visible');
   inRow.classList.remove('visible');
   if (isMeldQ) {
@@ -2297,7 +2329,7 @@ function renderQ() {
     kBtn.className = 'kan-btn'; sBtn.className = 'kan-btn';
     kBtn.onclick = () => onKanChoice('kan',  q, kanIndices);
     sBtn.onclick = () => onKanChoice('skip', q, kanIndices);
-    document.getElementById('q-instruction').textContent = 'カンしますか？';
+    // 見出しは kan-prompt-row 内の「カンしますか？」ラベルが担うため、上部の説明文は隠す
   } else {
     document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
   }
@@ -2306,7 +2338,7 @@ function renderQ() {
   document.getElementById('btn-next').style.display         = 'none';
   document.getElementById('btn-retry-again').style.display  = 'none';
   document.getElementById('btn-go-to-list').style.display   = 'none';
-  document.getElementById('q-instruction').style.display = isMeldQ ? 'none' : '';
+  document.getElementById('q-instruction').style.display = (isMeldQ || hasKanStep) ? 'none' : '';
 }
 
 function showFeedbackArea(ok, q) {
@@ -2512,7 +2544,9 @@ function onKanChoice(choice, q, kanIndices) {
 
   // スルー選択時のみ: 牌選択を有効化（通常の打牌フロー）
   handEl.classList.remove('answered');
-  document.getElementById('q-instruction').textContent = 'どの牌を切りますか？';
+  const instrEl = document.getElementById('q-instruction');
+  instrEl.textContent = 'どの牌を切りますか？';
+  instrEl.style.display = ''; // カン問題では初期は隠しているため、打牌ステップで再表示
 }
 
 // ===== チー/ポン/カン 問題 =====
