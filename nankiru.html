@@ -1443,6 +1443,9 @@ let _problemsCache = null;
 let _authReady = IS_LOCAL;
 // 進行中の loadProblems Promise（多重 fetch を防ぐ）
 let _problemsLoadPromise = null;
+// 直近の loadProblems がログイン中にFirestore読込失敗したか（initHomeの自動再試行用）
+let _lastLoadFailed = false;
+let _initHomeRetryCount = 0;
 let listActiveTagFilter = null;
 let _listTagDelegateInit = false;
 let listCurrentPage = 1;
@@ -1523,13 +1526,26 @@ async function loadProblems(forceReload = false) {
     let arr;
     let firestoreFailed = false;
     if (userAtStart) {
-      try {
-        const snap = await db.collection('users/' + userAtStart.uid + '/problems').get();
-        arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      } catch(e) {
-        firestoreFailed = true;
-        console.warn('Firestore読込失敗、localStorageにフォールバック', e);
+      // 一過性のネットワーク/トークン揺らぎで .get() が失敗することがあるためリトライする。
+      // （オフライン永続化は無効なので、瞬断時は cache ではなく reject される）
+      const MAX_TRIES = 3;
+      for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+        try {
+          const snap = await db.collection('users/' + userAtStart.uid + '/problems').get();
+          arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          firestoreFailed = false;
+          break;
+        } catch(e) {
+          firestoreFailed = true;
+          console.warn('Firestore読込失敗 (試行 ' + attempt + '/' + MAX_TRIES + ')', e);
+          if (attempt < MAX_TRIES) {
+            await new Promise(r => setTimeout(r, 400 * attempt));
+            // リトライ中に認証状態が変わったら中断（新状態での再ロードに任せる）
+            if (currentUser !== userAtStart) break;
+          }
+        }
       }
+      if (firestoreFailed) console.warn('Firestore読込に失敗、localStorageにフォールバック');
     }
     if (!arr) arr = JSON.parse(localStorage.getItem(PROB_KEY) || '[]');
     let order = null;
@@ -1554,6 +1570,15 @@ async function loadProblems(forceReload = false) {
       console.warn('loadProblems中に認証状態が変化したため結果を破棄');
       return arr;
     }
+    // ログイン中にFirestore読込が失敗した場合、空のlocalStorageフォールバック結果を
+    // キャッシュすると「0問」がセッション中ずっと固定されてしまう。
+    // 失敗時はキャッシュせず、次回呼び出しで再試行できるようにする。
+    if (userAtStart && firestoreFailed) {
+      console.warn('Firestore読込失敗のため結果をキャッシュせず再試行可能にする');
+      _lastLoadFailed = true;
+      return arr;
+    }
+    _lastLoadFailed = false;
     _problemsCache = arr;
     return arr;
   })();
@@ -1812,7 +1837,23 @@ async function initHome() {
   // タグマスタも一緒にロード（カテゴリ色付け / ソートに使用）
   await loadTagMaster();
   subscribeToTagMaster();
-  document.getElementById('prob-count').textContent = problems.length;
+  const countEl = document.getElementById('prob-count');
+
+  // ログイン中にFirestoreからのロードがすべてのリトライでもなお失敗した場合、
+  // 「0問」を確定表示せず、少し待って自動的に再ロードする。
+  // （ここで結果はキャッシュされていないため、再呼び出しで実際に再試行される）
+  if (_lastLoadFailed && currentUser && problems.length === 0 && _initHomeRetryCount < 3) {
+    _initHomeRetryCount++;
+    countEl.textContent = '…';
+    document.getElementById('btn-list').disabled   = true;
+    document.getElementById('btn-random').disabled = true;
+    console.warn('問題読込に失敗したため自動再試行します (' + _initHomeRetryCount + '/3)');
+    setTimeout(() => { initHome(); }, 1000 * _initHomeRetryCount);
+    return;
+  }
+  _initHomeRetryCount = 0;
+
+  countEl.textContent = problems.length;
   const noProblems = problems.length === 0;
   document.getElementById('btn-list').disabled   = noProblems;
   document.getElementById('btn-random').disabled = noProblems;
