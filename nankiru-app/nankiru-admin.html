@@ -346,8 +346,21 @@
       background: var(--overlay-dark); color: #fff; border: none; border-radius: 50%;
       font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; display: none; padding: 0;
     }
-    .editor-hand .e-tile:hover .remove-btn,
     .mb-preview .mb-tile:hover .remove-btn { display: block; }
+    @media (hover: hover) {
+      .editor-hand .e-tile:hover .remove-btn { display: block; }
+    }
+    @media (hover: none) {
+      /* タッチ端末では手牌の×を表示しない（細い牌で×を誤タップして消える問題の対策）。
+         手牌の削除は長押しで行う。副露・ドラの×は常時表示にして1タップで消せるようにする。 */
+      .mb-preview .mb-tile .remove-btn,
+      .editor-dora .d-tile .remove-btn { display: block; }
+      .editor-hand .e-tile.press-deleting {
+        border-color: #e05656;
+        box-shadow: 0 0 0 2px rgba(224,86,86,0.45);
+        transition: border-color 0.45s linear, box-shadow 0.45s linear;
+      }
+    }
 
     .answer-hint, .meld-hint { font-size: 0.82rem; color: var(--text-dim); }
     .answer-hint strong, .meld-hint strong { color: var(--correct); }
@@ -739,7 +752,7 @@
     <div class="tab-panel active" id="panel-hand">
       <div class="hand-count">手牌: <strong id="hand-count">0</strong> 枚 ／ 合計（手牌＋副露）: <strong id="total-count">0</strong> / <span id="max-total">14</span> 枚</div>
       <div class="editor-hand" id="editor-hand"></div>
-      <p class="answer-hint" id="answer-hint">手牌の牌をクリックして<strong>正解牌</strong>を設定してください</p>
+      <p class="answer-hint" id="answer-hint">手牌の牌をタップして<strong>正解牌</strong>を設定してください（長押し／×で削除）</p>
     </div>
 
     <!-- ドラパネル -->
@@ -2136,7 +2149,45 @@ function _initEditorHandDelegate() {
   const el = document.getElementById('editor-hand');
   if (el.dataset.delegated) return;
   el.dataset.delegated = '1';
+
+  // タッチ端末: タップ=正解牌の設定/解除、長押し=削除（誤タップで牌が消えるのを防ぐ）
+  let pressTimer = null, pressTile = null, startX = 0, startY = 0, longFired = false;
+  const LONG_MS = 500, MOVE_TOL = 12;
+  const clearPress = () => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    if (pressTile) { pressTile.classList.remove('press-deleting'); pressTile = null; }
+  };
+
+  el.addEventListener('touchstart', e => {
+    const tile = e.target.closest('.e-tile');
+    if (!tile) return;
+    longFired = false;
+    pressTile = tile;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    tile.classList.add('press-deleting');
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      longFired = true;
+      const idx = +tile.dataset.idx;
+      tile.classList.remove('press-deleting');
+      pressTile = null;
+      if (navigator.vibrate) { try { navigator.vibrate(30); } catch (_) {} }
+      removeTile(idx);
+    }, LONG_MS);
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    if (!pressTimer) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - startX) > MOVE_TOL || Math.abs(t.clientY - startY) > MOVE_TOL) clearPress();
+  }, { passive: true });
+  el.addEventListener('touchend', clearPress);
+  el.addEventListener('touchcancel', clearPress);
+
   el.addEventListener('click', e => {
+    if (longFired) { longFired = false; e.preventDefault(); e.stopPropagation(); return; }
+    if (e.target.closest('.remove-btn')) return;
     const tile = e.target.closest('.e-tile');
     if (!tile) return;
     const code = tile.dataset.code;
@@ -2148,8 +2199,8 @@ function renderEditorHand(quickUpdate = false) {
   const el = document.getElementById('editor-hand');
   const answers = editState.correctAnswer;
   const answerHintHtml = answers.length
-    ? '正解牌: <strong>' + answers.map(tileLabel).join(' / ') + '</strong>（クリックで追加/解除）'
-    : '手牌の牌をクリックして<strong>正解牌</strong>を設定してください（複数可）';
+    ? '正解牌: <strong>' + answers.map(tileLabel).join(' / ') + '</strong>（タップで追加/解除・長押し／×で削除）'
+    : '手牌の牌をタップして<strong>正解牌</strong>を設定してください（複数可・長押し／×で削除）';
   if (quickUpdate) {
     el.querySelectorAll('.e-tile').forEach(tile => {
       const isAnswer = answers.includes(tile.dataset.code);
@@ -2167,6 +2218,7 @@ function renderEditorHand(quickUpdate = false) {
     tile.className = 'e-tile' + (isAnswer ? ' is-answer' : '');
     tile.title = isAnswer ? '正解牌（クリックで解除）' : 'クリックで正解牌に追加';
     tile.dataset.code = code;
+    tile.dataset.idx = idx;
     const img = document.createElement('img');
     img.src = '../shared/images_hai/' + code + '.png'; img.alt = tileLabel(code);
     img.onerror = function() { this.style.display = 'none'; const sp = document.createElement('span'); sp.textContent = tileLabel(code); tile.appendChild(sp); };
