@@ -15,6 +15,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="./nankiru-shanten.js"></script>
+  <script src="./nankiru-quick-core.js?v=1"></script>
+  <script src="./nankiru-problem-store.js?v=1"></script>
+  <link rel="stylesheet" href="./nankiru-quick.css?v=1">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -677,7 +680,8 @@
     管理者権限がありません。Firebaseコンソールで <code>admins/{uid}</code> ドキュメントを作成してください。
   </div>
   <div class="list-actions" id="list-actions">
-    <button class="btn btn-accent" onclick="openEditor(null)">＋ 新規問題を追加</button>
+    <button class="btn btn-accent" onclick="openQuick()">＋ 簡易登録</button>
+    <button class="btn btn-ghost" onclick="openEditor(null)">＋ 詳細入力で追加</button>
     <button class="btn btn-ghost" onclick="openManage()">出典・タグ管理</button>
     <button class="btn btn-ghost" onclick="exportJSON()">JSON エクスポート</button>
     <button class="btn btn-ghost" onclick="document.getElementById('import-input').click()">JSON インポート</button>
@@ -1030,9 +1034,9 @@ const firebaseConfig = {
   messagingSenderId: "401045979406",
   appId: "1:401045979406:web:00345e7a4023108ed7975f"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db   = firebase.firestore();
+if (typeof firebase !== 'undefined') firebase.initializeApp(firebaseConfig);
+const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
+const db   = typeof firebase !== 'undefined' ? firebase.firestore() : null;
 
 let currentUser = null;
 let isAdmin = false;
@@ -1060,7 +1064,7 @@ function disableLocalMode() {
   location.reload();
 }
 
-auth.onAuthStateChanged(async user => {
+if (auth) auth.onAuthStateChanged(async user => {
   const statusEl   = document.getElementById('auth-status');
   const signinBtn  = document.getElementById('btn-signin');
   const signoutBtn = document.getElementById('btn-signout');
@@ -1153,7 +1157,10 @@ async function loadProblems(forceReload = false) {
   return arr;
 }
 
-function saveProblems(arr) { localStorage.setItem(PROB_KEY, JSON.stringify(arr)); }
+function saveProblems(arr) {
+  localStorage.setItem(PROB_KEY, JSON.stringify(arr));
+  _adminProblemsCache = null;
+}
 
 const ORDER_KEY = 'nankiru_problem_order';
 async function loadOrder() {
@@ -1228,6 +1235,9 @@ async function renderSourceSelect(selectedValue) {
     opt.value = s; opt.textContent = s;
     sel.appendChild(opt);
   });
+  if (current && !sources.includes(current)) {
+    const opt = document.createElement('option'); opt.value = current; opt.textContent = current; sel.appendChild(opt);
+  }
   sel.value = current;
 }
 
@@ -1258,6 +1268,7 @@ async function renderSourceManagement() {
     ul.appendChild(li);
   });
   if (sortableSourcesInstance) sortableSourcesInstance.destroy();
+  if (typeof Sortable === 'undefined') return;
   sortableSourcesInstance = Sortable.create(ul, {
     handle: '.drag-handle',
     animation: 150,
@@ -1515,6 +1526,7 @@ async function renderTagManagement() {
     ul.appendChild(li);
   });
   if (sortableTagsInstance) sortableTagsInstance.destroy();
+  if (typeof Sortable === 'undefined') return;
   sortableTagsInstance = Sortable.create(ul, {
     handle: '.drag-handle',
     animation: 150,
@@ -1676,8 +1688,8 @@ function makeRemoveBtn(onclick) {
 
 // ===== SCREENS =====
 function showScreen(id) {
-  ['list','editor','manage'].forEach(s =>
-    document.getElementById('screen-' + s).style.display = s === id ? '' : 'none'
+  ['list','editor','manage','quick'].forEach(s =>
+    document.getElementById('screen-' + s)?.style.setProperty('display', s === id ? '' : 'none')
   );
 }
 
@@ -1747,7 +1759,7 @@ async function renderList() {
   if (!displayProblems.length) {
     el.innerHTML = activeTagFilter
       ? '<div class="empty-msg">タグ「' + activeTagFilter + '」の問題が見つかりません。</div>'
-      : '<div class="empty-msg">問題がまだありません。<br>「＋ 新規問題を追加」から登録してください。</div>';
+      : '<div class="empty-msg">問題がまだありません。<br>「＋ 簡易登録」または「＋ 詳細入力で追加」から登録してください。</div>';
     return;
   }
 
@@ -1868,6 +1880,7 @@ async function renderList() {
   });
 
   if (sortableInstance) sortableInstance.destroy();
+  if (typeof Sortable === 'undefined') return;
   sortableInstance = Sortable.create(el, {
     handle: '.drag-handle',
     animation: 150,
@@ -2734,9 +2747,27 @@ function renderMqDiscardHand() {
 }
 
 // ===== SAVE =====
+let _savingProblem = false;
 async function saveProblem() {
+  if (_savingProblem) return;
+  _savingProblem = true;
+  try { await saveProblemImpl(); }
+  catch (e) { alert('保存に失敗しました: ' + e.message); }
+  finally { _savingProblem = false; }
+}
+
+async function persistAdminProblem(problem) {
+  await NankiruProblemStore.save(problem, {
+    db: currentUser && isAdmin ? db : null, uid: currentUser && isAdmin ? currentUser.uid : null,
+    storage: localStorage, problemKey: PROB_KEY, orderKey: ORDER_KEY, loadProblems,
+    shanten: typeof NankiruShanten === 'undefined' ? null : NankiruShanten
+  });
+  _adminProblemsCache = null;
+}
+
+async function saveProblemImpl() {
   if (!editState.hand.length) { alert('手牌を設定してください'); return; }
-  if (!editState.dora.length) { alert('ドラ表示牌を設定してください'); return; }
+  NankiruQuickCore.validateTiles([...editState.hand, ...editState.dora, ...editState.melds.flatMap(m => m.tiles)]);
 
   if (editState.questionType === 'meld') {
     // チー/ポン/カン問題専用バリデーション
@@ -2758,8 +2789,8 @@ async function saveProblem() {
   } else {
     // 通常問題バリデーション
     const total = totalTileCount();
-    if (total < 14) {
-      alert('手牌と副露の合計が14枚に達していません（現在 ' + total + ' 枚）\n\nあと ' + (14 - total) + ' 枚追加してください。');
+    if (total !== 14) {
+      alert('手牌と副露の合計を14枚にしてください（現在 ' + total + ' 枚）。');
       return;
     }
     if (editState.correctAnswer.length === 0) { alert('正解牌を1枚以上選択してください\n（手牌の牌をクリックして選択。複数選択可）'); return; }
@@ -2813,53 +2844,9 @@ async function saveProblem() {
     createdAt:     new Date().toISOString().slice(0, 10)
   };
 
-  // ===== 受け入れ枚数の自動計算 =====
-  // 鳴き判定問題はスキップ。それ以外は手牌+副露が14枚のときだけ計算する。
-  // カン (暗槓/大明槓/加槓) は実枚数4だが、14枚判定では他の副露と同様に3枚扱いとする。
-  // 失敗時もアラートだけ出して保存自体は止めない (手入力 ukeireru があれば運用継続できるため)
-  const meldEffectiveCount = m => {
-    const isKan = m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan';
-    return isKan ? 3 : m.tiles.length;
-  };
-  if (problem.questionType === 'meld') {
-    problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'meld_question', calcVersion: '1.0', calculatedAt: null };
-  } else {
-    const totalForCalc = problem.hand.length
-      + problem.melds.reduce((sum, m) => sum + meldEffectiveCount(m), 0);
-    if (totalForCalc !== 14) {
-      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'tile_count_not_14', calcVersion: '1.0', calculatedAt: null };
-    } else if (typeof NankiruShanten === 'undefined') {
-      problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'shanten_lib_not_loaded', calcVersion: '1.0', calculatedAt: null };
-    } else {
-      try {
-        Object.assign(problem, NankiruShanten.calcAndAttach(problem));
-      } catch (e) {
-        console.error('受け入れ自動計算に失敗', e);
-        problem.ukeireruMeta = { calcSkipped: true, calcSkipReason: 'calc_error: ' + e.message, calcVersion: '1.0', calculatedAt: null };
-      }
-    }
-  }
-
-  if (currentUser && isAdmin) {
-    try {
-      await db.collection('users/' + currentUser.uid + '/problems').doc(problem.id).set(problem);
-      _adminProblemsCache = null;
-    } catch(e) { alert('Firestoreへの保存に失敗しました: ' + e.message); return; }
-  } else {
-    const problems = await loadProblems();
-    if (editState.id) {
-      const i = problems.findIndex(p => p.id === editState.id);
-      if (i >= 0) problems[i] = problem; else problems.push(problem);
-    } else {
-      problems.push(problem);
-    }
-    saveProblems(problems);
-    _adminProblemsCache = null;
-  }
-  if (!editState.id) {
-    const order = (await loadOrder()) || [];
-    if (!order.includes(problem.id)) { order.push(problem.id); await saveOrder(order); }
-  }
+  // 再試行でも同じIDを使用し、二重登録を防ぐ。
+  editState.id = problem.id;
+  await persistAdminProblem(problem);
   openList();
 }
 
@@ -3022,8 +3009,9 @@ async function renderTagSuggestions() {
   // マスタリストを優先。未登録なら既存問題から派生（後方互換）。
   let masterTags = await loadTags();
   if (!masterTags.length) {
+    const problems = await loadProblems();
     masterTags = [...new Set(
-      _adminProblemsCache.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
+      problems.flatMap(p => Array.isArray(p.tags) ? p.tags : [])
     )].map(name => ({ name, category: 'uncategorized' }));
   }
   const allTags = masterTags
@@ -3188,5 +3176,7 @@ if (typeof firebase === 'undefined') {
   document.getElementById('list-actions').style.display = 'none';
 }
 </script>
+<script src="./nankiru-quick-samples.js?v=1"></script>
+<script src="./nankiru-quick.js?v=1"></script>
 </body>
 </html>

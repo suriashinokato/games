@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>簡易登録テスト</title>
+<style>body{font:16px sans-serif;padding:16px}pre{white-space:pre-wrap;line-height:1.6}iframe{width:100%;height:900px;border:1px solid #ccc}</style>
+<h1>簡易登録テスト</h1><p id="summary">実行中</p><pre id="results"></pre>
+<script src="nankiru-quick-core.js?v=1"></script><script src="nankiru-problem-store.js?v=1"></script>
+<script src="nankiru-quick-samples.js?v=1"></script><script src="nankiru-shanten.js"></script>
+<script src="nankiru-quick-tests.js?v=1"></script>
+<h2>保存先を隔離した管理画面</h2>
+<p>この画面の問題はメモリ内だけに保存されます。再読込で消えます。Firebaseには接続しません。画像の見本はこのテスト用オリジンのIndexedDBに残ります。</p>
+<button id="launch">管理画面を開く</button>
+<button id="integration">画面操作の結合テストを実行</button><pre id="integration-results"></pre>
+<iframe id="admin" title="テスト用管理画面"></iframe>
+<iframe id="quiz-test" title="テスト用出題画面" hidden></iframe>
+<script>
+async function launchAdmin() {
+  let html = await (await fetch('nankiru-admin.html', { cache: 'no-store' })).text();
+  html = html.replace(/<script src="https:[^"]+"><\/script>/g, '');
+  const setup = `<script>
+    const testStorage = new Map([['nankiru_problems', '[]']]);
+    Object.defineProperty(window, 'localStorage', { value: {
+      getItem: k => testStorage.get(k) ?? null,
+      setItem: (k, v) => testStorage.set(k, String(v)),
+      removeItem: k => testStorage.delete(k)
+    }});
+  <\/script>`;
+  const frame = document.getElementById('admin');
+  await new Promise(resolve => { frame.onload = resolve; frame.srcdoc = html.replace('<head>', '<head>' + setup); });
+  return frame.contentWindow;
+}
+document.getElementById('launch').onclick = launchAdmin;
+</script>
+<script src="nankiru-quick-integration-tests.js?v=1"></script></html>
