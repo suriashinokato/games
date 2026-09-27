@@ -26,9 +26,10 @@
       if (code[0] === '0' && (reds[code] = (reds[code] || 0) + 1) > 1) throw new Error(code + ' は1枚までです。');
     }
   }
-  function validate(hand, answers) {
+  function validate(hand, answers, dora = []) {
     if (hand.length !== 14) throw new Error('手牌は14枚必要です（現在 ' + hand.length + ' 枚）。');
-    validateTiles(hand);
+    if (dora.length > 4) throw new Error('ドラ表示牌は4枚までです。');
+    validateTiles([...hand, ...dora]);
     if (!answers.length) throw new Error('正解牌を1種類以上選択してください。');
     if (answers.some(c => !hand.includes(c))) throw new Error('正解牌は手牌から選択してください。');
   }
@@ -39,6 +40,48 @@
     const c = canvas(Math.max(1, Math.round(rect.w)), Math.max(1, Math.round(rect.h)));
     c.getContext('2d').drawImage(image, rect.x, rect.y, rect.w, rect.h, 0, 0, c.width, c.height);
     return c;
+  }
+  // 四隅から背景色を推定する。白い牌も「外枠」を含めて残し、背景だけを除く。
+  function foreground(image) {
+    const w = image.width, h = image.height;
+    const data = image.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+    const corners = [0, w - 1, (h - 1) * w, w * h - 1];
+    const bg = [0, 1, 2].map(ch => corners.map(p => data[p * 4 + ch]).sort((a, b) => a - b)[1]);
+    const rows = new Uint32Array(h), columns = new Uint32Array(w);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] > 32 && Math.max(Math.abs(bg[0] - data[i]), Math.abs(bg[1] - data[i + 1]), Math.abs(bg[2] - data[i + 2])) > 20) {
+        rows[y]++; columns[x]++;
+      }
+    }
+    // 1画素のノイズは無視する。上下の枠がある白牌は2画素以上あるため残る。
+    const xs = [...columns.keys()].filter(x => columns[x] >= 2);
+    const ys = [...rows.keys()].filter(y => rows[y] >= 2);
+    if (!xs.length || !ys.length) return null;
+    return { x: xs[0], y: ys[0], w: xs.at(-1) - xs[0] + 1, h: ys.at(-1) - ys[0] + 1, columns };
+  }
+  function trimTile(image) {
+    const bounds = foreground(image);
+    return bounds && bounds.w >= 3 && bounds.h >= 3 ? crop(image, bounds) : null;
+  }
+  function prepareStrip(image) {
+    const bounds = foreground(image);
+    if (!bounds || bounds.w < 140 || bounds.h < 15) throw new Error('牌の一列を検出できません。余白だけでなく、牌の枠を含む範囲を選択してください。');
+    const trimmed = crop(image, bounds), columns = bounds.columns.slice(bounds.x, bounds.x + bounds.w);
+    const runs = []; let start = 0;
+    // 全高にわたり背景しかない隙間のみ取り除く。白牌の中身だけは取り除かない。
+    for (let x = 0; x < trimmed.width;) {
+      if (columns[x] >= 2) { x++; continue; }
+      const gap = x;
+      while (x < trimmed.width && columns[x] < 2) x++;
+      if (x - gap >= 3) { if (gap > start) runs.push([start, gap]); start = x; }
+    }
+    if (start < trimmed.width) runs.push([start, trimmed.width]);
+    const width = runs.reduce((sum, [a, b]) => sum + b - a, 0);
+    if (width < 140) throw new Error('牌の一列を検出できません。選択範囲を調整してください。');
+    const strip = canvas(width, trimmed.height), ctx = strip.getContext('2d'); let dest = 0;
+    for (const [a, b] of runs) { ctx.drawImage(trimmed, a, 0, b - a, trimmed.height, dest, 0, b - a, trimmed.height); dest += b - a; }
+    return strip;
   }
   // 外枠を除外し、絵柄の外接矩形を正規化。白は輪郭のない独立した特徴になる。
   function feature(image) {
@@ -122,5 +165,5 @@
     }
     result.push(w); return result;
   }
-  root.NankiruQuickCore = { codes, parse, validate, validateTiles, crop, feature, rank, boundaries };
+  root.NankiruQuickCore = { codes, parse, validate, validateTiles, crop, trimTile, prepareStrip, feature, rank, boundaries };
 })(typeof window === 'undefined' ? globalThis : window);

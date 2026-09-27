@@ -25,6 +25,12 @@
     rejects(() => core.validateTiles(core.parse('05555m'))); rejects(() => core.validateTiles(core.parse('00s')));
     core.validateTiles(core.parse('0555m'));
   });
+  await test('ドラ表示牌の枚数と手牌との合算制限', () => {
+    core.validate(hand, ['6s'], ['1z']);
+    rejects(() => core.validate(hand, ['6s'], ['1z','2z','3z','4z','5z']));
+    rejects(() => core.validate(hand, ['6s'], ['6s','6s','6s']));
+    rejects(() => core.validate(core.parse('0555m123p123s1234z'), ['0m'], ['5m']));
+  });
   const problem = () => ({ id: 'test-1', hand: [...hand], correctAnswer: ['6s'], melds: [], dora: [], ukeireru: [] });
   function memory() {
     const data = new Map();
@@ -88,6 +94,32 @@
       }));
       const result = edges.slice(0, -1).map((x, i) => core.rank(core.feature(core.crop(strip, { x, y: 0, w: edges[i + 1] - x, h: 90 })), refs)[0].code);
       assert(result.join(' ') === '2m 3m 4m 0m 6m 7m 3p 4p 5p 6s 6s 7s 8s 5z', result.join(' ') + ' / edges=' + edges.join(','));
+    });
+    await test('大きな余白と牌間の空白を無視し、本物の白を残す', async () => {
+      const expected = '2m 3m 4m 0m 6m 7m 3p 4p 5p 6s 6s 7s 8s 5z'.split(' ');
+      const images = await Promise.all(core.codes.map(async code => {
+        const img = new Image(); img.src = '../shared/images_hai/' + code + '.png'; await img.decode(); return { code, img, feature: core.feature(img) };
+      }));
+      for (const background of ['#fff', '#ddd', '#184b38']) {
+        const c = document.createElement('canvas'); c.width = 1400; c.height = 200;
+        const ctx = c.getContext('2d'); ctx.fillStyle = background; ctx.fillRect(0, 0, c.width, c.height);
+        expected.forEach((code, i) => ctx.drawImage(images.find(t => t.code === code).img, 100 + i * 72 + (i === 13 ? 36 : 0), 55));
+        const strip = core.prepareStrip(c), edges = core.boundaries(strip);
+        const result = edges.slice(0, -1).map((x, i) => {
+          const tile = core.trimTile(core.crop(strip, { x, y: 0, w: edges[i + 1] - x, h: strip.height }));
+          return tile ? core.rank(core.feature(tile), images)[0].code : null;
+        });
+        assert(result.join(' ') === expected.join(' '), background + ': ' + result.join(' '));
+      }
+    });
+    await test('余白だけの画像を白にしない・枠のある白は残す', async () => {
+      const c = document.createElement('canvas'); c.width = 200; c.height = 80;
+      for (const color of ['white', '#ddd', '#184b38']) {
+        c.getContext('2d').fillStyle = color; c.getContext('2d').fillRect(0, 0, 200, 80);
+        assert(core.trimTile(c) === null); rejects(() => core.prepareStrip(c));
+      }
+      const img = new Image(); img.src = '../shared/images_hai/5z.png'; await img.decode();
+      assert(core.trimTile(core.crop(img, {x:0,y:0,w:img.width,h:img.height})) !== null);
     });
     await test('見本の保存・重複抑止・再読込・削除', async () => {
       const name = '__test_' + Date.now();

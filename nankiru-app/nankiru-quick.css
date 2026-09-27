@@ -29,6 +29,12 @@
 #quick-sample-list img { width: 36px; height: 48px; object-fit: contain; }
 #quick-sample-list button { display: flex; align-items: center; gap: 5px; }
 #quick-boundary { width: 100%; }
+.quick-tile-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.quick-tile-row button { min-width: 40px; padding: 4px; border: 1px solid var(--text-dim); border-radius: 4px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; font-size: .75rem; }
+.quick-tile-row button:disabled { opacity: .35; cursor: default; }
+.quick-tile-row button img { display: block; width: 34px; height: 46px; object-fit: contain; margin: 0 auto 3px; }
+#quick-hand-input, #quick-dora-input { min-height: 36px; padding: 6px; border: 1px dashed var(--text-dim); border-radius: 6px; }
+#screen-quick summary { cursor: pointer; padding: 8px 0; }
 @media (max-width: 600px) {
   #quick-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
   #screen-quick .section { padding: 12px; }

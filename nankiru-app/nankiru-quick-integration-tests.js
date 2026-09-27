@@ -15,6 +15,22 @@ document.getElementById('integration').onclick = async function () {
     sampleStore = win.NankiruQuickSamples;
     priorSampleIds = new Set((await sampleStore.list('標準')).map(s => s.id));
     const baseline = JSON.parse(win.localStorage.getItem('nankiru_problems') || '[]').length;
+    const paletteHand = '2m 3m 4m 5m 6m 7m 3p 4p 5p 6s 6s 7s 8s 5p'.split(' ');
+    const addTile = (target, code) => $(target + '-palette').querySelector('[data-code="' + code + '"]').click();
+    paletteHand.forEach(c => addTile('hand', c));
+    assert($('hand-input').children.length === 14 && $('text').value === paletteHand.join(''), '牌画像で14枚入力');
+    addTile('hand', '1z'); assert($('hand-input').children.length === 14, '15枚目は追加不可');
+    $('hand-input').children[13].click(); addTile('hand', '5p');
+    assert($('hand-input').children.length === 14, '牌の削除と再入力');
+    $('hand-clear').click();
+    for (let i = 0; i < 4; i++) addTile('hand', '1m');
+    assert($('hand-palette').querySelector('[data-code="1m"]').disabled, '同種5枚目は追加不可');
+    assert($('dora-palette').querySelector('[data-code="1m"]').disabled, 'ドラも手牌と合算');
+    $('hand-clear').click();
+    ['1z','2z','3z','4z'].forEach(c => addTile('dora', c)); addTile('dora', '5z');
+    assert($('dora-input').children.length === 4, 'ドラは4枚まで');
+    while ($('dora-input').children.length) $('dora-input').children[0].click();
+    logs.push('PASS 牌画像から手牌入力・削除・枚数制限・ドラとの合算制限');
     $('text').value = '234567m345p6678s5p'; $('parse').click();
     assert($('cards').children.length === 14, '14枚の表示');
     $('cards').children[9].querySelectorAll('button')[1].click();
@@ -23,6 +39,7 @@ document.getElementById('integration').onclick = async function () {
     assert($('message').textContent.includes('保存しました'), '文字列保存');
     assert($('source').value === '結合テスト出典' && !$('source-memo').value && !$('text').value, '連続登録の初期化');
     logs.push('PASS 文字列入力・正解選択・保存・出典のみ引き継ぎ');
+    addTile('dora', '9m');
     const blob = await (await fetch('test-fixtures/quick-hand.png')).blob();
     const transfer = new win.DataTransfer(); transfer.items.add(new win.File([blob], 'quick-hand.png', { type: 'image/png' }));
     $('file').files = transfer.files; $('file').dispatchEvent(new win.Event('change'));
@@ -31,12 +48,15 @@ document.getElementById('integration').onclick = async function () {
     const pointer = (type, x, y) => canvas.dispatchEvent(new win.PointerEvent(type, { pointerId: 1, clientX: rect.left + x * rect.width / canvas.width, clientY: rect.top + y * rect.height / canvas.height, bubbles: true }));
     // 合成イベントは実ポインタを保持しないため、テスト内のみcaptureを置き換える。
     canvas.setPointerCapture = () => {};
-    pointer('pointerdown', 20, 30); pointer('pointermove', 968, 120); pointer('pointerup', 968, 120);
+    pointer('pointerdown', 0, 0); pointer('pointermove', 988, 150); pointer('pointerup', 988, 150);
     $('crop').click(); assert(!$('split-area').hidden, '分割領域');
+    assert($('split').width < 988 && $('split').height < 150, '余白を除去');
     $('boundary-index').value = '13'; $('boundary-index').dispatchEvent(new win.Event('change'));
     $('boundary').dispatchEvent(new win.Event('input'));
     $('recognize').click(); await wait(() => !$('fields').disabled);
     assert($('cards').children.length === 14, '画像から14枚');
+    assert($('text').value === '2m3m4m0m6m7m3p4p5p6s6s7s8s5z', '余白を白にしない');
+    assert($('dora-input').children.length === 1, '画像入力でドラを保持');
     logs.push('PASS 画像読込・矩形指定・境界調整・照合');
     // 誤認識があっても全牌を確実に修正できることを検証。
     const expected = '2m 3m 4m 0m 6m 7m 3p 4p 5p 6s 6s 7s 8s 5z'.split(' ');
@@ -58,20 +78,22 @@ document.getElementById('integration').onclick = async function () {
     const problems = JSON.parse(win.localStorage.getItem('nankiru_problems'));
     assert(problems.length === baseline + 2, '重複登録しない: baseline=' + baseline + ', actual=' + problems.length);
     const last = problems[problems.length - 1];
-    assert(last.hand.join(' ') === expected.join(' ') && last.dora.length === 0 && last.ukeireruAuto.length, '画像問題の保存内容');
+    assert(last.hand.join(' ') === expected.join(' ') && last.dora[0] === '9m' && last.ukeireruAuto.length, '画像問題とドラの保存内容');
+    assert($('dora-input').children.length === 0, '次問ではドラを初期化');
     logs.push('PASS 手動修正・確認必須・保存失敗保持・再試行・連打防止・受け入れ計算');
     const savedSamples = await win.NankiruQuickSamples.list('標準');
     assert(savedSamples.some(s => s.code === '0m') && savedSamples.some(s => s.code === '5z'), '修正した見本の保存');
     logs.push('PASS 修正済み画像の端末内見本保存');
-    $('text').value = '234567m345p6678s5p'; $('parse').click();
+    paletteHand.forEach(c => addTile('hand', c)); addTile('dora', '9p');
     $('cards').children[9].querySelectorAll('button')[1].click();
     $('source').value = '一覧に未登録の出典'; $('source-memo').value = '問7';
     $('detail').click(); await wait(() => !$('fields').disabled);
     assert(doc.getElementById('screen-editor').style.display !== 'none', '詳細編集画面');
     assert(doc.getElementById('source-select').value === '一覧に未登録の出典' && doc.getElementById('source-memo-input').value === '問7', '出典引継ぎ');
+    assert(doc.getElementById('dora-count').textContent === '1', 'ドラ表示牌引継ぎ');
     await win.saveProblem();
-    assert(doc.getElementById('screen-list').style.display !== 'none', 'ドラなし詳細保存');
-    logs.push('PASS 未登録出典の詳細引継ぎ・ドラなし詳細保存');
+    assert(doc.getElementById('screen-list').style.display !== 'none', 'ドラあり詳細保存');
+    logs.push('PASS 牌画像入力の詳細引継ぎ・出典とドラの保持・詳細保存');
     await win.openEditor(last); await win.saveProblem();
     assert(JSON.parse(win.localStorage.getItem('nankiru_problems')).length === baseline + 3, '再編集で件数増加なし');
     logs.push('PASS 保存済み問題の再編集');
@@ -89,13 +111,13 @@ document.getElementById('integration').onclick = async function () {
     const qw = quizFrame.contentWindow;
     qw.startSingleQuiz(last);
     const tiles = qw.document.querySelectorAll('#hand-tiles [data-index]');
-    assert(tiles.length === 14, 'ドラなし出題14枚');
+    assert(tiles.length === 14, 'ドラあり出題14枚');
     // 正解が白なので、萬筒索のランダム入替に左右されない。
     const correct = [...tiles].find(t => t.querySelector('img')?.src.endsWith('/5z.png'));
     assert(correct, '白の正解牌'); correct.click();
     assert(qw.document.getElementById('screen-quiz').classList.contains('is-answered'), '回答完了');
     assert(qw.document.body.textContent.includes('正解！'), '正解判定');
-    logs.push('PASS 簡易登録したドラなし問題の出題・正解判定');
+    logs.push('PASS 簡易登録したドラあり問題の出題・正解判定');
     output.textContent = logs.join('\n') + '\n結合テスト完了';
   } catch (e) { output.textContent = logs.join('\n') + '\nFAIL ' + e.message; }
   finally {
