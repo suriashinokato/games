@@ -1,10 +1,17 @@
 extends Node2D
-## Original vector artwork, drawn locally. No downloaded character assets.
+## Storybook sprites with separately drawn, changeable accessories.
 const Rules = preload("res://scripts/salon_model.gd")
 const INK = Color("79675f")
 const ROOM_TEXTURE = preload("res://assets/storybook/salon.png")
 const CHARACTER_TEXTURE = preload("res://assets/storybook/characters.png")
 const SPRITE_INDEX = {"rabbit": 0, "dog": 1, "cat": 2, "sheep": 3, "penguin": 4, "bear": 5}
+const CHARACTER_RECT = Rect2(135, 112, 340, 340)
+# Neck center in each 512px sprite cell. The animals are not centered identically.
+const NECK_ANCHORS = {
+	"rabbit": Vector2(280, 398), "dog": Vector2(258, 389),
+	"cat": Vector2(248, 398), "sheep": Vector2(275, 355),
+	"penguin": Vector2(256, 345), "bear": Vector2(257, 346)
+}
 var kind := "rabbit"
 var fur := Color("fff2e6")
 var selection: Array = [-1, -1, -1]
@@ -135,11 +142,10 @@ func character() -> void:
 		for x in [-80, 80]:
 			ellipse(Vector2(x, -69), Vector2(35, 36 if kind == "bear" else 25), fur, true)
 			ellipse(Vector2(x, -69), Vector2(19, 20 if kind == "bear" else 13), Color("cfac98"))
-	# Apron, hands and feet.
+	# Body, hands and feet.
 	ellipse(Vector2(0, 98), Vector2(76, 80), fur, true)
 	ellipse(Vector2(-51, 157), Vector2(32, 21), fur, true)
 	ellipse(Vector2(51, 157), Vector2(32, 21), fur, true)
-	rounded(Rect2(-62, 61, 124, 99), Color("b1ccbc"), 30, Color("91b3a0"), 2)
 	for x in [-69, 69]:
 		ellipse(Vector2(x, 101), Vector2(21, 35), fur, true)
 	ellipse(Vector2.ZERO, Vector2(105, 91), fur, true)
@@ -181,14 +187,15 @@ func storybook_room() -> void:
 	var bob := sin(clock * 2.0) * 2.0 if not reduced_motion else 0.0
 	var index: int = SPRITE_INDEX.get(kind, 0)
 	var cell := Rect2((index % 3) * 512, (index / 3) * 512, 512, 512)
-	draw_texture_rect_region(CHARACTER_TEXTURE, Rect2(135, 112 + bob, 340, 340), cell)
+	draw_texture_rect_region(CHARACTER_TEXTURE, Rect2(CHARACTER_RECT.position + Vector2(0, bob), CHARACTER_RECT.size), cell)
 	if selection[0] >= 0:
 		var tint: Color = Rules.PALETTE[selection[1]] if selection[1] >= 0 else Color("d4ccc1")
 		accessory(selection[0], Vector2(379, 246 + bob), tint.darkened(0.25), 0.91)
 		accessory(selection[0], Vector2(378, 243 + bob), tint, 0.85)
 	if selection[2] >= 0:
-		accessory(2, Vector2(305, 377 + bob), Rules.PALETTE[selection[2]].darkened(0.22), 0.85)
-		accessory(2, Vector2(305, 374 + bob), Rules.PALETTE[selection[2]], 0.8)
+		var neck: Vector2 = CHARACTER_RECT.position + NECK_ANCHORS.get(kind, NECK_ANCHORS.rabbit) * CHARACTER_RECT.size / 512.0 + Vector2(0, bob)
+		accessory(2, neck + Vector2(0, 3), Rules.PALETTE[selection[2]].darkened(0.22), 0.85)
+		accessory(2, neck, Rules.PALETTE[selection[2]], 0.8)
 	if happy:
 		for i in range(6):
 			var at := Vector2(135 + (i % 2) * 340, 140 + (i / 2) * 102)

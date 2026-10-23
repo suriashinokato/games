@@ -62,7 +62,7 @@ func run() -> void:
 	for broken in [null, [], {}, {"version": 1}, "bad", 42]:
 		check(not Rules.validate(broken), "invalid root rejected")
 	for key in Rules.fresh_state():
-		if key == "album":
+		if key in ["album", "location", "bakery"]:
 			continue
 		var missing: Dictionary = Rules.fresh_state()
 		missing.erase(key)
@@ -97,6 +97,7 @@ func run() -> void:
 	check(not impossible.save_state(model.state), "write failure reported")
 	check(not save.save_state({}), "invalid save never replaces data")
 	test_album()
+	test_locations()
 	print("RULES TESTS: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -113,6 +114,7 @@ func test_album() -> void:
 			old.choose(2, 1)
 			old.finish()
 		old.state.erase("album")
+		old.state.erase("location")
 		var legacy: Dictionary = JSON.parse_string(JSON.stringify(old.state))
 		check(model.restore(legacy), "legacy save restores: " + phase)
 		check(model.state.album.is_empty() and model.state.phase == phase, "legacy progress preserved without invented history")
@@ -159,3 +161,31 @@ func test_album() -> void:
 	duplicate.album.pop_front()
 	check(not Rules.validate(duplicate), "duplicate album index rejected")
 	check(Rules.fresh_state().album.is_empty(), "new game clears album")
+
+func test_locations() -> void:
+	var model = Rules.new()
+	check(model.state.location == "town", "new game starts in town")
+	var disk = Store.new("res://tests/_runtime/location_save.json")
+	for phase in ["reception", "dress", "result"]:
+		var old = Rules.new()
+		if phase != "reception":
+			old.begin_dressing()
+			old.choose(0, 0)
+		if phase == "result":
+			old.choose(1, 0)
+			old.choose(2, 1)
+			old.finish()
+		old.state.erase("location")
+		check(model.restore(JSON.parse_string(JSON.stringify(old.state))), "pre-town save restores")
+		check(model.state.location == "salon" and model.state.phase == phase, "legacy exact salon phase retained")
+		check(model.state.album == old.state.album, "legacy album preserved")
+		for destination in ["town", "salon"]:
+			model.state.location = destination
+			check(disk.save_state(model.state), "save location and phase")
+			var reloaded = Rules.new()
+			check(reloaded.restore(disk.load_state()) and reloaded.state == model.state, "location disk roundtrip")
+			check(reloaded.state.version == 1, "save format version retained")
+	for value in [null, 1, [], {}, "shop", "", true]:
+		var broken: Dictionary = Rules.fresh_state()
+		broken.location = value
+		check(not Rules.validate(broken), "invalid location rejected")

@@ -29,3 +29,11 @@
 アイコン原画は `references/momo_icon_source.png`、ゲーム用は `assets/icon.png`、Windows用は `assets/icon.ico` です。ブラウザー用に `assets/favicon.ico` と `assets/favicon.png` も用意しています。
 
 Windows版では日本語フォントとゲームデータを実行ファイルに埋め込み、使用許諾文を `licenses` に同梱しています。
+
+## 絵本版1.4の追加素材
+
+- `assets/storybook/bakery.png`：花と木のぬくもりを持つパン屋の店内。
+- `assets/storybook/breads.png`：ミルク・ココア・全粒粉の3種類のパン。透明背景、横3セル。
+- `assets/storybook/town.png`：中央にパン屋を加えた広場。
+
+組み込み画像生成で制作しました。既存背景を画風の基準にしています。具材、オーブンの演出、湯気はGDScriptで描画します。生成指示は `ASSET_PROMPTS.md` に記録しています。

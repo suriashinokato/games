@@ -4,12 +4,17 @@ const Rules = preload("res://scripts/salon_model.gd")
 const Store = preload("res://scripts/save_store.gd")
 const Art = preload("res://scripts/salon_art.gd")
 const Sound = preload("res://scripts/salon_audio.gd")
+const BakeryRules = preload("res://scripts/bakery_model.gd")
+const BakeryView = preload("res://scripts/bakery_view.gd")
+const Town = preload("res://scripts/town_view.gd")
 const INK = Color("635951")
 const MUTED = Color("8e8277")
 const GREEN = Color("547e6e")
 const CREAM = Color("fffdf7")
 const ACCENT = Color("c47890")
 
+var bakery = BakeryRules.new()
+var bake_elapsed := 0.0
 var model = Rules.new()
 var store = Store.new()
 var audio: Node
@@ -116,7 +121,7 @@ func new_screen() -> void:
 	label(screen, "MOKOMOKO OMISE TOWN", Rect2(36, 17, 400, 24), 13, GREEN)
 	button(screen, "音：オン" if audio.enabled else "音：オフ", Rect2(1110, 27, 134, 44), toggle_sound, false, "SoundButton")
 	status_label = label(screen, "", Rect2(36, 754, 1010, 28), 15, MUTED)
-	label(screen, "にこにこサロン  /  絵本版 1.2", Rect2(978, 754, 270, 28), 13, MUTED, true)
+	label(screen, "おみせタウン  /  絵本版 1.4", Rect2(978, 754, 270, 28), 13, MUTED, true)
 	button(screen, "おめかしアルバム", Rect2(720, 27, 208, 44), open_album, false, "AlbumButton")
 
 func toggle_sound() -> void:
@@ -167,8 +172,8 @@ func show_title() -> void:
 	label(screen, "ちいさなお店の、はじめの一歩。", Rect2(58, 138, 550, 38), 21, GREEN)
 	label(screen, "もこもこ\nおみせタウン", Rect2(54, 188, 590, 158), 57, INK)
 	panel(screen, Rect2(58, 376, 277, 48), Color("f3dce0"), 24)
-	label(screen, "1店舗め  にこにこサロン", Rect2(66, 376, 261, 48), 19, Color("926571"), true)
-	label(screen, "おはなに、リボンに、おほしさま。\nお客さまの「なりたい」を、かなえよう。", Rect2(60, 448, 565, 72), 22, MUTED)
+	label(screen, "サロン ＆ ベーカリー", Rect2(66, 376, 261, 48), 19, Color("926571"), true)
+	label(screen, "かわいく、おめかし。おいしく、焼きたて。\n２つのお店で、にこにこのおもてなし。", Rect2(60, 448, 565, 72), 22, MUTED)
 	button(screen, "つづきから", Rect2(60, 555, 260, 65), continue_game, true, "ContinueButton").disabled = saved_data == null
 	button(screen, "はじめから", Rect2(336, 555, 260, 65), request_new_game, false, "StartButton")
 	button(screen, "あそびかた", Rect2(60, 638, 260, 52), show_help, false, "HelpButton")
@@ -177,13 +182,13 @@ func show_title() -> void:
 	panel(screen, Rect2(772, 652, 340, 49), CREAM, 24)
 	label(screen, "時間制限なし。ゆっくり、どうぞ。", Rect2(780, 652, 324, 49), 17, GREEN, true)
 	if saved_data != null:
-		status_label.text = "おもてなし %d人  ・  合計 %d点  ・  つづきから再開できます" % [saved_data.served, saved_data.total]
+		status_label.text = "おもてなし %d人  ・  合計 %d点  ・  つづきから再開できます" % [saved_data.served + saved_data.get("bakery", {}).get("served", 0), saved_data.total + saved_data.get("bakery", {}).get("total", 0)]
 	if not store.message.is_empty():
 		status_label.text = store.message
 
 func request_new_game() -> void:
 	if saved_data != null:
-		show_modal("はじめから遊ぶ？", "進み具合とアルバムを、新しいセーブに置きかえます。", "はじめから遊ぶ", start_new_game)
+		show_modal("はじめから遊ぶ？", "２つのお店の進み具合とアルバムを置きかえます。", "はじめから遊ぶ", start_new_game)
 	else:
 		start_new_game()
 
@@ -191,7 +196,7 @@ func start_new_game() -> void:
 	model = Rules.new()
 	model.state.sound = audio.enabled
 	active_game = true
-	show_game()
+	show_current_location()
 	save_game()
 
 func continue_game() -> void:
@@ -201,8 +206,48 @@ func continue_game() -> void:
 		return
 	audio.enabled = model.state.sound
 	active_game = true
-	show_game()
+	show_current_location()
 	status_label.text = "バックアップから再開しました" if store.recovered else "つづきから再開しました"
+
+func show_current_location() -> void:
+	bakery.state = model.state.bakery
+	if model.state.location == "town":
+		show_town()
+	elif model.state.location == "bakery":
+		show_bakery()
+	else:
+		show_game()
+
+func show_town() -> void:
+	current_view = "town"
+	new_screen()
+	Town.new().build(self)
+	status_label.text = "お店のボタンをクリックすると、遊びに行けます"
+
+func return_town() -> void:
+	if not active_game:
+		return
+	model.state.location = "town"
+	show_town()
+	save_game()
+
+func visit_place(place_id: String) -> void:
+	if not active_game or current_view != "town":
+		return
+	if place_id == "salon":
+		model.state.location = "salon"
+		show_game()
+		save_game()
+	elif place_id == "bakery":
+		model.state.location = "bakery"
+		bakery.state = model.state.bakery
+		show_bakery()
+		save_game()
+	elif place_id == "general_store":
+		var holder := modal_base()
+		label(holder, "こもれび雑貨店", Rect2(330, 260, 620, 48), 29, INK, true)
+		label(holder, "ただいま、開店じゅんび中。\nすてきな小物を並べているよ。\nお買いものができる日を、お楽しみに！", Rect2(330, 324, 620, 115), 21, MUTED, true)
+		button(holder, "楽しみにしているね", Rect2(440, 463, 400, 59), close_modal, true, "ShopCloseButton")
 
 func show_game() -> void:
 	current_view = model.state.phase
@@ -211,6 +256,7 @@ func show_game() -> void:
 	label(screen, "%d日め  /  %d人め" % [model.day(), model.seat()], Rect2(678, 94, 240, 32), 18, GREEN)
 	label(screen, "合計  %d pt" % model.state.total, Rect2(975, 94, 263, 32), 18, MUTED, true)
 	button(screen, "タイトルへ", Rect2(944, 27, 152, 44), return_title, false, "TitleButton")
+	button(screen, "広場へ", Rect2(550, 27, 152, 44), return_town, false, "TownButton")
 	add_room(Vector2(28, 144))
 	panel(screen, Rect2(47, 655, 572, 72), CREAM, 20)
 	label(screen, "%s さん" % model.customer().name, Rect2(65, 659, 150, 58), 25, INK, true)
@@ -320,8 +366,11 @@ func show_result() -> void:
 	button(screen, "つぎの日へ  →" if day_end else "つぎのお客さまへ  →", Rect2(678, 650, 558, 64), next_customer, true, "NextButton")
 
 func next_customer() -> void:
+	var day_end: bool = model.state.phase == "result" and model.state.served % 3 == 0
 	if model.next_customer():
-		show_game()
+		if day_end:
+			model.state.location = "town"
+		show_current_location()
 		save_game()
 
 func return_title() -> void:
@@ -408,7 +457,7 @@ func show_modal(title: String, body: String, confirm: String, action: Callable) 
 func show_help() -> void:
 	var holder := modal_base()
 	label(holder, "あそびかた", Rect2(330, 261, 620, 47), 29, INK, true)
-	label(holder, "① お客さまの「おねがい」を読む。\n② 形と２つの色を、左クリックでえらぶ。\n③ 「できあがり」で、にこにこチェック！", Rect2(350, 325, 580, 112), 21)
+	label(holder, "① 広場で、遊びたいお店をえらぼう。\n② サロンは形と色、パン屋は生地・具材・焼き加減。\n③ おねがいどおり作ると、100点！", Rect2(350, 325, 580, 112), 21)
 	button(holder, "わかった！", Rect2(464, 463, 352, 59), close_modal, true, "HelpCloseButton")
 
 func quit_game() -> void:
@@ -436,3 +485,59 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			close_modal()
 		elif current_view != "title":
 			return_title()
+
+
+func show_bakery() -> void:
+	current_view = "bakery_" + bakery.state.phase
+	bake_elapsed = 0.0
+	new_screen()
+	BakeryView.new().build(self)
+	status_label.text = "生地と具材をえらんで、あなただけのパンを焼こう"
+
+func bakery_begin() -> void:
+	if bakery.begin():
+		audio.play("welcome")
+		show_bakery()
+		save_game()
+
+func bakery_choose(slot: int, value: int) -> void:
+	if bakery.choose(slot, value):
+		update_bakery_selection()
+		save_game()
+
+func update_bakery_selection() -> void:
+	illustration.selection = bakery.state.selection.duplicate()
+	illustration.queue_redraw()
+	for item in option_buttons:
+		var selected: bool = bakery.state.selection[item.slot] == item.value
+		item.button.add_theme_stylebox_override("normal", box(Color("f3e4c8") if selected else CREAM, 16, GREEN if selected else Color("ded6c9"), 3 if selected else 1))
+		item.button.tooltip_text = "えらんでいます" if selected else "クリックしてえらぶ"
+	var missing: int = bakery.state.selection.count(-1)
+	selection_label.text = "焼くじゅんびができたよ！" if missing == 0 else "あと %dつ えらんでね" % missing
+	finish_button.disabled = not bakery.ready_to_bake()
+
+func bakery_bake() -> void:
+	if bakery.bake():
+		show_bakery()
+		save_game()
+
+func _process(delta: float) -> void:
+	if not active_game or current_view != "bakery_baking" or is_instance_valid(modal) or quitting:
+		return
+	bake_elapsed += delta
+	var progress := minf(bake_elapsed / 3.0, 1.0)
+	screen.get_node("BakeProgress").value = progress * 100
+	screen.get_node("OvenArt").progress = progress
+	screen.get_node("OvenArt").queue_redraw()
+	if progress >= 1.0 and bakery.complete_bake():
+		audio.play("good" if bakery.state.last_score == 100 else "soft")
+		show_bakery()
+		save_game()
+
+func bakery_next() -> void:
+	var day_end: bool = bakery.state.phase == "result" and bakery.state.served % 3 == 0
+	if bakery.next_customer():
+		if day_end:
+			model.state.location = "town"
+		show_current_location()
+		save_game()

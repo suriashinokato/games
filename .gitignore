@@ -63,5 +63,6 @@ disk_cleanup_admin.ps1
 
 # MokomokoSalon local release artifacts
 /MokomokoSalon-Windows/
+/MokomokoSalon-Windows-1.4/
 /MokomokoSalon-Storybook-Windows.zip
 /MokomokoSalon-Storybook-GodotProject.zip
