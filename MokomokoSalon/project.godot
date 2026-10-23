@@ -1,0 +1,29 @@
+; Open with Godot 4.5.1 Standard (GDScript).
+config_version=5
+
+[application]
+config/name="もこもこおみせタウン - にこにこサロン"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.5", "GL Compatibility")
+config/icon="res://assets/icon.png"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="MokomokoSalon"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/size/min_width=960
+window/size/min_height=600
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.98, 0.96, 0.92, 1)
+
+[audio]
+driver/enable_input=false
