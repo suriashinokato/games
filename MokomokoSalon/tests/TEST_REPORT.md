@@ -1,3 +1,53 @@
+# 検証報告（絵本版1.5.1・再開優先と設定の可読性）
+
+実施日：2026年10月24日（日本時間）
+
+セーブがある場合は「つづきから」を上段の主ボタンにし、新規開始は下段の小さな「はじめから」にしました。セーブがない場合だけ「はじめる」を主ボタンにします。主ボタンは高さ105→76、文字52→34に縮小しました。
+設定ポップアップは幅680→760・高さ310→370へ広げ、見出し29→36、ボタン文字20→27、説明18→22に変更しました。文字色を濃くし、適度な太さ、濃い背景の遮光、白文字を読みやすくする深緑の閉じるボタンを採用しました。
+
+- ソースの実描画・マウス操作：98チェック、失敗0。
+- Windows版で同じ操作テスト：98チェック、失敗0、終了コード0。
+- 最終名のexeによる通常起動：終了コード0、本番セーブの前後SHA-256一致。
+- 960×600の設定画面で文字の収まりと操作を確認。保存済みのタイトルで再開が主、新規開始が副になる実画面を確認。
+- ゲームルールとセーブ形式に変更なし。今回の変更に対してルールの再テストは行わず、前回の2,080チェックと今回の画面・保存・再開の回帰テストを参照。
+
+初回のソースUIテストではアルバムを閉じたあとの操作が進まず、後続チェックが失敗しました。画面遷移の診断ログを追加した再実行と、診断なしのWindows版テストでは再現せず、両方とも全項目を通過しました。初回の原因は特定できていません。
+
+ログ：`tests/_runtime/title_readability_compile.log`、`title_readability_ui.log`（診断付き再実行）、`title_readability_export.log`、`title_readability_export_ui.log`、`title_readability_launch.log`。
+画像：`screenshots/23_opening_continue.png`（保存済みタイトル）、`22_opening_settings.png`（設定・960×600）、`01_title.png`（セーブなし）。
+製品バージョンは1.5.1.0、配布先は引き続き `dist/Windows/NikonikoSalon.exe` です。ZIPも同じ `dist` 内に更新しています。
+
+---
+
+# 検証報告（絵本版1.5・オープニング画面）
+
+実施日：2026年10月24日（日本時間）
+
+## 今回の結果
+
+参考画像の構成に合わせ、町と6人の仲間の一枚絵、大きな日本語タイトル、右下の開始・再開・設定ボタンを実装しました。ゲームの進行・採点・セーブ形式は変更していません。
+
+| 対象 | 結果 |
+| --- | --- |
+| サロン・アルバム・広場・保存 | 1,559チェック、失敗0 |
+| パン屋・セーブ互換性 | 521チェック、失敗0 |
+| ソースでの画面操作・画像保存 | 98チェック、失敗0（21枚の画像保存を含む） |
+| Windows版での同じ画面操作 | 98チェック、失敗0、終了コード0 |
+| 最終Windows版の通常起動 | 終了コード0、実行ログにエラー・警告なし |
+| 通常起動前後の本番セーブ | SHA-256一致 |
+| 実行ファイルの製品バージョン | 1.5.0.0 |
+
+追加の確認項目：1280×800に収まる背景、960×600でのタイトル・設定操作、設定モーダルによる背景ボタンの遮断、セーブなしの音切替、セーブありの音設定の永続化、あそびかたへの遷移、アルバムの開閉、新規開始前の確認、サロンとパン屋それぞれの途中再開。
+
+新しい画面は `screenshots/01_title.png`、`21_opening_small.png`、`22_opening_settings.png`、`23_opening_continue.png` で確認できます。Windows版の画像は `tests/_runtime/opening_export_ui/screenshots` にあります。
+ログは `tests/_runtime/opening_compile.log`、`opening_test_rules.gd.log`、`opening_test_bakery.gd.log`、`opening_ui.log`、`opening_export.log`、`opening_export_ui.log`、`opening_launch.log` です。最初のインポートで見つかった型推論エラーを修正後、コンパイルとソース・Windows版の全UIテストを再実行して通過しました。
+
+配布先は引き続き `dist/Windows/NikonikoSalon.exe` です。検証用の一時exeを最終名へ移動し、重複する実行ファイルは残していません。ルートの関連フォルダーは `MokomokoSalon` の1つです。Windows版・GodotプロジェクトのZIPも `dist` 内に更新しました。
+
+検証環境はGodot 4.5.1、Windows x86_64、NVIDIA GeForce GTX 1660、OpenGL 3.3です。別PC・GPUでの動作や効果音の人による試聴は未検証です。
+
+---
+
 # 検証報告（絵本版1.4・こむぎベーカリー）
 
 実施日：2026年10月23日（日本時間）
@@ -53,13 +103,13 @@ Godot 4.5.1 StandardでWindows x86_64 Releaseを書き出しました。製品�
 - ログ：bakery_import.log、test_rules.gd.log、test_bakery.gd.log、bakery_ui.log、bakery_export.log、bakery_release_ui.log、bakery_launch.log（tests/_runtime内）。
 - screenshots/16_bakery_reception.png：受付、17_bakery_prepare.png：選択、18_bakery_oven.png：焼成、19_bakery_result.png：結果、20_bakery_small.png：960×600。
 - Windows版の同じ18画面は tests/_runtime/bakery_release_ui/screenshots に保存。
-- 配布実行ファイルの検証には tests/_runtime/bakery_release/NikonikoSalon.exe を使用。
+- 配布実行ファイルの検証には当時 tests/_runtime/bakery_release/NikonikoSalon.exe を使用。検証後の整理でこの重複コピーは削除し、同一のexeを dist/Windows に保持。
 
 途中の検証で既存画像の保存が1回失敗したため、画面保存先を検証専用フォルダーに変更し、全UIテストを再実行して通過しました。
 既存配布exeは旧版の起動中プロセスに使用され、直接書き出しに失敗したため、専用出力先に書き出して成功しています。
 置き換え失敗直後に旧exeへ新テストを実行した回はパン屋機能がなく失敗しました。上表は新しく生成した1.4.0.0のexeを明示して再検証した結果です。
 
-ローカル納品先は `MokomokoSalon-Windows/NikonikoSalon.exe` です。`MokomokoSalon-Windows-1.4` にも同じ版を残しています。検証済みexeとSHA-256が一致しています。Windows版ZIPとGodotプロジェクトZIPはCRC検査を通過し、テスト用セーブ・実行ツール・Godotキャッシュを含みません。
+現在のローカル納品先はプロジェクト内の `dist/Windows/NikonikoSalon.exe` です。検証済みexeとSHA-256が一致しています。Windows版ZIPとGodotプロジェクトZIPはCRC検査を通過し、テスト用セーブ・実行ツール・Godotキャッシュを含みません。
 
 ## 範囲と未検証
 
@@ -69,3 +119,9 @@ Godot 4.5.1 StandardでWindows x86_64 Releaseを書き出しました。製品�
 ## 2026年10月24日・元のフォルダーへの更新
 
 ユーザーによる旧版の終了後、検証済み1.4.0.0を元の `MokomokoSalon-Windows` に反映しました。実行ファイルのSHA-256一致、通常起動の終了コード0、本番セーブの起動前後のハッシュ一致を確認しました。ログは `tests/_runtime/bakery_updated_launch.log` です。ゲームコードの変更はありません。
+
+## 2026年10月24日・フォルダー整理
+
+リポジトリ直下の関連フォルダーを `MokomokoSalon` の1つに集約しました。Windows版は `dist/Windows`、配布ZIPは `dist` へ移動しました。別置き1.4版と検証用書き出しコピーは、各14ファイルすべてのSHA-256一致を確認して削除しました。開発コード・素材・検証ログ・本番セーブは維持しています。
+
+移動後のexeは検証済み1.4版とSHA-256が一致し、新しい作業ディレクトリからの通常起動は終了コード0、本番セーブも起動前後で同一でした。ログは `tests/_runtime/consolidated_launch.log` です。エクスポート設定の出力先も更新し、`dist` をGodotの走査・エクスポートとGit管理から除外しました。

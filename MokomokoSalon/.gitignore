@@ -2,3 +2,4 @@
 *.tmp
 *.log
 tests/_runtime/
+dist/

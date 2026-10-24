@@ -6,6 +6,7 @@ const Art = preload("res://scripts/salon_art.gd")
 const Sound = preload("res://scripts/salon_audio.gd")
 const BakeryRules = preload("res://scripts/bakery_model.gd")
 const BakeryView = preload("res://scripts/bakery_view.gd")
+const TitleView = preload("res://scripts/title_view.gd")
 const Town = preload("res://scripts/town_view.gd")
 const INK = Color("635951")
 const MUTED = Color("8e8277")
@@ -105,7 +106,7 @@ func button(parent: Node, text: String, rect: Rect2, callback: Callable, primary
 	parent.add_child(b)
 	return b
 
-func new_screen() -> void:
+func new_screen(with_chrome: bool = true) -> void:
 	if is_instance_valid(screen):
 		remove_child(screen)
 		screen.queue_free()
@@ -116,18 +117,20 @@ func new_screen() -> void:
 	screen.name = "Screen"
 	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(screen)
+	if not with_chrome:
+		return
 	panel(screen, Rect2(0, 0, 1280, 800), Color("faf6ed"), 0)
 	panel(screen, Rect2(0, 0, 1280, 6), Color("b3c9b6"), 0)
 	label(screen, "MOKOMOKO OMISE TOWN", Rect2(36, 17, 400, 24), 13, GREEN)
 	button(screen, "音：オン" if audio.enabled else "音：オフ", Rect2(1110, 27, 134, 44), toggle_sound, false, "SoundButton")
 	status_label = label(screen, "", Rect2(36, 754, 1010, 28), 15, MUTED)
-	label(screen, "おみせタウン  /  絵本版 1.4", Rect2(978, 754, 270, 28), 13, MUTED, true)
+	label(screen, "おみせタウン  /  絵本版 1.5.1", Rect2(978, 754, 270, 28), 13, MUTED, true)
 	button(screen, "おめかしアルバム", Rect2(720, 27, 208, 44), open_album, false, "AlbumButton")
 
 func toggle_sound() -> void:
 	audio.enabled = not audio.enabled
 	model.state.sound = audio.enabled
-	var b := screen.get_node("SoundButton") as Button
+	var b := screen.find_child("SoundButton", true, false) as Button
 	b.text = "音：オン" if audio.enabled else "音：オフ"
 	if active_game:
 		save_game()
@@ -168,19 +171,8 @@ func show_title() -> void:
 	saved_data = store.load_state()
 	if saved_data != null:
 		audio.enabled = saved_data.sound
-	new_screen()
-	label(screen, "ちいさなお店の、はじめの一歩。", Rect2(58, 138, 550, 38), 21, GREEN)
-	label(screen, "もこもこ\nおみせタウン", Rect2(54, 188, 590, 158), 57, INK)
-	panel(screen, Rect2(58, 376, 277, 48), Color("f3dce0"), 24)
-	label(screen, "サロン ＆ ベーカリー", Rect2(66, 376, 261, 48), 19, Color("926571"), true)
-	label(screen, "かわいく、おめかし。おいしく、焼きたて。\n２つのお店で、にこにこのおもてなし。", Rect2(60, 448, 565, 72), 22, MUTED)
-	button(screen, "つづきから", Rect2(60, 555, 260, 65), continue_game, true, "ContinueButton").disabled = saved_data == null
-	button(screen, "はじめから", Rect2(336, 555, 260, 65), request_new_game, false, "StartButton")
-	button(screen, "あそびかた", Rect2(60, 638, 260, 52), show_help, false, "HelpButton")
-	button(screen, "おしまい", Rect2(336, 638, 260, 52), quit_game, false, "QuitButton")
-	add_room(Vector2(651, 147), 0.95, true)
-	panel(screen, Rect2(772, 652, 340, 49), CREAM, 24)
-	label(screen, "時間制限なし。ゆっくり、どうぞ。", Rect2(780, 652, 324, 49), 17, GREEN, true)
+	new_screen(false)
+	TitleView.new().build(self)
 	if saved_data != null:
 		status_label.text = "おもてなし %d人  ・  合計 %d点  ・  つづきから再開できます" % [saved_data.served + saved_data.get("bakery", {}).get("served", 0), saved_data.total + saved_data.get("bakery", {}).get("total", 0)]
 	if not store.message.is_empty():
@@ -434,17 +426,17 @@ func show_album() -> void:
 	label(modal, "%d / %d 枚" % [album_page + 1, entries.size()], Rect2(490, 640, 300, 52), 21, INK, true)
 	button(modal, "前の思い出 →", Rect2(800, 640, 260, 52), turn_album.bind(1), false, "AlbumOlderButton").disabled = album_page == entries.size() - 1
 
-func modal_base() -> Control:
+func modal_base(rect: Rect2 = Rect2(300, 240, 680, 310), shade_alpha: float = 0.34) -> Control:
 	close_modal()
 	modal = Control.new()
 	modal.name = "Modal"
 	modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.add_child(modal)
 	var shade := ColorRect.new()
-	shade.color = Color(0.20, 0.18, 0.16, 0.34)
+	shade.color = Color(0.20, 0.18, 0.16, shade_alpha)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal.add_child(shade)
-	panel(modal, Rect2(300, 240, 680, 310), CREAM, 30)
+	panel(modal, rect, CREAM, 30)
 	return modal
 
 func show_modal(title: String, body: String, confirm: String, action: Callable) -> void:
@@ -453,6 +445,30 @@ func show_modal(title: String, body: String, confirm: String, action: Callable) 
 	label(holder, body, Rect2(326, 337, 628, 60), 19, MUTED, true)
 	button(holder, "もどる", Rect2(337, 448, 283, 61), close_modal, false, "CancelButton")
 	button(holder, confirm, Rect2(638, 448, 305, 61), action, true, "ConfirmButton")
+
+func show_settings() -> void:
+	var holder := modal_base(Rect2(260, 210, 760, 370), 0.62)
+	holder.name = "SettingsModal"
+	var strong_font := FontVariation.new()
+	strong_font.base_font = theme.default_font
+	strong_font.variation_embolden = 0.45
+	var heading := label(holder, "せってい", Rect2(300, 232, 680, 54), 36, Color("49372b"), true)
+	heading.add_theme_font_override("font", strong_font)
+	var sound_button := button(holder, "音：オン" if audio.enabled else "音：オフ", Rect2(304, 310, 320, 70), toggle_sound, false, "SoundButton")
+	var help_button := button(holder, "あそびかた", Rect2(656, 310, 320, 70), show_help, false, "HelpButton")
+	label(holder, "音のオン／オフを切り替えられます。", Rect2(300, 397, 680, 38), 22, Color("5d4838"), true)
+	var quit_button := button(holder, "おしまい", Rect2(304, 470, 320, 70), quit_game, false, "QuitButton")
+	var close_button := button(holder, "とじる", Rect2(656, 470, 320, 70), close_modal, true, "SettingsCloseButton")
+	for item in [sound_button, help_button, quit_button, close_button]:
+		item.add_theme_font_override("font", strong_font)
+		item.add_theme_font_size_override("font_size", 27)
+		for color_name in ["font_color", "font_hover_color", "font_pressed_color"]:
+			item.add_theme_color_override(color_name, CREAM if item == close_button else Color("49372b"))
+		if item != close_button:
+			item.add_theme_stylebox_override("normal", box(Color("fff7e7"), 16, Color("b79572"), 2))
+	close_button.add_theme_stylebox_override("normal", box(Color("426a56"), 16))
+	close_button.add_theme_stylebox_override("hover", box(Color("507a64"), 16))
+	close_button.add_theme_stylebox_override("pressed", box(Color("315440"), 16))
 
 func show_help() -> void:
 	var holder := modal_base()
