@@ -29,13 +29,14 @@ func click(node_name: String) -> void:
 	var move := InputEventMouseMotion.new()
 	move.position = at
 	root.push_input(move, true)
+	# Keep the synthetic press/release together. A native pointer event arriving
+	# between frames must not redirect the release of an automated click.
 	for pressed in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.position = at
 		event.button_index = MOUSE_BUTTON_LEFT
 		event.pressed = pressed
 		root.push_input(event, true)
-		await process_frame
 	await settle()
 
 func capture(file_name: String) -> void:
@@ -254,6 +255,7 @@ func run() -> void:
 	check(game.current_view == "dress", "legacy continue goes straight to saved salon phase")
 	await test_bakery()
 	await test_tailor()
+	await test_florist()
 	print("UI TESTS: %d checks, %d failures (rendered=%s)" % [checks, failures, screenshots])
 	game.audio.stop_all()
 	await settle()
@@ -427,3 +429,103 @@ func test_tailor() -> void:
 	await click("StartButton")
 	await click("ConfirmButton")
 	check(game.tailor.state.total == 0 and game.tailor.state.phase == "reception" and game.bakery.state.selection == [-1,-1,-1] and game.model.state.selection == [-1,-1,-1], "new game resets all three shops")
+
+func test_florist() -> void:
+	root.size = Vector2i(1280,800)
+	await settle()
+	await click("SalonButton")
+	await click("DressButton")
+	await click("Shape2")
+	await click("TownButton")
+	await click("BakeryButton")
+	await click("BakeryBeginButton")
+	await click("BakeChoice0_1")
+	await click("TownButton")
+	await click("TailorButton")
+	await click("TailorBeginButton")
+	await click("TailorChoice0_2")
+	await click("TownButton")
+	var before: Dictionary = game.model.state.duplicate(true)
+	await click("FloristButton")
+	check(game.current_view == "florist_reception", "florist accessible from town")
+	await capture("29_florist_reception")
+	await click("FloristBeginButton")
+	check(game.finish_button.disabled, "cannot finish before choosing items")
+	await click("FloristChoice0_0")
+	await click("FloristChoice1_1")
+	check(game.finish_button.disabled and game.illustration.selection == [0,1,-1], "partial bouquet reflected in preview")
+	await click("TitleButton")
+	await click("ContinueButton")
+	check(game.current_view == "florist_prepare" and game.florist.state.selection == [0,1,-1], "partial bouquet resumes from title")
+	await click("TownButton")
+	await click("SalonButton")
+	check(game.current_view == "dress" and game.model.state.selection == [2,-1,-1], "salon still has its own choices")
+	await click("TownButton")
+	await click("BakeryButton")
+	check(game.current_view == "bakery_prepare" and game.bakery.state.selection == [1,-1,-1], "bakery still has its own choices")
+	await click("TownButton")
+	await click("FloristButton")
+	check(game.florist.state.selection == [0,1,-1], "florist resumes after other shops")
+	check(game.tailor.state.selection == [2,-1,-1], "tailor keeps its own progress")
+	await click("FloristChoice2_0")
+	await capture("30_florist_prepare")
+	var outfit: Dictionary = game.model.state.duplicate(true)
+	await click("AlbumButton")
+	await click("FloristFinishButton")
+	check(game.florist.state.total == 0, "album blocks bouquet delivery behind it")
+	await click("AlbumCloseButton")
+	check(game.model.state == outfit, "album does not change bouquet")
+	await click("FloristFinishButton")
+	check(game.current_view == "florist_result" and game.florist.state.last_score == 100, "matching bouquet completes with 100 points")
+	await capture("31_florist_result")
+	await click("TitleButton")
+	await click("ContinueButton")
+	check(game.florist.state.served == 1 and game.florist.state.total == 100, "florist result resumes without duplicate score")
+	check(game.model.state.album.is_empty(), "flower completion does not create a salon memory")
+	for customer in range(2):
+		await click("FloristNextButton")
+		await click("FloristBeginButton")
+		var request: Array = game.florist.order()
+		for slot in range(3):
+			await click("FloristChoice%d_%d" % [slot,(request[slot]+1)%3 if customer == 0 else request[slot]])
+		await click("FloristFinishButton")
+		check(game.florist.state.last_score == (0 if customer == 0 else 100), "wrong and correct bouquets both progress")
+	check(game.florist.state.day_score == 200 and game.florist.state.best_day == 200, "florist day result")
+	await click("FloristNextButton")
+	check(game.current_view == "town" and game.florist.day() == 2 and game.florist.state.day_score == 0, "next day returns town")
+	var has_total := false
+	for child in game.screen.get_children():
+		if child is Label and child.text == "これまでのおもてなし  200点":
+			has_total = true
+	check(has_total, "town includes florist score")
+	var after: Dictionary = game.model.state.duplicate(true)
+	for key in ["florist", "location"]:
+		before.erase(key)
+		after.erase(key)
+	check(before == after, "entire florist day preserves all three other shops and album")
+	root.size = Vector2i(960,600)
+	await settle()
+	await click("FloristButton")
+	await click("FloristBeginButton")
+	for slot in range(3):
+		await click("FloristChoice%d_2" % slot)
+	check(game.florist.state.selection == [2,2,2] and not game.finish_button.disabled, "all items clickable at minimum window size")
+	await capture("32_florist_small")
+	# Capture roses as well as tulips and sunflowers.
+	await click("FloristChoice0_1")
+	await capture("33_florist_rose")
+	var valid_path: String = game.store.path
+	game.store.path = qa_path + "/missing/subdir/no_save.json"
+	await click("TitleButton")
+	check(is_instance_valid(game.modal) and game.current_view == "florist_prepare", "florist failed save protects unfinished work")
+	await click("CancelButton")
+	game.store.path = valid_path
+	await click("TitleButton")
+	await click("StartButton")
+	await click("CancelButton")
+	await click("ContinueButton")
+	check(game.florist.state.selection == [1,2,2] and game.florist.state.total == 200, "cancel reset keeps bouquet")
+	await click("TitleButton")
+	await click("StartButton")
+	await click("ConfirmButton")
+	check(game.florist.state.total == 0 and game.florist.state.phase == "reception" and game.bakery.state.selection == [-1,-1,-1] and game.model.state.selection == [-1,-1,-1] and game.tailor.state.selection == [-1,-1,-1], "new game resets all four shops")

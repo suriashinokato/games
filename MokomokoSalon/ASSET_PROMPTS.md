@@ -105,3 +105,21 @@ Use case: illustration-story. Asset type: square background for a Japanese child
 既存の `assets/storybook/town.png` を編集対象として入力。元画像は残しています。
 
 Use case: precise-object-edit. Input image is the edit target: the existing storybook game town. Change ONLY the rightmost mint-awning storefront from gift shop to a clothing boutique. Replace the gift-box symbol on its wooden sign with a cute pink dress on a small wooden hanger, without letters. Change the shop display windows to a few tiny shirts, dresses and coats on hangers, with folded pastel cloth and spools. Keep the building, mint awning and door in the same position. Preserve left pink salon and mirror sign, middle bakery and bread sign, central fountain, path, spring flowers, trees, clocktower, sunlight, landscape aspect ratio, composition and painterly style. No people, no animals, no text, no UI, no watermark.
+
+# 絵本版1.7・お花ブティック
+
+組み込み image_gen を使用しました。CLI/APIは使用していません。既存の世界観・店内・キャラクターを基準に制作し、以下のプロジェクト内へ保存しています。花束の茎・葉・包み紙・リボンはGDScriptで描画し、選択に応じて花の画像を合成します。
+
+## 店内：assets/storybook/florist.png
+
+Use case: illustration-story. Asset type: square interior background for a Japanese children's storybook flower boutique game. Cozy tiny florist in the warm painterly fairy-tale world of Mokomoko Omise Town: honey wooden beams, cream walls, arched sunny windows showing a spring village, golden pendant lamps, shelves with tissue paper rolls and ribbon spools, ceramic vases of pink tulips, pink roses and yellow sunflowers along the left and right edges. A large uncluttered open center and lower area, broad honey wooden worktable along bottom 22%, for separately composited animal customer and bouquet preview. Delightful hand-painted storybook rendering, gentle detailed flowers, pastel pink and sage palette, soft golden light. Straight-on view, square image. No people, no animals, no central bouquet or vase, no text, no lettering, no UI, no border, no watermark.
+
+## 花3種：assets/storybook/flowers.png
+
+Use case: illustration-story. Asset type: transparent game sprite sheet, THREE equal square cells in one horizontal row, exact 3:1 aspect ratio. Three single flower HEADS viewed from front at identical scale, centered in each cell with generous transparent margin. Left cell: a soft coral pink tulip flower cup with three elegant rounded pointed petals, upright frontal view, no stem. Middle cell: a blush pink rose bloom with beautifully layered spiral petals, frontal view, no stem. Right cell: a golden yellow sunflower with warm brown seed center and overlapping rounded petals, frontal view, no stem. Each flower isolated, no overlap across cells. Rich gentle hand-painted watercolor children's storybook style, subtle warm brown edges, light shading, softly luminous petals, readable silhouettes. Absolutely no stems, no leaves, no vases, no text, no UI, no cast shadows outside flowers. Real transparent background, no checkerboard.
+
+## 広場：assets/storybook/town_florist.png
+
+既存の `assets/storybook/town_tailor.png` を編集対象として指定しました。元画像は残しています。
+
+Use case: precise-object-edit. Input image is the edit target, an existing warm painterly children's storybook town game map. Expand the shopping street to FOUR clearly distinct storefronts across the frame, each taking about one quarter, from LEFT to RIGHT: pink-awning salon with oval mirror emblem, wheat-yellow-awning bakery with bread emblem, mint-awning clothing boutique with dress-on-hanger emblem, NEW lilac-awning flower boutique with a bouquet emblem and vases of pink tulips, roses and golden sunflowers in front. Make the existing buildings slightly narrower as necessary so all four shops have readable facades and entrances. Keep the familiar central fountain in the foreground between bakery and clothing boutique, spring flower beds, blossom framing, cobblestone plaza, clocktower in distance, honey timber, warm sunshine and rich hand-painted storybook style. Keep a broad clear lower foreground for game buttons. Landscape 16:9 composition. No people, no animals, no letters, no text, no UI, no watermark. The four emblems must be visibly different and centered over each shop.

@@ -49,3 +49,11 @@ Windows版では日本語フォントとゲームデータを実行ファイル�
 - `assets/storybook/town_tailor.png`：右のお店を服屋の看板と服の陳列に変更した広場。既存の `town.png` を組み込み画像生成で編集し、別ファイルとして保存。
 - 服の形・そで・えり、見本台は `scripts/tailor_art.gd` で描画。形の組み合わせ27通りを実際の輪郭に反映します。動物は既存の前掛けのない素材を使用。
 - 生成指示は `ASSET_PROMPTS.md` の1.6節に記録しています。
+
+## 絵本版1.7の追加素材
+
+- `assets/storybook/florist.png`：花・包み紙・リボンに囲まれた花屋の店内。
+- `assets/storybook/flowers.png`：チューリップ・バラ・ひまわりの花部分。透明背景、横3セル。
+- `assets/storybook/town_florist.png`：左からサロン・パン屋・服屋・花屋が並ぶ広場。`town_tailor.png` を基に、組み込み画像生成で花屋を追加しました。元画像は残しています。
+- 店内と花も組み込み画像生成で制作。花束の茎・葉・包み紙・中央のリボンはGDScriptで合成・描画します。キャラクターは既存素材を使用しています。
+- 生成指示は `ASSET_PROMPTS.md` の1.7節を参照してください。
