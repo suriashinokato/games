@@ -1,6 +1,7 @@
 extends RefCounted
 ## Pure game rules. Each customer can be scored only once.
 
+const TailorRules = preload("res://scripts/tailor_model.gd")
 const BakeryRules = preload("res://scripts/bakery_model.gd")
 const SHAPES = ["おはな", "おほしさま", "リボン"]
 const COLORS = ["ももいろ", "ミント", "そらいろ", "きいろ"]
@@ -21,7 +22,7 @@ var state: Dictionary = fresh_state()
 static func fresh_state() -> Dictionary:
 	return {"version": 1, "served": 0, "total": 0, "perfect": 0, "day_score": 0,
 		"best_day": 0, "phase": "reception", "selection": [-1, -1, -1],
-		"last_score": -1, "sound": true, "album": [], "location": "town", "bakery": BakeryRules.fresh_state()}
+		"last_score": -1, "sound": true, "album": [], "location": "town", "bakery": BakeryRules.fresh_state(), "tailor": TailorRules.fresh_state()}
 
 func customer_index() -> int:
 	return maxi(0, int(state.served) - (1 if state.phase == "result" else 0))
@@ -98,7 +99,7 @@ static func validate(value: Variant) -> bool:
 		return false
 	var d: Dictionary = value
 	for key in fresh_state():
-		if key in ["album", "location", "bakery"]:
+		if key in ["album", "location", "bakery", "tailor"]:
 			continue # Optional extension: original version-1 saves remain valid.
 		if not d.has(key):
 			return false
@@ -139,9 +140,11 @@ static func validate(value: Variant) -> bool:
 	else:
 		if d.last_score != -1:
 			return false
-	if not d.get("location", "salon") is String or not d.get("location", "salon") in ["town", "salon", "bakery"]:
+	if not d.get("location", "salon") is String or not d.get("location", "salon") in ["town", "salon", "bakery", "tailor"]:
 		return false
 	if not BakeryRules.validate(d.get("bakery", BakeryRules.fresh_state())):
+		return false
+	if not TailorRules.validate(d.get("tailor", TailorRules.fresh_state())):
 		return false
 	return validate_album(d.get("album", []), int(d.served))
 
@@ -172,6 +175,7 @@ func restore(value: Variant) -> bool:
 	if not validate(value):
 		return false
 	state = value.duplicate(true)
+	state.tailor = TailorRules.normalized(state.get("tailor", TailorRules.fresh_state()))
 	state.bakery = BakeryRules.normalized(state.get("bakery", BakeryRules.fresh_state()))
 	if not state.has("album"):
 		state.album = []

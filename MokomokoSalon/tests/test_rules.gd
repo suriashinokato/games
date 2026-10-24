@@ -62,7 +62,7 @@ func run() -> void:
 	for broken in [null, [], {}, {"version": 1}, "bad", 42]:
 		check(not Rules.validate(broken), "invalid root rejected")
 	for key in Rules.fresh_state():
-		if key in ["album", "location", "bakery"]:
+		if key in ["album", "location", "bakery", "tailor"]:
 			continue
 		var missing: Dictionary = Rules.fresh_state()
 		missing.erase(key)

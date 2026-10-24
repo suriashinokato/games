@@ -4,6 +4,8 @@ const Rules = preload("res://scripts/salon_model.gd")
 const Store = preload("res://scripts/save_store.gd")
 const Art = preload("res://scripts/salon_art.gd")
 const Sound = preload("res://scripts/salon_audio.gd")
+const TailorRules = preload("res://scripts/tailor_model.gd")
+const TailorView = preload("res://scripts/tailor_view.gd")
 const BakeryRules = preload("res://scripts/bakery_model.gd")
 const BakeryView = preload("res://scripts/bakery_view.gd")
 const TitleView = preload("res://scripts/title_view.gd")
@@ -14,6 +16,7 @@ const GREEN = Color("547e6e")
 const CREAM = Color("fffdf7")
 const ACCENT = Color("c47890")
 
+var tailor = TailorRules.new()
 var bakery = BakeryRules.new()
 var bake_elapsed := 0.0
 var model = Rules.new()
@@ -124,7 +127,7 @@ func new_screen(with_chrome: bool = true) -> void:
 	label(screen, "MOKOMOKO OMISE TOWN", Rect2(36, 17, 400, 24), 13, GREEN)
 	button(screen, "音：オン" if audio.enabled else "音：オフ", Rect2(1110, 27, 134, 44), toggle_sound, false, "SoundButton")
 	status_label = label(screen, "", Rect2(36, 754, 1010, 28), 15, MUTED)
-	label(screen, "おみせタウン  /  絵本版 1.5.1", Rect2(978, 754, 270, 28), 13, MUTED, true)
+	label(screen, "おみせタウン  /  絵本版 1.6", Rect2(978, 754, 270, 28), 13, MUTED, true)
 	button(screen, "おめかしアルバム", Rect2(720, 27, 208, 44), open_album, false, "AlbumButton")
 
 func toggle_sound() -> void:
@@ -174,13 +177,13 @@ func show_title() -> void:
 	new_screen(false)
 	TitleView.new().build(self)
 	if saved_data != null:
-		status_label.text = "おもてなし %d人  ・  合計 %d点  ・  つづきから再開できます" % [saved_data.served + saved_data.get("bakery", {}).get("served", 0), saved_data.total + saved_data.get("bakery", {}).get("total", 0)]
+		status_label.text = "おもてなし %d人  ・  合計 %d点  ・  つづきから再開できます" % [saved_data.served + saved_data.get("bakery", {}).get("served", 0) + saved_data.get("tailor", {}).get("served", 0), saved_data.total + saved_data.get("bakery", {}).get("total", 0) + saved_data.get("tailor", {}).get("total", 0)]
 	if not store.message.is_empty():
 		status_label.text = store.message
 
 func request_new_game() -> void:
 	if saved_data != null:
-		show_modal("はじめから遊ぶ？", "２つのお店の進み具合とアルバムを置きかえます。", "はじめから遊ぶ", start_new_game)
+		show_modal("はじめから遊ぶ？", "３つのお店の進み具合とアルバムを置きかえます。", "はじめから遊ぶ", start_new_game)
 	else:
 		start_new_game()
 
@@ -202,9 +205,12 @@ func continue_game() -> void:
 	status_label.text = "バックアップから再開しました" if store.recovered else "つづきから再開しました"
 
 func show_current_location() -> void:
+	tailor.state = model.state.tailor
 	bakery.state = model.state.bakery
 	if model.state.location == "town":
 		show_town()
+	elif model.state.location == "tailor":
+		show_tailor()
 	elif model.state.location == "bakery":
 		show_bakery()
 	else:
@@ -234,6 +240,11 @@ func visit_place(place_id: String) -> void:
 		model.state.location = "bakery"
 		bakery.state = model.state.bakery
 		show_bakery()
+		save_game()
+	elif place_id == "tailor":
+		model.state.location = "tailor"
+		tailor.state = model.state.tailor
+		show_tailor()
 		save_game()
 	elif place_id == "general_store":
 		var holder := modal_base()
@@ -473,7 +484,7 @@ func show_settings() -> void:
 func show_help() -> void:
 	var holder := modal_base()
 	label(holder, "あそびかた", Rect2(330, 261, 620, 47), 29, INK, true)
-	label(holder, "① 広場で、遊びたいお店をえらぼう。\n② サロンは形と色、パン屋は生地・具材・焼き加減。\n③ おねがいどおり作ると、100点！", Rect2(350, 325, 580, 112), 21)
+	label(holder, "① 広場で、遊びたいお店をえらぼう。\n② お店のおねがいを見て、３つえらぼう。\n③ おねがいどおり作ると、100点！", Rect2(350, 325, 580, 112), 21)
 	button(holder, "わかった！", Rect2(464, 463, 352, 59), close_modal, true, "HelpCloseButton")
 
 func quit_game() -> void:
@@ -553,6 +564,48 @@ func _process(delta: float) -> void:
 func bakery_next() -> void:
 	var day_end: bool = bakery.state.phase == "result" and bakery.state.served % 3 == 0
 	if bakery.next_customer():
+		if day_end:
+			model.state.location = "town"
+		show_current_location()
+		save_game()
+
+func show_tailor() -> void:
+	current_view = "tailor_" + tailor.state.phase
+	new_screen()
+	TailorView.new().build(self)
+	status_label.text = "服・そで・えりの形をえらんで、お洋服を仕立てよう"
+
+func tailor_begin() -> void:
+	if tailor.begin():
+		audio.play("welcome")
+		show_tailor()
+		save_game()
+
+func tailor_choose(slot: int, value: int) -> void:
+	if tailor.choose(slot, value):
+		update_tailor_selection()
+		save_game()
+
+func update_tailor_selection() -> void:
+	illustration.selection = tailor.state.selection.duplicate()
+	illustration.queue_redraw()
+	for item in option_buttons:
+		var selected: bool = tailor.state.selection[item.slot] == item.value
+		item.button.add_theme_stylebox_override("normal", box(Color("f1dce6") if selected else CREAM, 16, GREEN if selected else Color("ded6c9"), 3 if selected else 1))
+		item.button.tooltip_text = "えらんでいます" if selected else "クリックしてえらぶ"
+	var missing: int = tailor.state.selection.count(-1)
+	selection_label.text = "仕立てるじゅんびができたよ！" if missing == 0 else "あと %dつ えらんでね" % missing
+	finish_button.disabled = not tailor.ready_to_finish()
+
+func tailor_finish() -> void:
+	if tailor.finish():
+		audio.play("good" if tailor.state.last_score == 100 else "soft")
+		show_tailor()
+		save_game()
+
+func tailor_next() -> void:
+	var day_end: bool = tailor.state.phase == "result" and tailor.state.served % 3 == 0
+	if tailor.next_customer():
 		if day_end:
 			model.state.location = "town"
 		show_current_location()

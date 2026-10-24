@@ -22,7 +22,7 @@ func build(game: Control) -> void:
 	subtitle.add_theme_font_override("font", rounded)
 	menu_button(game, "おめかしアルバム", Rect2(1002, 22, 242, 49), game.open_album, "AlbumButton", rounded)
 	game.panel(game.screen, Rect2(860, 532, 366, 38), Color(1, 0.98, 0.92, 0.94), 19)
-	game.label(game.screen, "サロンとパン屋で、にこにこ おもてなし", Rect2(865, 532, 356, 38), 16, Color("875c3d"), true)
+	game.label(game.screen, "サロン・パン屋・服屋で、おもてなし", Rect2(865, 532, 356, 38), 16, Color("875c3d"), true)
 	var has_save: bool = game.saved_data != null
 	var start_rect := Rect2(820, 678, 200, 58) if has_save else Rect2(820, 584, 420, 76)
 	var resume_rect := Rect2(820, 584, 420, 76) if has_save else Rect2(820, 678, 200, 58)
@@ -37,7 +37,7 @@ func build(game: Control) -> void:
 		primary.add_theme_color_override(font_color, Color("49372b"))
 	menu_button(game, "せってい", Rect2(1036, 678, 204, 58), game.show_settings, "SettingsButton", rounded)
 	game.panel(game.screen, Rect2(0, 755, 1280, 45), Color(0.31, 0.20, 0.14, 0.73), 0)
-	game.label(game.screen, "絵本版 1.5.1", Rect2(28, 761, 145, 30), 15, Color("fff5df"))
+	game.label(game.screen, "絵本版 1.6", Rect2(28, 761, 145, 30), 15, Color("fff5df"))
 	game.status_label = game.label(game.screen, "時間制限なし。ゆっくり、あなたのペースで。", Rect2(200, 761, 1040, 30), 15, Color("fff5df"))
 
 func colored_title(game: Control, text: String, at: Vector2, font_size: int, advance: int, palette: Array, font: Font) -> void:
